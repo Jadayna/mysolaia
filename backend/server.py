@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone, date
 import jwt
 import bcrypt
 
-from seed_products import SEED_PRODUCTS, DEMO_SHELF
+from seed_products import SEED_PRODUCTS
 from engine import compute_routine, exfoliation_days, WEEKDAYS_FR
 
 load_dotenv()
@@ -216,8 +216,6 @@ async def del_shelf(shelf_id: str, user=Depends(current_user)):
 @api_router.get("/routine")
 async def get_routine(phase: str = "soir", user=Depends(current_user)):
     products = await _shelf_products(user["id"])
-    if not products:
-        products = DEMO_SHELF  # demo fallback so the screen never feels empty
     routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1))
     return routine
 
@@ -230,14 +228,13 @@ async def home(user=Depends(current_user)):
     greeting_kind = "matin" if 4 <= hour < 17 else "soir"
     phase = greeting_kind
     products = await _shelf_products(user["id"])
-    demo = not products
-    src = products if products else DEMO_SHELF
-    routine = compute_routine(src, phase=phase, sensibilite=user.get("sensibilite", 1))
+    demo = False
+    routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1))
     shelf_preview = [{"categorie": p["categorie"], "nom": p["nom"], "brand": p["brand"]}
-                     for p in (products[:5] if products else DEMO_SHELF[:5])]
-    has_spf = any(p["categorie"] == "spf" for p in src)
+                     for p in products[:5]]
+    has_spf = any(p["categorie"] == "spf" for p in products)
     suggestion = None
-    if not has_spf:
+    if products and not has_spf:
         suggestion = {"title": "Il te manque un ecran solaire.",
                       "text": "C'est la seule etape du matin qui protege ce que les autres reparent. Deux suggestions t'attendent."}
     return {
@@ -356,7 +353,7 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 @api_router.post("/payments/checkout")
-async def checkout(body: CheckoutIn):
+async def checkout(body: CheckoutIn, user=Depends(current_user)):
     prices = stripe.Price.list(lookup_keys=[body.lookup_key], active=True, limit=1).data
     if not prices:
         raise HTTPException(500, f"Prix introuvable: {body.lookup_key}")
@@ -367,10 +364,10 @@ async def checkout(body: CheckoutIn):
         subscription_data={"trial_period_days": 7},
         success_url=f"{body.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{body.origin_url}/payment/cancel",
-        metadata={"lookup_key": body.lookup_key},
+        metadata={"lookup_key": body.lookup_key, "user_id": user["id"]},
     )
     await db.payment_transactions.insert_one({
-        "session_id": session.id, "lookup_key": body.lookup_key,
+        "session_id": session.id, "user_id": user["id"], "lookup_key": body.lookup_key,
         "amount": (price.unit_amount or 0), "currency": price.currency,
         "status": "initiated", "payment_status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -441,4 +438,4 @@ async def shutdown():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
