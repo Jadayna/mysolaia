@@ -1,0 +1,99 @@
+.App { min-height: 100vh; background: #e8e6e3; }
+
+/* Mobile-first app column, framed on larger screens */
+.app-shell {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 480px) {
+  .app-shell {
+    min-height: calc(100vh - 40px);
+    margin: 20px auto;
+    border-radius: 28px;
+    box-shadow: 0 30px 70px -40px rgba(32,31,29,0.4);
+    overflow: hidden;
+    border: 1px solid #e2ded7;
+  }
+}
+
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 92px;
+}
+
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: rgba(243,242,242,0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  z-index: 40;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  color: var(--ink-faint);
+  transition: color 0.25s ease;
+}
+.nav-item.active { color: var(--gold); }
+.nav-item span {
+  font-family: 'Lora', serif;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gold-btn {
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  background: transparent;
+  transition: background-color 0.25s ease;
+}
+.gold-btn:hover:not(:disabled) { background: rgba(182,130,53,0.07); }
+.gold-btn:disabled { opacity: 0.5; }
+.gold-fill {
+  background: var(--gold);
+  color: #fff;
+  border: 1px solid var(--gold);
+}
+
+.hairline { border-top: 1px solid var(--line); }
+.tile-dashed { border: 1px dashed var(--gold-soft); }
+.step-done .step-title { text-decoration: line-through; opacity: 0.4; }
+.step-done .step-sub { opacity: 0.4; }
+
+.field {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: 'Lora', serif;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.field:focus { border-color: var(--gold); }
+.field::placeholder { color: var(--ink-faint); }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px);} to {opacity:1; transform:none;} }
+.animate-fade-up { animation: fadeUp 0.6s ease both; }
+@keyframes sheetUp { from { transform: translateY(100%);} to { transform: translateY(0);} }
+.animate-sheet { animation: sheetUp 0.4s cubic-bezier(0.22,1,0.36,1); }
