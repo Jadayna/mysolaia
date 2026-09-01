@@ -104,6 +104,23 @@ async def current_user(creds: Optional[HTTPAuthorizationCredentials] = Depends(s
 def public_user(u: dict) -> dict:
     return {k: v for k, v in u.items() if k not in ("_id", "password")}
 
+    def user_has_full_access(user: dict) -> bool:
+    # 1. S'il est abonné (payant ou is_premium à True)
+    if user.get("is_premium", False) or user.get("statut_abonnement") == "actif":
+        return True
+    
+    # 2. S'il est encore dans sa période d'essai de 7 jours
+    fin_essai = user.get("fin_essai")
+    if fin_essai:
+        try:
+            end_date = datetime.fromisoformat(fin_essai)
+            if datetime.now(timezone.utc) < end_date:
+                return True
+        except Exception:
+            pass
+            
+    return False
+
 
 # ---------------- Auth ----------------
 @api_router.post("/auth/register")
