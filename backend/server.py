@@ -332,11 +332,17 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     if matched:
         return {"recognized": True, "product": matched, "note": _placement_note(matched)}
     proposed = {
-        "id": None, "brand": brand or "Marque inconnue", "nom": nom or "Produit a confirmer",
+        "id": None, 
+        "brand": brand or "Marque inconnue", 
+        "nom": nom or "Produit a confirmer",
         "categorie": data.get("categorie") or "serum",
+        "category": data.get("categorie") or "Serum",  # <-- Ajouté pour que React trouve la valeur !
         "actifs": [data.get("actif_cle")] if data.get("actif_cle") else [],
-        "texture": 2, "moment": "les_deux", "source": "scan", "verifie": False,
-        "texture_label": data.get("texture_label") or "Fluide \u00b7 penetre vite",
+        "texture": 3,
+        "moment": "les_deux", 
+        "source": "scan", 
+        "verifie": False,
+        "texture_label": data.get("texture_label") or "Fluide · penetre vite",
     }
     return {"recognized": bool(brand or nom), "product": proposed,
             "note": "A confirmer : ajuste ce qu'il faut, puis je le placerai dans ton ordre."}
