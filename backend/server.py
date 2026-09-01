@@ -311,20 +311,27 @@ async def scan(body: ScanIn, user=Depends(current_user)):
 
             client_ai = genai.Client(api_key=gemini_key)
             
-            # Extraction des données base64 de l'image
-            raw_b64 = body.image_base64.split(",")[-1]
+            # Nettoyage propre de l'en-tête base64 (data:image/png;base64,...)
+            raw_img = body.image_base64
+            mime_type = "image/jpeg"
+            if "data:" in raw_img and ";base64," in raw_img:
+                header, raw_b64 = raw_img.split(";base64,")
+                mime_type = header.replace("data:", "")
+            else:
+                raw_b64 = raw_img
+
             image_bytes = base64.b64decode(raw_b64)
 
             sys_prompt = (
                 "Tu es l'expert produits de l'app Ordre. On te montre la face avant d'un produit "
-                "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON valide sans markdown:\n"
+                "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON valide sans balises markdown:\n"
                 '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}'
             )
 
             response = client_ai.models.generate_content(
                 model='gemini-2.0-flash',
                 contents=[
-                    types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                     sys_prompt
                 ]
             )
