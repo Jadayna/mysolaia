@@ -11,3 +11,5 @@ pymongo
 python-dotenv
 requests
 python-multipart
+stripe
+google-genai
