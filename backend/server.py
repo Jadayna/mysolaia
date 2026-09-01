@@ -390,25 +390,30 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 @api_router.post("/payments/checkout")
 async def checkout(body: CheckoutIn, user=Depends(current_user)):
-    prices = stripe.Price.list(lookup_keys=[body.lookup_key], active=True, limit=1).data
-    if not prices:
-        raise HTTPException(500, f"Prix introuvable: {body.lookup_key}")
-    price = prices[0]
-    session = stripe.checkout.Session.create(
-        line_items=[{"price": price.id, "quantity": 1}],
-        mode="subscription",
-        subscription_data={"trial_period_days": 7},
-        success_url=f"{body.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{body.origin_url}/payment/cancel",
-        metadata={"lookup_key": body.lookup_key, "user_id": user["id"]},
-    )
-    await db.payment_transactions.insert_one({
-        "session_id": session.id, "user_id": user["id"], "lookup_key": body.lookup_key,
-        "amount": (price.unit_amount or 0), "currency": price.currency,
-        "status": "initiated", "payment_status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    })
-    return {"checkout_url": session.url, "session_id": session.id}
+    try:
+        prices = stripe.Price.list(lookup_keys=[body.lookup_key], active=True, limit=1).data
+        if not prices:
+            raise HTTPException(500, f"Prix introuvable: {body.lookup_key}")
+        price = prices[0]
+        session = stripe.checkout.Session.create(
+            line_items=[{"price": price.id, "quantity": 1}],
+            mode="subscription",
+            subscription_data={"trial_period_days": 7},
+            success_url=f"{body.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{body.origin_url}/payment/cancel",
+            metadata={"lookup_key": body.lookup_key, "user_id": user["id"]},
+        )
+        await db.payment_transactions.insert_one({
+            "session_id": session.id, "user_id": user["id"], "lookup_key": body.lookup_key,
+            "amount": (price.unit_amount or 0), "currency": price.currency,
+            "status": "initiated", "payment_status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        return {"checkout_url": session.url, "session_id": session.id}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/payments/status/{session_id}")
 async def payment_status(session_id: str):
