@@ -412,6 +412,8 @@ async def stripe_webhook(request: Request):
 async def root():
     return {"message": "Ordre API"}
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
