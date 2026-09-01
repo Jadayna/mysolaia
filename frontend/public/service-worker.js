@@ -16,27 +16,41 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET") return;
   const url = new URL(req.url);
-  // Network-first for API, fall back to cache (keeps today's routine available offline).
+
+  // Ne gérer QUE les requêtes http et https (évite les erreurs avec les extensions chrome://)
+  if (url.protocol !== "http:" && url.protocol !== "https:") return;
+
+  // Laisser passer directement les requêtes POST / PUT / DELETE (comme la création de compte)
+  if (req.method !== "GET") return;
+
+  // Gestion des requêtes API
   if (url.pathname.includes("/api/")) {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, clone));
+          if (res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, clone));
+          }
           return res;
         })
         .catch(() => caches.match(req))
     );
     return;
   }
-  // Cache-first for static assets.
+
+  // Gestion des fichiers statiques (images, CSS, JS)
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-      const clone = res.clone();
-      caches.open(CACHE).then((c) => c.put(req, clone));
-      return res;
-    }).catch(() => caches.match("/index.html")))
+    caches.match(req).then((cached) => => {
+      return (
+        cached ||
+        fetch(req).then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, clone));
+          return res;
+        })
+      );
+    }).catch(() => caches.match("/index.html"))
   );
 });
