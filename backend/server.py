@@ -297,31 +297,49 @@ def _observation(entries):
             "sont des vendredis \u2014 si ca te ressemble, je peux alleger le vendredi a trois etapes.")
 
 
-# ---------------- Scan (AI vision) ----------------
+# ---------------- Scan (AI vision Gemini) ----------------
 @api_router.post("/scan")
 async def scan(body: ScanIn, user=Depends(current_user)):
-    from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-    key = os.environ.get("EMERGENT_LLM_KEY")
-    img = body.image_base64.split(",")[-1]
-    sys = ("Tu es l'expert produits de l'app Ordre. On te montre la face avant d'un produit "
-           "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON: "
-           '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}')
     data = {}
-    try:
-        chat = LlmChat(api_key=key, session_id=f"scan-{user['id']}", system_message=sys).with_model("openai", "gpt-5.4")
-        msg = UserMessage(text="Identifie ce produit. JSON seulement.",
-                          file_contents=[ImageContent(image_base64=img)])
-        resp = await chat.send_message(msg)
-        raw = resp if isinstance(resp, str) else str(resp)
-        m = re.search(r"\{.*\}", raw, re.S)
-        if m:
-            data = json.loads(m.group(0))
-    except Exception as e:
-        logger.error(f"scan error: {e}")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    
+    if gemini_key:
+        try:
+            import base64
+            from google import genai
+            from google.genai import types
+
+            client_ai = genai.Client(api_key=gemini_key)
+            
+            # Extraction des données base64 de l'image
+            raw_b64 = body.image_base64.split(",")[-1]
+            image_bytes = base64.b64decode(raw_b64)
+
+            sys_prompt = (
+                "Tu es l'expert produits de l'app Ordre. On te montre la face avant d'un produit "
+                "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON valide sans markdown:\n"
+                '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}'
+            )
+
+            response = client_ai.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[
+                    types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+                    sys_prompt
+                ]
+            )
+
+            if response.text:
+                m = re.search(r"\{.*\}", response.text, re.S)
+                if m:
+                    data = json.loads(m.group(0))
+        except Exception as e:
+            logger.error(f"Gemini scan error: {e}")
 
     brand = (data.get("brand") or "").strip()
     nom = (data.get("nom") or "").strip()
     matched = None
+
     if nom:
         matched = await db.products.find_one(
             {"nom": {"$regex": re.escape(nom[:12]), "$options": "i"}}, {"_id": 0})
@@ -330,22 +348,27 @@ async def scan(body: ScanIn, user=Depends(current_user)):
             {"brand": {"$regex": re.escape(brand), "$options": "i"}}, {"_id": 0})
 
     if matched:
+        matched["category"] = matched.get("category") or matched.get("categorie") or "Serum"
+        matched["texture_score"] = matched.get("texture") or 3
         return {"recognized": True, "product": matched, "note": _placement_note(matched)}
+
+    cat = data.get("categorie") or "serum"
     proposed = {
         "id": None, 
         "brand": brand or "Marque inconnue", 
-        "nom": nom or "Produit a confirmer",
-        "categorie": data.get("categorie") or "serum",
-        "category": data.get("categorie") or "Serum",  # <-- Ajouté pour que React trouve la valeur !
+        "nom": nom or "Produit à confirmer",
+        "categorie": cat,
+        "category": cat.capitalize(),
         "actifs": [data.get("actif_cle")] if data.get("actif_cle") else [],
         "texture": 3,
+        "texture_score": 3,
         "moment": "les_deux", 
         "source": "scan", 
         "verifie": False,
-        "texture_label": data.get("texture_label") or "Fluide · penetre vite",
+        "texture_label": data.get("texture_label") or "Fluide · pénètre vite",
     }
     return {"recognized": bool(brand or nom), "product": proposed,
-            "note": "A confirmer : ajuste ce qu'il faut, puis je le placerai dans ton ordre."}
+            "note": "À confirmer : ajuste ce qu'il faut, puis je le placerai dans ton ordre."}
 
 
 def _placement_note(prod):
