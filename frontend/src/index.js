@@ -1,7 +1,7 @@
-window.REACT_APP_BACKEND_URL = "http://localhost:8000";
-window.REACT_APP_API_URL = "http://localhost:8000";
-window.BACKEND_URL = "http://localhost:8000";
-window.API_URL = "http://localhost:8000";
+window.REACT_APP_BACKEND_URL = "http://mysolaia.onrender.com";
+window.REACT_APP_API_URL = "http://mysolaia.onrender.com";
+window.BACKEND_URL = "http://mysolaia.onrender.com";
+window.API_URL = "http://mysolaia.onrender.com";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
