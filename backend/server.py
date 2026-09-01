@@ -104,7 +104,7 @@ async def current_user(creds: Optional[HTTPAuthorizationCredentials] = Depends(s
 def public_user(u: dict) -> dict:
     return {k: v for k, v in u.items() if k not in ("_id", "password")}
 
-    def user_has_full_access(user: dict) -> bool:
+def user_has_full_access(user: dict) -> bool:
     # 1. S'il est abonné (payant ou is_premium à True)
     if user.get("is_premium", False) or user.get("statut_abonnement") == "actif":
         return True
@@ -201,9 +201,7 @@ MAX_FREE_PRODUCTS = 4
 
 @api_router.post("/shelf")
 async def add_shelf(body: ShelfIn, user=Depends(current_user)):
-    # Vérifie si l'utilisateur a encore accès (Essai actif ou Premium)
     if not user_has_full_access(user):
-        # S'il n'a plus d'accès, on compte ses produits actifs actuels
         current_count = await db.user_products.count_documents({"user_id": user["id"], "actif": True})
         if current_count >= MAX_FREE_PRODUCTS:
             raise HTTPException(
@@ -222,6 +220,14 @@ async def add_shelf(body: ShelfIn, user=Depends(current_user)):
 
 @api_router.post("/shelf/manual")
 async def add_manual(body: ManualProductIn, user=Depends(current_user)):
+    if not user_has_full_access(user):
+        current_count = await db.user_products.count_documents({"user_id": user["id"], "actif": True})
+        if current_count >= MAX_FREE_PRODUCTS:
+            raise HTTPException(
+                status_code=403,
+                detail="Ton essai gratuit est terminé. Passe à Solaia Illimité pour ajouter plus de 4 produits !"
+            )
+
     prod = {"id": str(uuid.uuid4()), "brand": body.brand, "nom": body.nom,
             "categorie": body.categorie, "actifs": body.actifs, "texture": body.texture,
             "moment": body.moment, "frequence_max_par_semaine": 7,
@@ -340,7 +346,6 @@ async def scan(body: ScanIn, user=Depends(current_user)):
 
             client_ai = genai.Client(api_key=gemini_key)
             
-            # Nettoyage propre de l'en-tête base64 (data:image/png;base64,...)
             raw_img = body.image_base64
             mime_type = "image/jpeg"
             if "data:" in raw_img and ";base64," in raw_img:
@@ -457,14 +462,12 @@ async def payment_status(session_id: str):
                     {"session_id": session_id, "payment_status": {"$ne": "paid"}},
                     {"$set": {"status": "completed", "payment_status": "paid"}})
                 
-                # ---> AJOUTE CECI : Mettre à jour l'utilisateur en abonnement actif
                 user_id = record.get("user_id")
                 if user_id:
                     await db.users.update_one(
                         {"id": user_id},
                         {"$set": {"statut_abonnement": "actif", "is_premium": True}}
                     )
-                # <-----------------------------------------------------------
 
                 record["status"], record["payment_status"] = "completed", "paid"
         except Exception:
@@ -491,8 +494,6 @@ async def stripe_webhook(request: Request):
 @api_router.get("/")
 async def root():
     return {"message": "Ordre API"}
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
