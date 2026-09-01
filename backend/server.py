@@ -378,7 +378,7 @@ def _placement_note(prod):
 
 # ---------------- Stripe (Flow A sandbox) ----------------
 import stripe
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_placeholder"
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 @api_router.post("/payments/checkout")
