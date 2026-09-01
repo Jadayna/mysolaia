@@ -197,8 +197,20 @@ async def _shelf_products(uid: str, active_only=True):
 async def get_shelf(user=Depends(current_user)):
     return {"shelf": await _shelf_products(user["id"], active_only=False)}
 
+MAX_FREE_PRODUCTS = 4
+
 @api_router.post("/shelf")
 async def add_shelf(body: ShelfIn, user=Depends(current_user)):
+    # Vérifie si l'utilisateur a encore accès (Essai actif ou Premium)
+    if not user_has_full_access(user):
+        # S'il n'a plus d'accès, on compte ses produits actifs actuels
+        current_count = await db.user_products.count_documents({"user_id": user["id"], "actif": True})
+        if current_count >= MAX_FREE_PRODUCTS:
+            raise HTTPException(
+                status_code=403,
+                detail="Ton essai gratuit est terminé. Passe à Solaia Illimité pour ajouter plus de 4 produits !"
+            )
+
     prod = await db.products.find_one({"id": body.product_id}, {"_id": 0})
     if not prod:
         raise HTTPException(404, "Produit introuvable")
