@@ -42,7 +42,7 @@ self.addEventListener("fetch", (event) => {
 
   // Gestion des fichiers statiques (images, CSS, JS)
   event.respondWith(
-    caches.match(req).then((cached) => => {
+    caches.match(req).then((cached) => {
       return (
         cached ||
         fetch(req).then((res) => {
