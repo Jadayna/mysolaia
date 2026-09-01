@@ -427,6 +427,16 @@ async def payment_status(session_id: str):
                 await db.payment_transactions.update_one(
                     {"session_id": session_id, "payment_status": {"$ne": "paid"}},
                     {"$set": {"status": "completed", "payment_status": "paid"}})
+                
+                # ---> AJOUTE CECI : Mettre à jour l'utilisateur en abonnement actif
+                user_id = record.get("user_id")
+                if user_id:
+                    await db.users.update_one(
+                        {"id": user_id},
+                        {"$set": {"statut_abonnement": "actif", "is_premium": True}}
+                    )
+                # <-----------------------------------------------------------
+
                 record["status"], record["payment_status"] = "completed", "paid"
         except Exception:
             pass
