@@ -329,7 +329,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
             )
 
             response = client_ai.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-2.5-flash',
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                     sys_prompt
