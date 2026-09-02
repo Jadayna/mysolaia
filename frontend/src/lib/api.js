@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // URL du backend FastAPI/Node en dur
-const API = 'http://localhost:8000/api';
+const API = 'https://mysolaia.onrender.com/api';
 
 const api = axios.create({
   baseURL: API,
