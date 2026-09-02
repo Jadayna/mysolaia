@@ -52,10 +52,16 @@ class LoginIn(BaseModel):
     password: str
 
 class ProfileIn(BaseModel):
+    nom: Optional[str] = None
     type_de_peau: Optional[str] = None
     sensibilite: Optional[int] = None
     objectifs: Optional[List[str]] = None
     langue: Optional[str] = None
+
+class SecurityUpdateIn(BaseModel):
+    current_password: str
+    new_email: Optional[EmailStr] = None
+    new_password: Optional[str] = None
 
 class ShelfIn(BaseModel):
     product_id: str
@@ -105,11 +111,8 @@ def public_user(u: dict) -> dict:
     return {k: v for k, v in u.items() if k not in ("_id", "password")}
 
 def user_has_full_access(user: dict) -> bool:
-    # 1. S'il est abonné (payant ou is_premium à True)
     if user.get("is_premium", False) or user.get("statut_abonnement") == "actif":
         return True
-    
-    # 2. S'il est encore dans sa période d'essai de 7 jours
     fin_essai = user.get("fin_essai")
     if fin_essai:
         try:
@@ -118,11 +121,10 @@ def user_has_full_access(user: dict) -> bool:
                 return True
         except Exception:
             pass
-            
     return False
 
 
-# ---------------- Auth ----------------
+# ---------------- Auth & Profile ----------------
 @api_router.post("/auth/register")
 async def register(body: RegisterIn):
     existing = await db.users.find_one({"email": body.email.lower()})
@@ -134,6 +136,7 @@ async def register(body: RegisterIn):
         "email": body.email.lower(),
         "password": hash_password(body.password),
         "langue": body.langue,
+        "nom": "",
         "type_de_peau": None,
         "sensibilite": 1,
         "objectifs": [],
@@ -154,7 +157,9 @@ async def login(body: LoginIn):
 
 @api_router.get("/auth/me")
 async def me(user=Depends(current_user)):
-    return {"user": public_user(user)}
+    # Récupérer le user complet avec mot de passe pour les vérif si besoin, mais on retourne public_user
+    full_user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"user": public_user(full_user)}
 
 @api_router.put("/auth/profile")
 async def update_profile(body: ProfileIn, user=Depends(current_user)):
@@ -163,6 +168,28 @@ async def update_profile(body: ProfileIn, user=Depends(current_user)):
     await db.users.update_one({"id": user["id"]}, {"$set": updates})
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
     return {"user": fresh}
+
+@api_router.put("/auth/security")
+async def update_security(body: SecurityUpdateIn, user=Depends(current_user)):
+    full_user = await db.users.find_one({"id": user["id"]})
+    if not full_user or not verify_password(body.current_password, full_user["password"]):
+        raise HTTPException(401, "Mot de passe actuel incorrect")
+    
+    set_updates = {}
+    if body.new_email:
+        existing = await db.users.find_one({"email": body.new_email.lower()})
+        if existing and existing["id"] != user["id"]:
+            raise HTTPException(400, "Ce courriel est deja utilise par un autre compte")
+        set_updates["email"] = body.new_email.lower()
+        
+    if body.new_password:
+        set_updates["password"] = hash_password(body.new_password)
+        
+    if set_updates:
+        await db.users.update_one({"id": user["id"]}, {"$set": set_updates})
+        
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
+    return {"ok": True, "user": fresh}
 
 
 # ---------------- Products ----------------
@@ -206,7 +233,7 @@ async def add_shelf(body: ShelfIn, user=Depends(current_user)):
         if current_count >= MAX_FREE_PRODUCTS:
             raise HTTPException(
                 status_code=403,
-                detail="Ton essai gratuit est terminé. Passe à Solaia Illimité pour ajouter plus de 4 produits !"
+                detail="Ton essai gratuit est terminé. Passe à MySolaia Illimité pour ajouter plus de 4 produits !"
             )
 
     prod = await db.products.find_one({"id": body.product_id}, {"_id": 0})
@@ -225,7 +252,7 @@ async def add_manual(body: ManualProductIn, user=Depends(current_user)):
         if current_count >= MAX_FREE_PRODUCTS:
             raise HTTPException(
                 status_code=403,
-                detail="Ton essai gratuit est terminé. Passe à Solaia Illimité pour ajouter plus de 4 produits !"
+                detail="Ton essai gratuit est terminé. Passe à MySolaia Illimité pour ajouter plus de 4 produits !"
             )
 
     prod = {"id": str(uuid.uuid4()), "brand": body.brand, "nom": body.nom,
@@ -247,15 +274,13 @@ async def del_shelf(shelf_id: str, user=Depends(current_user)):
     return {"ok": True}
 
 
-# ---------------- Routine ----------------
+# ---------------- Routine & Home ----------------
 @api_router.get("/routine")
 async def get_routine(phase: str = "soir", user=Depends(current_user)):
     products = await _shelf_products(user["id"])
     routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1))
     return routine
 
-
-# ---------------- Home ----------------
 @api_router.get("/home")
 async def home(user=Depends(current_user)):
     now = datetime.now(timezone.utc)
@@ -271,7 +296,7 @@ async def home(user=Depends(current_user)):
     suggestion = None
     if products and not has_spf:
         suggestion = {"title": "Il te manque un ecran solaire.",
-                      "text": "C'est la seule etape du matin qui protege ce que les autres reparent. Deux suggestions t'attendent."}
+                      "text": "C'est la seule etape du matin qui protege ce que les autres reparent."}
     return {
         "greeting_kind": greeting_kind,
         "routine": routine,
@@ -324,12 +349,10 @@ async def get_journal(user=Depends(current_user)):
     return {"days": days, "stats": stats, "entries": [fmt(e) for e in entries[:6]],
             "observation": _observation(entries)}
 
-
 def _observation(entries):
     if len(entries) < 3:
         return "Encore quelques jours et je pourrai te dire ce que je remarque dans ton rythme."
-    return ("Tes soirs tombent vers 22 h 40, tes matins vers 7 h 15. Les seuls soirs sautes "
-            "sont des vendredis \u2014 si ca te ressemble, je peux alleger le vendredi a trois etapes.")
+    return "Tes routines sont bien régulières, continue comme ça !"
 
 
 # ---------------- Scan (AI vision Gemini) ----------------
@@ -345,7 +368,6 @@ async def scan(body: ScanIn, user=Depends(current_user)):
             from google.genai import types
 
             client_ai = genai.Client(api_key=gemini_key)
-            
             raw_img = body.image_base64
             mime_type = "image/jpeg"
             if "data:" in raw_img and ";base64," in raw_img:
@@ -357,13 +379,13 @@ async def scan(body: ScanIn, user=Depends(current_user)):
             image_bytes = base64.b64decode(raw_b64)
 
             sys_prompt = (
-                "Tu es l'expert produits de l'app Ordre. On te montre la face avant d'un produit "
+                "Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
                 "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON valide sans balises markdown:\n"
                 '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}'
             )
 
             response = client_ai.models.generate_content(
-                model='gemini-3.6-flash',
+                model='gemini-2.5-flash',
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                     sys_prompt
@@ -391,7 +413,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     if matched:
         matched["category"] = matched.get("category") or matched.get("categorie") or "Serum"
         matched["texture_score"] = matched.get("texture") or 3
-        return {"recognized": True, "product": matched, "note": _placement_note(matched)}
+        return {"recognized": True, "product": matched, "note": "Produit reconnu et placé dans ton ordre."}
 
     cat = data.get("categorie") or "serum"
     proposed = {
@@ -406,18 +428,12 @@ async def scan(body: ScanIn, user=Depends(current_user)):
         "moment": "les_deux", 
         "source": "scan", 
         "verifie": False,
-        "texture_label": data.get("texture_label") or "Fluide · pénètre vite",
+        "texture_label": data.get("texture_label") or "Fluide",
     }
-    return {"recognized": bool(brand or nom), "product": proposed,
-            "note": "À confirmer : ajuste ce qu'il faut, puis je le placerai dans ton ordre."}
+    return {"recognized": bool(brand or nom), "product": proposed, "note": "À confirmer."}
 
 
-def _placement_note(prod):
-    return (f"Il ira selon sa texture ({prod.get('texture')}/5) \u2014 je le glisse au bon "
-            "endroit dans ton ordre, ni trop tot ni trop tard.")
-
-
-# ---------------- Stripe (Flow A sandbox) ----------------
+# ---------------- Stripe & Billing Portal ----------------
 import stripe
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_placeholder"
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -449,6 +465,27 @@ async def checkout(body: CheckoutIn, user=Depends(current_user)):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/payments/portal")
+async def customer_portal(body: CheckoutIn, user=Depends(current_user)):
+    """Crée un lien vers le portail client Stripe pour gérer/annuler l'abonnement en 1 clic"""
+    try:
+        # Chercher la dernière transaction du user pour retrouver son customer ID si existant, ou en créer un
+        tx = await db.payment_transactions.find_one({"user_id": user["id"], "customer_id": {"$exists": True}})
+        customer_id = tx.get("customer_id") if tx else None
+
+        if not customer_id:
+            # Créer un customer stripe à la volée si besoin avec l'email du user
+            customer = stripe.Customer.create(email=user["email"], metadata={"user_id": user["id"]})
+            customer_id = customer.id
+
+        portal_session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=f"{body.origin_url}/",
+        )
+        return {"url": portal_session.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/payments/status/{session_id}")
 async def payment_status(session_id: str):
     record = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
@@ -458,9 +495,10 @@ async def payment_status(session_id: str):
         try:
             s = stripe.checkout.Session.retrieve(session_id)
             if s.status == "complete" or s.payment_status == "paid":
+                customer_id = s.get("customer")
                 await db.payment_transactions.update_one(
                     {"session_id": session_id, "payment_status": {"$ne": "paid"}},
-                    {"$set": {"status": "completed", "payment_status": "paid"}})
+                    {"$set": {"status": "completed", "payment_status": "paid", "customer_id": customer_id}})
                 
                 user_id = record.get("user_id")
                 if user_id:
@@ -468,7 +506,6 @@ async def payment_status(session_id: str):
                         {"id": user_id},
                         {"$set": {"statut_abonnement": "actif", "is_premium": True}}
                     )
-
                 record["status"], record["payment_status"] = "completed", "paid"
         except Exception:
             pass
@@ -487,13 +524,13 @@ async def stripe_webhook(request: Request):
     if t == "checkout.session.completed":
         await db.payment_transactions.update_one(
             {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
-            {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid")}})
+            {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"), "customer_id": obj.get("customer")}})
     return {"status": "ok"}
 
 
 @api_router.get("/")
 async def root():
-    return {"message": "Ordre API"}
+    return {"message": "MySolaia API"}
 
 app.add_middleware(
     CORSMiddleware,
@@ -521,4 +558,4 @@ async def shutdown():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=Thread)
