@@ -33,7 +33,7 @@ const AuthScreen = () => {
         <span className="font-body tracking-caps text-[11px] uppercase" style={{ color: 'var(--gold)' }}>
           {lang === 'fr' ? 'La routine qui se construit toute seule' : 'The routine that builds itself'}
         </span>
-        <h1 className="font-display text-[52px] leading-none mt-2" style={{ color: 'var(--ink)' }}>Ordre</h1>
+        <h1 className="font-display text-[52px] leading-none mt-2" style={{ color: 'var(--ink)' }}>MySolaia</h1>
 
         <form onSubmit={submit} className="mt-10 space-y-3">
           <input className="field" type="email" required placeholder={t('email')} value={email} onChange={(e) => setEmail(e.target.value)} />

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const TrialScreen = () => {
   const { t, lang } = useT();
   const { user } = useAuth();
-  const [plan, setPlan] = useState('yearly');
+  const [plan, setPlan] = useState('monthly');
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
 
@@ -28,6 +28,17 @@ const TrialScreen = () => {
       const { data } = await api.post('/payments/checkout', { lookup_key: lookup, origin_url: window.location.origin });
       window.location.href = data.checkout_url;
     } catch (e) { setBusy(false); }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data } = await api.post('/payments/portal', { origin_url: window.location.origin });
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (e) {
+      console.error("Erreur portail Stripe", e);
+    }
   };
 
   const timeline = lang === 'fr' ? [
@@ -53,21 +64,27 @@ const TrialScreen = () => {
       {paid && <p className="font-body italic text-[13px] mt-3" style={{ color: 'var(--gold)' }}>{lang === 'fr' ? 'Ton essai est ouvert. Merci !' : 'Your trial is open. Thank you!'}</p>}
 
       <div className="grid grid-cols-2 gap-3 mt-6">
-        <button onClick={() => setPlan('yearly')} className="rounded-[10px] p-4 text-left" style={plan === 'yearly' ? { background: 'var(--cream-card)', border: '1px solid var(--gold)' } : { border: '1px solid var(--line)' }}>
-          <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: plan === 'yearly' ? 'var(--gold)' : 'var(--ink-faint)' }}>{t('annual')}</span>
-          <p className="font-body italic text-[11px] mt-1" style={{ color: 'var(--ink-faint)' }}>{t('twoMonthsFree')}</p>
-          <p className="font-display text-[26px] mt-3 tnum">39,99 $</p>
-          <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{t('perYear')}</p>
-        </button>
         <button onClick={() => setPlan('monthly')} className="rounded-[10px] p-4 text-left" style={plan === 'monthly' ? { background: 'var(--cream-card)', border: '1px solid var(--gold)' } : { border: '1px solid var(--line)' }}>
           <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: plan === 'monthly' ? 'var(--gold)' : 'var(--ink-faint)' }}>{t('monthly')}</span>
           <p className="font-body italic text-[11px] mt-1" style={{ color: 'var(--ink-faint)' }}>{t('cancelAnytime')}</p>
           <p className="font-display text-[26px] mt-3 tnum">4,99 $</p>
           <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{t('perMonth')}</p>
         </button>
+        <button onClick={() => setPlan('yearly')} className="rounded-[10px] p-4 text-left" style={plan === 'yearly' ? { background: 'var(--cream-card)', border: '1px solid var(--gold)' } : { border: '1px solid var(--line)' }}>
+          <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: plan === 'yearly' ? 'var(--gold)' : 'var(--ink-faint)' }}>{t('annual')}</span>
+          <p className="font-body italic text-[11px] mt-1" style={{ color: 'var(--ink-faint)' }}>{t('twoMonthsFree')}</p>
+          <p className="font-display text-[26px] mt-3 tnum">39,99 $</p>
+          <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{t('perYear')}</p>
+        </button>
       </div>
 
       <button onClick={startTrial} disabled={busy} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">{t('startTrial')}</button>
+
+      <div className="mt-4 text-center">
+        <button onClick={handleManageSubscription} className="font-body text-[11.5px] underline hover:opacity-80 transition" style={{ color: 'var(--ink-soft)' }}>
+          {lang === 'fr' ? 'Déjà abonné ? Gérer mon abonnement / Résilier' : 'Already subscribed? Manage subscription / Cancel'}
+        </button>
+      </div>
 
       <div className="mt-8">
         {timeline.map(([d, txt], i) => (

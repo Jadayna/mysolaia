@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut } from 'lucide-react';
+import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import HomeScreen from '../screens/HomeScreen';
@@ -7,32 +7,47 @@ import ScanScreen from '../screens/ScanScreen';
 import RoutineScreen from '../screens/RoutineScreen';
 import JournalScreen from '../screens/JournalScreen';
 import TrialScreen from '../screens/TrialScreen';
+import api from '../lib/api';
 
 const TABS = [
   { id: 'accueil', icon: Home, screen: HomeScreen },
   { id: 'scan', icon: Camera, screen: ScanScreen },
   { id: 'routine', icon: ListChecks, screen: RoutineScreen },
   { id: 'journal', icon: LineChart, screen: JournalScreen },
-  { id: 'essai', icon: Sparkles, screen: TrialScreen },
+  { id: 'menu', icon: Sparkles, screen: TrialScreen }, // Garde TrialScreen en écran de secours ou pour l'option abonnement
 ];
 
 const AppShell = () => {
   const { t, lang, setLang } = useT();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [active, setActive] = useState('accueil');
   const [routinePhase, setRoutinePhase] = useState('soir');
+  const [showMenuModal, setShowMenuModal] = useState(false);
 
   const go = (id, opts) => {
     if (id === 'routine' && opts?.phase) setRoutinePhase(opts.phase);
+    if (id === 'menu') {
+      setShowMenuModal(true); // Ouvre la modale du menu avec les Sparkles
+      return;
+    }
     setActive(id);
   };
 
-  const Current = TABS.find((tb) => tb.id === active).screen;
+  const handleManageSubscription = async () => {
+    try {
+      const { data } = await api.post('/payments/portal', { origin_url: window.location.origin });
+      if (data.url) window.location.href = data.url;
+    } catch (e) {
+      console.error("Erreur portail Stripe", e);
+    }
+  };
+
+  const Current = TABS.find((tb) => tb.id === active)?.screen || HomeScreen;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell relative">
       <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
-        <span className="font-display text-[20px]" style={{ color: 'var(--gold)' }}>Ordre</span>
+        <span className="font-display text-[20px]" style={{ color: 'var(--gold)' }}>MySolaia</span>
         <div className="flex items-center gap-4">
           <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5" style={{ color: 'var(--ink-soft)' }}>
             <Globe size={15} strokeWidth={1.6} />
@@ -51,14 +66,64 @@ const AppShell = () => {
       <nav className="bottom-nav">
         {TABS.map((tb) => {
           const Icon = tb.icon;
+          const isActive = active === tb.id && !showMenuModal;
           return (
-            <button key={tb.id} onClick={() => go(tb.id)} className={`nav-item ${active === tb.id ? 'active' : ''}`}>
+            <button key={tb.id} onClick={() => go(tb.id)} className={`nav-item ${isActive ? 'active' : ''}`}>
               <Icon size={20} strokeWidth={1.6} />
-              <span>{t(`nav.${tb.id}`)}</span>
+              <span>{tb.id === 'menu' ? (lang === 'fr' ? 'Menu' : 'Menu') : t(`nav.${tb.id}`)}</span>
             </button>
           );
         })}
       </nav>
+
+      {/* Modale du Menu Centralisé avec les Sparkles */}
+      {showMenuModal && (
+        <div className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end animate-fade-in">
+          <div className="bg-white rounded-t-[24px] p-6 max-h-[85vh] overflow-y-auto animate-fade-up shadow-xl" style={{ background: 'var(--cream-bg)' }}>
+            <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'var(--line)' }}>
+              <div>
+                <h3 className="font-display text-[22px]">{user?.prenom ? `Bonjour, ${user.prenom}` : 'Mon Compte'}</h3>
+                <p className="font-body text-[12px]" style={{ color: 'var(--ink-faint)' }}>{user?.email}</p>
+              </div>
+              <button onClick={() => setShowMenuModal(false)} className="p-2 rounded-full" style={{ background: 'var(--cream-card)' }}>
+                <X size={20} style={{ color: 'var(--ink)' }} />
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {/* Option Abonnement / Essai */}
+              <button onClick={() => { setShowMenuModal(false); setActive('menu'); }} className="w-full flex items-center justify-between p-4 rounded-[12px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+                <div className="flex items-center gap-3">
+                  <CreditCard size={18} style={{ color: 'var(--gold)' }} />
+                  <div className="text-left">
+                    <p className="font-body text-[13px] font-medium">{lang === 'fr' ? "Abonnement & Essai" : "Subscription & Trial"}</p>
+                    <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{lang === 'fr' ? "Gérer mes plans et facturation" : "Manage plans and billing"}</p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Gestion Stripe Directe */}
+              <button onClick={handleManageSubscription} className="w-full flex items-center justify-between p-4 rounded-[12px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+                <div className="flex items-center gap-3">
+                  <Shield size={18} style={{ color: 'var(--gold)' }} />
+                  <div className="text-left">
+                    <p className="font-body text-[13px] font-medium">{lang === 'fr' ? "Portail de facturation Stripe" : "Stripe Billing Portal"}</p>
+                    <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{lang === 'fr' ? "Modifier carte, factures ou résilier" : "Update card, invoices or cancel"}</p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Déconnexion */}
+              <button onClick={() => { setShowMenuModal(false); logout(); }} className="w-full flex items-center justify-between p-4 rounded-[12px] text-red-600" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+                <div className="flex items-center gap-3">
+                  <LogOut size={18} />
+                  <span className="font-body text-[13px] font-medium">{lang === 'fr' ? "Se déconnecter" : "Log out"}</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

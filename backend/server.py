@@ -306,7 +306,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
     key = os.environ.get("EMERGENT_LLM_KEY")
     img = body.image_base64.split(",")[-1]
-    sys = ("Tu es l'expert produits de l'app Ordre. On te montre la face avant d'un produit "
+    sys = ("Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
            "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON: "
            '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}')
     data = {}
@@ -413,7 +413,7 @@ async def stripe_webhook(request: Request):
 
 @api_router.get("/")
 async def root():
-    return {"message": "Ordre API"}
+    return {"message": "MySolaia API"}
 
 app.add_middleware(
     CORSMiddleware,

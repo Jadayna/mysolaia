@@ -1,4 +1,4 @@
-"""The order engine — the heart of Ordre.
+"""The order engine — the heart of MySolaia.
 Deterministic, works offline once a routine is computed.
 Orders products fluid->rich with acid-first, eye-before-cream, SPF-last rules,
 and resolves risky same-session combinations by *acting* (moving, not blocking).

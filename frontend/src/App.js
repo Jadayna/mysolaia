@@ -8,7 +8,7 @@ import AppShell from './components/AppShell';
 
 const Splash = () => (
   <div className="app-shell items-center justify-center" style={{ display: 'flex' }}>
-    <h1 className="font-display text-[40px]" style={{ color: 'var(--gold)' }}>Ordre</h1>
+    <h1 className="font-display text-[40px]" style={{ color: 'var(--gold)' }}>MySolaia</h1>
   </div>
 );
 

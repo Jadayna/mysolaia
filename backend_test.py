@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive backend test for Ordre skincare PWA
+Comprehensive backend test for MySolaia skincare PWA
 Tests all API endpoints with realistic data
 """
 import requests

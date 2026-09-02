@@ -1,6 +1,6 @@
 {
-  "short_name": "Ordre",
-  "name": "Ordre — la routine qui se construit toute seule",
+  "short_name": "MySolaia",
+  "name": "MySolaia — la routine qui se construit toute seule",
   "description": "Calcule l'ordre d'application de tes produits skincare et prévient des combinaisons risquées.",
   "icons": [
     { "src": "icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },

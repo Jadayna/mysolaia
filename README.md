@@ -1,4 +1,4 @@
-# Ordre — la routine qui se construit toute seule
+# MySolaia — la routine qui se construit toute seule
 
 Application PWA mobile-first de routine skincare qui **calcule l'ordre d'application** des
 produits et **avertit des combinaisons risquees**. L'utilisatrice ajoute ses produits (photo ou

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 // language (French) as required by the brief — names are never translated.
 const DICT = {
   fr: {
-    appName: 'Ordre',
+    appName: 'MySolaia',
     nav: { accueil: 'Accueil', scan: 'Scan', routine: 'Routine', journal: 'Journal', essai: 'Essai' },
     greetingMorning: 'Bonjour', greetingEvening: 'Bonsoir',
     shelf: 'Ton étagère', products: 'produits', addPhoto: 'Ajouter par photo',
@@ -29,7 +29,7 @@ const DICT = {
     demoNote: "Exemple de routine — ajoute tes produits pour la tienne.",
   },
   en: {
-    appName: 'Ordre',
+    appName: 'MySolaia',
     nav: { accueil: 'Home', scan: 'Scan', routine: 'Routine', journal: 'Journal', essai: 'Trial' },
     greetingMorning: 'Good morning', greetingEvening: 'Good evening',
     shelf: 'Your shelf', products: 'products', addPhoto: 'Add by photo',

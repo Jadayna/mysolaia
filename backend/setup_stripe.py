@@ -7,7 +7,7 @@ stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 CATALOG = [{
     "emergent_product_id": "ordre_subscription",
-    "name": "Ordre \u2014 Abonnement",
+    "name": "MySolaia \u2014 Abonnement",
     "tax_code": "txcd_10103001",
     "prices": [
         {"lookup_key": "ordre_monthly", "amount": 499, "currency": "cad", "interval": "month"},

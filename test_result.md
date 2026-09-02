@@ -101,7 +101,7 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
-user_problem_statement: "Build 'Ordre' — a mobile-first installable PWA skincare routine app that calculates product application order and warns of risky combinations. Full app: JWT auth, onboarding, global product library (seeded), personal shelf, deterministic order engine + incompatibility rules, daily routine with checkboxes and conditional timer, journal + stats, AI photo scan (Emergent LLM key), Stripe 7-day trial (sandbox), bilingual FR/EN, PWA offline."
+user_problem_statement: "Build 'MySolaia' — a mobile-first installable PWA skincare routine app that calculates product application order and warns of risky combinations. Full app: JWT auth, onboarding, global product library (seeded), personal shelf, deterministic order engine + incompatibility rules, daily routine with checkboxes and conditional timer, journal + stats, AI photo scan (Emergent LLM key), Stripe 7-day trial (sandbox), bilingual FR/EN, PWA offline."
 
 backend:
   - task: "Auth (register/login/me/profile) JWT"
@@ -244,6 +244,6 @@ test_plan:
 
 agent_communication:
     -agent: "main"
-    -comment: "Backend MVP for Ordre complete. Please test all backend endpoints. Auth is JWT bearer; register then use token. For scan, read /app/image_testing.md and use a base64 JPEG/PNG of a real skincare product (recognition may be approximate — verify endpoint returns a valid product/proposed profile and 200). For routine engine verify ordering (SPF last in matin, exfoliant early in soir, retinol banner logic) using seeded products fallback (empty shelf) and after adding shelf items."
+    -comment: "Backend MVP for MySolaia complete. Please test all backend endpoints. Auth is JWT bearer; register then use token. For scan, read /app/image_testing.md and use a base64 JPEG/PNG of a real skincare product (recognition may be approximate — verify endpoint returns a valid product/proposed profile and 200). For routine engine verify ordering (SPF last in matin, exfoliant early in soir, retinol banner logic) using seeded products fallback (empty shelf) and after adding shelf items."
     -agent: "testing"
     -comment: "✅ BACKEND TESTING COMPLETE - All 21 tests passed (100% success rate). Comprehensive testing completed for all 8 backend tasks: Auth (register/login/me/profile), Products (list/search), Shelf (CRUD + manual), Order engine (matin/soir with fallback), Home aggregation, Journal (create/list/stats), AI scan (Emergent LLM gpt-5.4), and Stripe (checkout/status for monthly/yearly). All endpoints returning correct responses with proper data structures. No critical issues found. Backend is production-ready."

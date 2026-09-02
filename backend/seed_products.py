@@ -1,4 +1,4 @@
-"""Global product library seed for Ordre.
+"""Global product library seed for MySolaia.
 Texture: 1 (most fluid) -> 5 (richest). moment: matin|soir|les_deux.
 Categories drive ordering; actifs & incompatibilites drive the safety engine.
 Product names stay in their original language (never translated).

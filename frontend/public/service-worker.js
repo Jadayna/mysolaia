@@ -1,4 +1,4 @@
-/* Ordre service worker — offline-first for the app shell and loaded routines. */
+/* MySolaia service worker — offline-first for the app shell and loaded routines. */
 const CACHE = "ordre-v1";
 const CORE = ["/", "/index.html", "/manifest.json"];
 
