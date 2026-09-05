@@ -1,21 +1,34 @@
 import React, { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 
 const AuthScreen = () => {
+  // Par défaut sur "Sign In" (Se connecter)
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
   const { login, register } = useAuth();
   const { lang, setLang } = useT();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLogin) {
-      login(email, password);
-    } else {
-      register(email, password);
+    setErr('');
+    setBusy(true);
+
+    try {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(email, password, lang);
+      }
+    } catch (e2) {
+      setErr(e2?.response?.data?.detail || 'Erreur de connexion');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -32,19 +45,25 @@ const AuthScreen = () => {
         </button>
       </div>
 
-      {/* En-tête / Logo */}
-      <div className="my-auto space-y-2">
-        <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
-          THE ROUTINE THAT BUILDS ITSELF
+      {/* Contenu Central / Logo */}
+      <div className="my-auto space-y-3">
+        <p className="font-body text-[10px] uppercase tracking-caps font-medium" style={{ color: 'var(--gold, #B68235)' }}>
+          {lang === 'fr' ? 'LA ROUTINE QUI SE CONSTRUIT TOUTE SEULE' : 'THE ROUTINE THAT BUILDS ITSELF'}
         </p>
 
-        {/* Logo MySolaia avec l'étoile collée juste à droite sans espace vertical */}
-        <div className="flex items-baseline justify-center gap-1">
-          <h1 className="font-display text-[42px] leading-none" style={{ color: 'var(--ink)' }}>
-            MySolaia
-          </h1>
-          <Sparkles size={16} style={{ color: 'var(--gold, #B68235)' }} />
-        </div>
+        {/* Logo MySolaia avec l'étincelle sur le i */}
+        <h1 className="font-display text-[48px] leading-none flex items-center justify-center select-none" style={{ color: 'var(--ink)' }}>
+          MySola
+          <span className="relative inline-block">
+            <span className="inline-block">ı</span>
+            <Sparkle 
+              size={12} 
+              className="absolute -top-[0.2em] left-1/2 -translate-x-1/2 fill-current" 
+              style={{ color: 'var(--ink)' }} 
+            />
+          </span>
+          a
+        </h1>
 
         {/* Formulaire */}
         <form onSubmit={handleSubmit} className="mt-8 space-y-3 max-w-sm mx-auto">
@@ -54,7 +73,7 @@ const AuthScreen = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
-            style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
+            style={{ background: 'var(--cream-card, #FFF)', border: '1px solid var(--line-strong, #E5DCD3)', color: 'var(--ink)' }}
             required
           />
           <input
@@ -63,12 +82,16 @@ const AuthScreen = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
-            style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
+            style={{ background: 'var(--cream-card, #FFF)', border: '1px solid var(--line-strong, #E5DCD3)', color: 'var(--ink)' }}
             required
+            minLength={6}
           />
+
+          {err && <p className="font-body italic text-[13px] text-left" style={{ color: '#a4552f' }}>{err}</p>}
 
           <button
             type="submit"
+            disabled={busy}
             className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm"
             style={{ background: '#A37B68' }}
           >
@@ -78,28 +101,28 @@ const AuthScreen = () => {
           </button>
         </form>
 
-        {/* Bascule entre Se Connecter / Créer un compte */}
+        {/* Bascule Inscription / Connexion */}
         <p className="font-body text-[12.5px] mt-4" style={{ color: 'var(--ink-soft)' }}>
           {isLogin ? (
             <>
-              {lang === 'fr' ? 'Pas encore de compte ? ' : "Don't have an account? "}
+              {lang === 'fr' ? "Don't have an account? " : "Don't have an account? "}
               <button 
                 type="button"
-                onClick={() => setIsLogin(false)} 
+                onClick={() => { setIsLogin(false); setErr(''); }} 
                 className="font-semibold underline cursor-pointer"
-                style={{ color: 'var(--ink)' }}
+                style={{ color: 'var(--gold, #B68235)' }}
               >
                 {lang === 'fr' ? 'S\'inscrire' : 'Sign up'}
               </button>
             </>
           ) : (
             <>
-              {lang === 'fr' ? 'Déjà un compte ? ' : 'Already have an account? '}
+              {lang === 'fr' ? 'Already have an account? ' : 'Already have an account? '}
               <button 
                 type="button"
-                onClick={() => setIsLogin(true)} 
+                onClick={() => { setIsLogin(true); setErr(''); }} 
                 className="font-semibold underline cursor-pointer"
-                style={{ color: 'var(--ink)' }}
+                style={{ color: 'var(--gold, #B68235)' }}
               >
                 {lang === 'fr' ? 'Se connecter' : 'Sign in'}
               </button>
@@ -108,9 +131,11 @@ const AuthScreen = () => {
         </p>
       </div>
 
-      {/* Avertissement bas de page */}
-      <p className="font-body italic text-[11px] text-center" style={{ color: 'var(--ink-faint)' }}>
-        No medical advice: the app orders and warns, it does not diagnose.
+      {/* Mention légale en bas */}
+      <p className="font-body italic text-[11px] text-center max-w-xs mx-auto" style={{ color: 'var(--ink-faint)' }}>
+        {lang === 'fr' 
+          ? 'Pas de conseil médical : l\'application ordonne et alerte, elle ne diagnostique pas.' 
+          : 'No medical advice: the app orders and warns, it does not diagnose.'}
       </p>
     </div>
   );
