@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle } from 'lucide-react';
+import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle, Sun } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import HomeScreen from '../screens/HomeScreen';
@@ -11,7 +11,7 @@ import api from '../lib/api';
 
 const TABS = [
   { id: 'accueil', icon: Home, screen: HomeScreen },
-  { id: 'routine', icon: ListChecks, screen: RoutineScreen }, // Placé juste à côté d'Accueil
+  { id: 'routine', icon: ListChecks, screen: RoutineScreen },
   { id: 'scan', icon: Camera, screen: ScanScreen },
   { id: 'journal', icon: LineChart, screen: JournalScreen },
   { id: 'menu', icon: Sparkles, screen: TrialScreen },
@@ -55,12 +55,24 @@ const AppShell = () => {
 
   return (
     <div className="app-shell relative min-h-screen pb-20">
-      {/* Header */}
+      {/* Header Mis à Jour (Soleil seul + Étincelle sur le i) */}
       <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
-        <div className="flex items-center gap-2">
-          <img src="/icon-192.png" alt="MySolaia" className="h-7 w-auto object-contain" />
-          <span className="font-display text-[20px] tracking-wide" style={{ color: '#A37B68' }}>MySolaia</span>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => go('accueil')}>
+          <Sun size={20} style={{ color: '#D4A373' }} />
+          <span className="font-display text-[20px] font-semibold tracking-wide flex items-center" style={{ color: '#A37B68' }}>
+            MySola
+            <span className="relative inline-flex items-center justify-center">
+              i
+              <Sparkles 
+                size={9} 
+                className="absolute -top-1 left-1/2 -translate-x-1/2" 
+                style={{ color: '#D4A373' }} 
+              />
+            </span>
+            a
+          </span>
         </div>
+        
         <div className="flex items-center gap-4">
           <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5" style={{ color: 'var(--ink-soft)' }}>
             <Globe size={15} strokeWidth={1.6} />
@@ -98,7 +110,7 @@ const AppShell = () => {
             {/* Header Modale */}
             <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'rgba(163, 123, 104, 0.2)' }}>
               <div className="flex items-center gap-3">
-                <img src="/icon-192.png" alt="MySolaia" className="h-9 w-9 object-contain" />
+                <Sun size={28} style={{ color: '#D4A373' }} />
                 <div>
                   <h3 className="font-display text-[20px]" style={{ color: '#A37B68' }}>
                     {user?.prenom ? `Bonjour, ${user.prenom}` : 'Mon Compte'}

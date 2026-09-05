@@ -10,14 +10,32 @@ const HomeScreen = ({ go }) => {
 
   const [weather, setWeather] = useState({ temp: '--', condition: '', tip: '' });
   const [products, setProducts] = useState([]);
-  const [insight, setInsight] = useState('Tes routines sont bien régulières, continue comme ça !');
+
+  // Récupération intelligente du prénom
+  const userName = user?.prenom || user?.first_name || user?.name || '';
 
   const currentHour = new Date().getHours();
-  const isDay = currentHour >= 6 && currentHour < 18;
-  const phase = isDay ? 'jour' : 'soir';
+  const isMorning = currentHour >= 5 && currentHour < 12;
+  const isAfternoon = currentHour >= 12 && currentHour < 18;
+  const isNight = currentHour >= 18 || currentHour < 5;
+  const phase = isNight ? 'soir' : 'jour';
+
+  const getGreeting = () => {
+    if (lang === 'fr') {
+      if (isNight) return 'BONSOIR';
+      return 'BONJOUR';
+    } else {
+      if (isMorning) return 'GOOD MORNING';
+      if (isAfternoon) return 'GOOD AFTERNOON';
+      return 'GOOD EVENING';
+    }
+  };
+
+  const insightText = lang === 'fr' 
+    ? "Tes routines sont bien régulières, continue comme ça !"
+    : "Your routines are consistent, keep it up!";
 
   useEffect(() => {
-    // Géolocalisation météo sécurisée
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -29,9 +47,17 @@ const HomeScreen = ({ go }) => {
             
             if (data && data.current_weather && typeof data.current_weather.temperature === 'number') {
               const temp = Math.round(data.current_weather.temperature);
-              let tip = "Hydrate bien ta peau aujourd'hui.";
-              if (temp > 22) tip = "Soleil & chaleur : n'oublie pas ta crème solaire SPF 50 !";
-              else if (temp < 5) tip = "Froid intense : privilégie une crème riche protectrice.";
+              let tip = lang === 'fr' ? "Hydrate bien ta peau aujourd'hui." : "Keep your skin well hydrated today.";
+              
+              if (temp > 22) {
+                tip = lang === 'fr' 
+                  ? "Soleil & chaleur : n'oublie pas ta crème solaire SPF 50 !" 
+                  : "Sun & heat: don't forget your SPF 50 sunscreen!";
+              } else if (temp < 5) {
+                tip = lang === 'fr' 
+                  ? "Froid intense : privilégie une crème riche protectrice." 
+                  : "Cold weather: use a rich protective cream.";
+              }
 
               setWeather({ temp: `${temp}°C`, tip });
             }
@@ -39,29 +65,21 @@ const HomeScreen = ({ go }) => {
             console.warn("Météo ignorée :", e.message);
           }
         },
-        (err) => {
-          console.warn("Géolocalisation non disponible :", err.message);
-        },
+        (err) => console.warn("Géolocalisation indisponible :", err.message),
         { timeout: 5000 }
       );
     }
 
-    // Extraction 100% sécurisée de l'API
     api.get('/shelf/')
       .then((res) => {
         const data = res?.data;
-        if (Array.isArray(data)) {
-          setProducts(data);
-        } else if (data && Array.isArray(data.products)) {
-          setProducts(data.products);
-        } else {
-          setProducts([]);
-        }
+        if (Array.isArray(data)) setProducts(data);
+        else if (data && Array.isArray(data.products)) setProducts(data.products);
+        else setProducts([]);
       })
       .catch(() => setProducts([]));
-  }, []);
+  }, [lang]);
 
-  // Garantie absolue que safeProducts est TOUJOURS un tableau
   const safeProducts = Array.isArray(products) ? products : [];
 
   return (
@@ -69,16 +87,16 @@ const HomeScreen = ({ go }) => {
       {/* Salutation */}
       <div>
         <p className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
-          {isDay ? (lang === 'fr' ? 'BONJOUR' : 'GOOD MORNING') : (lang === 'fr' ? 'BONSOIR' : 'GOOD EVENING')}, {user?.prenom || ''}
+          {getGreeting()}{userName ? `, ${userName}` : ''}
         </p>
         <h1 className="font-display text-[32px] leading-tight mt-1" style={{ color: 'var(--ink)' }}>
-          {isDay 
-            ? (lang === 'fr' ? 'Aujourd\'hui, on illumine' : 'Today, let\'s glow') 
-            : (lang === 'fr' ? 'Ce soir, on garde ça simple' : 'Tonight, keep it simple')}
+          {isNight 
+            ? (lang === 'fr' ? 'Ce soir, on garde ça simple' : 'Tonight, keep it simple')
+            : (lang === 'fr' ? 'Aujourd\'hui, on illumine' : 'Today, let\'s glow')}
         </h1>
       </div>
 
-      {/* Recommandation Météo du Jour */}
+      {/* Météo */}
       {weather.temp !== '--' && (
         <div className="p-4 rounded-[16px] flex items-center gap-3.5" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
           <CloudSun size={24} style={{ color: 'var(--gold)' }} />
@@ -89,17 +107,21 @@ const HomeScreen = ({ go }) => {
         </div>
       )}
 
-      {/* Carte Routine Recommandée */}
+      {/* Routine */}
       <div className="p-6 rounded-[20px] shadow-sm space-y-4" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <div className="flex items-center gap-2 font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>
-          {isDay ? <Sun size={14} /> : <Moon size={14} />}
-          <span>{isDay ? (lang === 'fr' ? 'CE JOUR' : 'THIS DAY') : (lang === 'fr' ? 'CE SOIR' : 'TONIGHT')}</span>
+          {isNight ? <Moon size={14} /> : <Sun size={14} />}
+          <span>
+            {isNight 
+              ? (lang === 'fr' ? 'CE SOIR' : 'TONIGHT') 
+              : (lang === 'fr' ? 'CE JOUR' : 'THIS DAY')}
+          </span>
         </div>
 
         <h3 className="font-display text-[22px]" style={{ color: 'var(--ink)' }}>
-          {isDay 
-            ? (lang === 'fr' ? 'Routine Jour Protection & Éclat' : 'Day Routine Protect & Glow') 
-            : (lang === 'fr' ? 'Routine Soir Réparation' : 'Evening Repair Routine')}
+          {isNight 
+            ? (lang === 'fr' ? 'Routine Soir Réparation' : 'Evening Repair Routine') 
+            : (lang === 'fr' ? 'Routine Jour Protection & Éclat' : 'Day Routine Protect & Glow')}
         </h3>
 
         <button
@@ -118,7 +140,7 @@ const HomeScreen = ({ go }) => {
           {lang === 'fr' ? 'CE QUE JE REMARQUE' : 'WHAT I NOTICE'}
         </p>
         <p className="font-body italic text-[13.5px] mt-2 leading-relaxed" style={{ color: 'var(--ink)' }}>
-          "{insight}"
+          "{insightText}"
         </p>
       </div>
 
@@ -144,8 +166,8 @@ const HomeScreen = ({ go }) => {
 
           <button onClick={() => go('scan')} className="p-4 rounded-[16px] flex flex-col items-center justify-center gap-1 border-dashed" style={{ border: '1px dashed var(--line-strong)', background: 'rgba(250, 246, 240, 0.5)' }}>
             <Camera size={20} style={{ color: 'var(--gold)' }} />
-            <span className="font-body text-[10px] uppercase tracking-caps font-medium mt-1" style={{ color: 'var(--ink-soft)' }}>
-              {lang === 'fr' ? 'AJOUTER PAR PHOTO' : 'ADD BY PHOTO'}
+            <span className="font-body text-[10px] uppercase tracking-caps font-medium mt-1 text-center" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr' ? 'GÉRER MES PRODUITS' : 'MANAGE PRODUCTS'}
             </span>
           </button>
         </div>
