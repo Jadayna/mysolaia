@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -38,7 +38,7 @@ body {
 }
 
 .font-display {
-  font-family: 'Recoleta', 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Recoleta', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
 }
 
 .font-body {
@@ -54,111 +54,7 @@ body {
   letter-spacing: 0.18em;
 }
 
-/* Hairline scrollbars inside phone */
-.phone-scroll::-webkit-scrollbar {
-  width: 0;
-  height: 3px;
-}
-.phone-scroll::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border-radius: 3px;
-}
-
-@keyframes sheetUp {
-  from { transform: translateY(100%); opacity: 0.4; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.animate-sheet {
-  animation: sheetUp 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-up {
-  animation: fadeUp 0.7s ease both;
-}
-
-::selection {
-  background: rgba(182, 130, 53, 0.18);
-  color: var(--ink);
-}
-
-:root {
-  --cream: #FAF6F0;
-  --cream-card: #FFFFFF;
-  --ink: #A37B68;
-  --ink-soft: #8C6250;
-  --ink-faint: #B59B8D;
-  --gold: #A37B68;
-  --gold-soft: #E6A89A;
-  --line: rgba(163, 123, 104, 0.15);
-  --line-strong: rgba(163, 123, 104, 0.3);
-}
-
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  margin: 0;
-  background: var(--cream);
-  color: var(--ink);
-  font-family: 'Lora', Georgia, serif;
-  font-feature-settings: 'tnum' 1;
-}
-
-.font-display {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-}
-
-.font-body {
-  font-family: 'Lora', Georgia, serif;
-}
-
-.tnum {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
-}
-
-.tracking-caps {
-  letter-spacing: 0.18em;
-}
-
-/* Hairline scrollbars inside phone */
-.phone-scroll::-webkit-scrollbar {
-  width: 0;
-  height: 3px;
-}
-.phone-scroll::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border-radius: 3px;
-}
-
-@keyframes sheetUp {
-  from { transform: translateY(100%); opacity: 0.4; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.animate-sheet {
-  animation: sheetUp 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-up {
-  animation: fadeUp 0.7s ease both;
-}
-
-::selection {
-  background: rgba(182, 130, 53, 0.18);
-  color: var(--ink);
-}
-
-/* Navigation du bas (Bottom Nav) */
+/* Bottom Navigation */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -196,4 +92,35 @@ body {
 
 .nav-item.active svg {
   stroke: #A37B68;
+}
+
+/* Hairline scrollbars inside phone */
+.phone-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 3px;
+}
+.phone-scroll::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); opacity: 0.4; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-sheet {
+  animation: sheetUp 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fadeUp 0.7s ease both;
+}
+
+::selection {
+  background: rgba(182, 130, 53, 0.18);
+  color: var(--ink);
 }
