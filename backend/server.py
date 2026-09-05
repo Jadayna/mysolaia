@@ -358,15 +358,12 @@ def _observation(entries):
 # ---------------- Scan (AI vision Gemini) ----------------
 @api_router.post("/scan")
 async def scan(body: ScanIn, user=Depends(current_user)):
-<<<<<<< HEAD
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
     key = os.environ.get("EMERGENT_LLM_KEY")
     img = body.image_base64.split(",")[-1]
     sys = ("Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
            "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON: "
            '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}')
-=======
->>>>>>> d2cc6a897b2a965b5c1f9694e619912166aa8153
     data = {}
     gemini_key = os.environ.get("GEMINI_API_KEY")
     
