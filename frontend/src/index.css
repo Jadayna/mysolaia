@@ -5,15 +5,15 @@
 @tailwind utilities;
 
 :root {
-  --cream: #f3f2f2;
-  --cream-card: #faf6ee;
-  --ink: #201f1d;
-  --ink-soft: #6b6863;
-  --ink-faint: #9a968f;
-  --gold: #b68235;
-  --gold-soft: #d8c39a;
-  --line: #dcd8d2;
-  --line-strong: #c9c4bc;
+  --cream: #FAF6F0;
+  --cream-card: #FFFFFF;
+  --ink: #A37B68;
+  --ink-soft: #8C6250;
+  --ink-faint: #B59B8D;
+  --gold: #A37B68;
+  --gold-soft: #E6A89A;
+  --line: rgba(163, 123, 104, 0.15);
+  --line-strong: rgba(163, 123, 104, 0.3);
 }
 
 * {
