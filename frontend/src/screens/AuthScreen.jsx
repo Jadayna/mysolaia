@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 
 const AuthScreen = () => {
-  // Par défaut sur "Sign In" (Se connecter)
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +21,7 @@ const AuthScreen = () => {
 
   return (
     <div className="min-h-screen flex flex-col justify-between p-8 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
-      {/* Sélecteur de langue en haut à droite */}
+      {/* Sélecteur de langue */}
       <div className="flex justify-end">
         <button 
           onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
@@ -39,19 +38,13 @@ const AuthScreen = () => {
           THE ROUTINE THAT BUILDS ITSELF
         </p>
 
-        {/* Logo MySolaia avec l'étoile ancrée sur le "i" */}
-        <h1 className="font-display text-[48px] leading-none flex items-center justify-center select-none" style={{ color: 'var(--ink)' }}>
-          MySola
-          <span className="relative inline-block">
-            <span className="inline-block">ı</span>
-            <Sparkle 
-              size={12} 
-              className="absolute -top-[0.2em] left-1/2 -translate-x-1/2 fill-current" 
-              style={{ color: 'var(--gold, #B68235)' }} 
-            />
-          </span>
-          a
-        </h1>
+        {/* Logo MySolaia avec l'étoile collée juste à droite sans espace vertical */}
+        <div className="flex items-baseline justify-center gap-1">
+          <h1 className="font-display text-[42px] leading-none" style={{ color: 'var(--ink)' }}>
+            MySolaia
+          </h1>
+          <Sparkles size={16} style={{ color: 'var(--gold, #B68235)' }} />
+        </div>
 
         {/* Formulaire */}
         <form onSubmit={handleSubmit} className="mt-8 space-y-3 max-w-sm mx-auto">
