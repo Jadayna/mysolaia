@@ -108,12 +108,12 @@ const HomeScreen = ({ go }) => {
             {lang === 'fr' ? 'TON ÉTAGÈRE' : 'YOUR SHELF'}
           </span>
           <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
-            {products.length} {lang === 'fr' ? 'produits' : 'products'}
+            {(products?.length || 0)} {lang === 'fr' ? 'produits' : 'products'}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {products.slice(0, 3).map((p) => (
+          {(products || []).slice(0, 3).map((p) => (
             <div key={p.id} className="p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
               <p className="font-body text-[9px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>{p.categorie || 'SOIN'}</p>
               <p className="font-display text-[13px] line-clamp-1" style={{ color: 'var(--ink)' }}>{p.nom}</p>

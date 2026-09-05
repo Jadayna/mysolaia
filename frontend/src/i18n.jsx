@@ -61,16 +61,25 @@ export const LanguageProvider = ({ children }) => {
   const [lang, setLang] = useState(() => {
     const saved = localStorage.getItem('ordre_lang');
     if (saved) return saved;
-    const nav = (navigator.language || 'fr').slice(0, 2);
+    
+    // Détection sécurisée de la langue
+    const rawNav = typeof navigator !== 'undefined' && navigator.language ? String(navigator.language) : 'fr';
+    const nav = rawNav.slice(0, 2);
     return nav === 'en' ? 'en' : 'fr';
   });
-  useEffect(() => { localStorage.setItem('ordre_lang', lang); }, [lang]);
+
+  useEffect(() => { 
+    localStorage.setItem('ordre_lang', lang); 
+  }, [lang]);
+
   const t = useCallback((key) => {
+    if (!key) return '';
     const parts = key.split('.');
     let v = DICT[lang];
     for (const p of parts) v = v?.[p];
     return v ?? key;
   }, [lang]);
+
   return <LangContext.Provider value={{ lang, setLang, t }}>{children}</LangContext.Provider>;
 };
 
