@@ -18,29 +18,42 @@ const HomeScreen = ({ go }) => {
   const phase = isDay ? 'jour' : 'soir';
 
   useEffect(() => {
-    // Géolocalisation pour météo & conseil skincare du jour
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          // Appel API Météo (ex: Open-Meteo gratuit sans clé)
-          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-          const data = await res.json();
-          const temp = Math.round(data.current_weather.temperature);
+    // Géolocalisation sécurisée pour météo & conseil skincare
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+            
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            // Validation sécurisée de la réponse météo
+            if (data && data.current_weather && typeof data.current_weather.temperature === 'number') {
+              const temp = Math.round(data.current_weather.temperature);
+              let tip = "Hydrate bien ta peau aujourd'hui.";
+              if (temp > 22) tip = "Soleil & chaleur : n'oublie pas ta crème solaire SPF 50 !";
+              else if (temp < 5) tip = "Froid intense : privilégie une crème riche protectrice.";
 
-          let tip = "Hydrate bien ta peau aujourd'hui.";
-          if (temp > 22) tip = "Soleil & chaleur : n'oublie pas ta crème solaire SPF 50 !";
-          else if (temp < 5) tip = "Froid intense : privilégie une crème riche protectrice.";
-
-          setWeather({ temp: `${temp}°C`, tip });
-        } catch (e) {
-          console.error("Erreur météo", e);
-        }
-      });
+              setWeather({ temp: `${temp}°C`, tip });
+            }
+          } catch (e) {
+            console.warn("Météo ignorée :", e.message);
+          }
+        },
+        (err) => {
+          // Gestion du refus de géolocalisation ou VPN sans faire planter React
+          console.warn("Géolocalisation non disponible :", err.message);
+        },
+        { timeout: 5000 }
+      );
     }
 
     // Chargement produits
-    api.get('/shelf/').then((res) => setProducts(res.data || [])).catch(() => {});
+    api.get('/shelf/')
+      .then((res) => setProducts(res?.data || []))
+      .catch(() => setProducts([]));
   }, []);
 
   return (
@@ -91,7 +104,7 @@ const HomeScreen = ({ go }) => {
         </button>
       </div>
 
-      {/* Boîte "CE QUE JE REMARQUE" (déplacée sur la page d'accueil) */}
+      {/* Boîte "CE QUE JE REMARQUE" */}
       <div className="p-5 rounded-[18px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
           {lang === 'fr' ? 'CE QUE JE REMARQUE' : 'WHAT I NOTICE'}
@@ -114,7 +127,7 @@ const HomeScreen = ({ go }) => {
 
         <div className="grid grid-cols-2 gap-3">
           {(products || []).slice(0, 3).map((p) => (
-            <div key={p.id} className="p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+            <div key={p.id || p.nom} className="p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
               <p className="font-body text-[9px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>{p.categorie || 'SOIN'}</p>
               <p className="font-display text-[13px] line-clamp-1" style={{ color: 'var(--ink)' }}>{p.nom}</p>
               <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.marque}</p>
