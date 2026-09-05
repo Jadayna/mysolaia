@@ -24,7 +24,16 @@ const OnboardingScreen = () => {
 
   const finish = async () => {
     setBusy(true);
-    await saveProfile({ type_de_peau: skin || 'normale', sensibilite: sens, objectifs: goals, langue: lang });
+    // On récupère automatiquement le timezone local de l'utilisateur
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    await saveProfile({ 
+      type_de_peau: skin || 'normale', 
+      sensibilite: sens, 
+      objectifs: goals, 
+      langue: lang,
+      timezone: userTimezone
+    });
     setBusy(false);
   };
 
@@ -63,7 +72,7 @@ const OnboardingScreen = () => {
           ))}
         </div>
 
-        <button onClick={finish} disabled={busy} className="gold-btn w-full rounded-[8px] py-3.5 mt-12 font-body tracking-caps text-[11px] uppercase">
+        <button onClick={finish} disabled={busy} className="gold-btn w-full rounded-[12px] py-3.5 mt-12 font-body tracking-caps text-[11px] uppercase font-semibold text-white" style={{ background: '#A37B68' }}>
           {t('continue')}
         </button>
       </div>
