@@ -1,148 +1,134 @@
-import React, { useEffect, useState } from 'react';
-import { Moon, Sun, Camera, ArrowRight, Sparkles } from 'lucide-react';
-import api from '../lib/api';
-import { useT } from '../i18n';
+import React, { useState, useEffect } from 'react';
+import { Sun, Moon, CloudSun, Camera, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const CAT_FR = { 
-  nettoyant: 'Nettoyant', 
-  exfoliant: 'Exfoliant', 
-  serum: 'Sérum', 
-  yeux: 'Yeux', 
-  hydratant: 'Hydratant', 
-  spf: 'SPF', 
-  levres: 'Lèvres', 
-  cils_sourcils: 'Cils & sourcils', 
-  traitement_cible: 'Ciblé' 
-};
+import { useT } from '../i18n';
+import api from '../lib/api';
 
 const HomeScreen = ({ go }) => {
-  const { t, lang } = useT();
   const { user } = useAuth();
-  const [data, setData] = useState(null);
+  const { lang } = useT();
 
-  useEffect(() => { 
-    api.get('/home').then((r) => setData(r.data)).catch(() => {}); 
+  const [weather, setWeather] = useState({ temp: '--', condition: '', tip: '' });
+  const [products, setProducts] = useState([]);
+  const [insight, setInsight] = useState('Tes routines sont bien régulières, continue comme ça !');
+
+  // Détection dynamique du moment de la journée (Jour entre 06h et 18h, sinon Soir)
+  const currentHour = new Date().getHours();
+  const isDay = currentHour >= 6 && currentHour < 18;
+  const phase = isDay ? 'jour' : 'soir';
+
+  useEffect(() => {
+    // Géolocalisation pour météo & conseil skincare du jour
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          // Appel API Météo (ex: Open-Meteo gratuit sans clé)
+          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+          const data = await res.json();
+          const temp = Math.round(data.current_weather.temperature);
+
+          let tip = "Hydrate bien ta peau aujourd'hui.";
+          if (temp > 22) tip = "Soleil & chaleur : n'oublie pas ta crème solaire SPF 50 !";
+          else if (temp < 5) tip = "Froid intense : privilégie une crème riche protectrice.";
+
+          setWeather({ temp: `${temp}°C`, tip });
+        } catch (e) {
+          console.error("Erreur météo", e);
+        }
+      });
+    }
+
+    // Chargement produits
+    api.get('/shelf/').then((res) => setProducts(res.data || [])).catch(() => {});
   }, []);
 
-  if (!data) return <div className="px-6 pt-10 font-body text-center" style={{ color: 'var(--ink-faint)' }}>…</div>;
-
-  const rawName = user?.prenom || (user?.email || '').split('@')[0];
-  const nameCap = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-  const evening = data.greeting_kind === 'soir';
-  const greet = evening ? t('greetingEvening') : t('greetingMorning');
-  const r = data.routine;
-
-  const headline = () => {
-    const tt = (r.title || '').toLowerCase();
-    if (lang === 'fr') {
-      if (tt.includes('sans exfoliation')) return ['Ce soir, ', 'on garde ça simple'];
-      if (tt.includes('avec exfoliation')) return ['Ce soir, ', 'on exfolie en douceur'];
-      return ['Ce matin, ', 'on protège la peau'];
-    }
-    if (tt.includes('sans exfoliation')) return ['Tonight, ', 'we keep it simple'];
-    if (tt.includes('avec exfoliation')) return ['Tonight, ', 'we exfoliate gently'];
-    return ['This morning, ', 'we protect the skin'];
-  };
-  const [hPrefix, hPhrase] = headline();
-
   return (
-    <div className="px-6 pt-6 pb-24 animate-fade-up">
-      {/* Salutation + Prénom */}
-      <span className="font-body tracking-caps text-[11px] uppercase font-medium" style={{ color: 'var(--ink-faint)' }}>
-        {greet}, {nameCap}
-      </span>
-      <h2 className="font-display text-[32px] leading-[1.15] mt-1.5" style={{ color: '#A37B68' }}>
-        {hPrefix}<span className="italic font-normal">{hPhrase}</span>
-      </h2>
+    <div className="px-6 pt-6 pb-12 space-y-6">
+      {/* Salutation */}
+      <div>
+        <p className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+          {isDay ? (lang === 'fr' ? 'BONJOUR' : 'GOOD MORNING') : (lang === 'fr' ? 'BONSOIR' : 'GOOD EVENING')}, {user?.prenom || ''}
+        </p>
+        <h1 className="font-display text-[32px] leading-tight mt-1" style={{ color: 'var(--ink)' }}>
+          {isDay 
+            ? (lang === 'fr' ? 'Aujourd\'hui, on illumine' : 'Today, let\'s glow') 
+            : (lang === 'fr' ? 'Ce soir, on garde ça simple' : 'Tonight, keep it simple')}
+        </h1>
+      </div>
 
-      {/* Carte Routine principale */}
-      <div className="mt-6 rounded-[20px] p-6 shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-        <div className="flex items-center gap-2">
-          {evening ? (
-            <Moon size={15} style={{ color: '#A37B68' }} />
-          ) : (
-            <Sun size={15} style={{ color: '#A37B68' }} />
-          )}
-          <span className="font-body tracking-caps text-[10px] uppercase font-semibold" style={{ color: '#B59B8D' }}>
-            {evening ? t('tonight') : t('thisMorning')}
-          </span>
+      {/* Recommandation Météo du Jour */}
+      {weather.temp !== '--' && (
+        <div className="p-4 rounded-[16px] flex items-center gap-3.5" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+          <CloudSun size={24} style={{ color: 'var(--gold)' }} />
+          <div>
+            <span className="font-display text-[13px] font-semibold" style={{ color: 'var(--ink)' }}>{weather.temp}</span>
+            <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>{weather.tip}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Carte Routine Recommandée (Jour / Soir) */}
+      <div className="p-6 rounded-[20px] shadow-sm space-y-4" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <div className="flex items-center gap-2 font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>
+          {isDay ? <Sun size={14} /> : <Moon size={14} />}
+          <span>{isDay ? (lang === 'fr' ? 'CE JOUR' : 'THIS DAY') : (lang === 'fr' ? 'CE SOIR' : 'TONIGHT')}</span>
         </div>
 
-        <h3 className="font-display text-[22px] mt-2" style={{ color: '#A37B68' }}>{r.title}</h3>
-        
-        {r.banner && (
-          <p className="font-body text-[13.5px] leading-relaxed mt-2" style={{ color: '#8C6250' }}>
-            {r.banner}
-          </p>
-        )}
+        <h3 className="font-display text-[22px]" style={{ color: 'var(--ink)' }}>
+          {isDay 
+            ? (lang === 'fr' ? 'Routine Jour Protection & Éclat' : 'Day Routine Protect & Glow') 
+            : (lang === 'fr' ? 'Routine Soir Réparation' : 'Evening Repair Routine')}
+        </h3>
 
-        <button 
-          onClick={() => go('routine', { phase: r.phase })} 
-          className="w-full rounded-[14px] py-3.5 mt-5 font-body tracking-caps text-[11px] uppercase font-semibold text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          style={{ background: '#A37B68', boxShadow: '0 4px 12px rgba(163, 123, 104, 0.2)' }}
+        <button
+          onClick={() => go('routine', { phase })}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98]"
+          style={{ background: '#A37B68' }}
         >
-          <span>{t('start')} · {r.total} {t('steps')}</span>
+          <span>{lang === 'fr' ? 'COMMENCER · 3 ÉTAPES' : 'START · 3 STEPS'}</span>
           <ArrowRight size={14} />
         </button>
       </div>
 
-      {/* Étagère de soins / Vanité */}
-      <div className="flex items-baseline justify-between mt-9">
-        <span className="font-body tracking-caps text-[10px] uppercase font-semibold" style={{ color: 'var(--ink-faint)' }}>
-          {t('shelf')}
-        </span>
-        <span className="font-body text-[12px] tnum font-medium" style={{ color: 'var(--ink-faint)' }}>
-          {data.shelf_count} {t('products')}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mt-3">
-        {data.shelf_preview.map((p, i) => (
-          <div key={i} className="rounded-[16px] p-4 flex flex-col justify-between" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-            <div>
-              <span className="font-body tracking-caps text-[9px] uppercase font-medium" style={{ color: '#B59B8D' }}>
-                {CAT_FR[p.categorie] || p.categorie}
-              </span>
-              <p className="font-display text-[14px] mt-1.5 leading-snug font-medium" style={{ color: '#A37B68' }}>
-                {p.nom}
-              </p>
-            </div>
-            <p className="font-body italic text-[11.5px] mt-2" style={{ color: '#B59B8D' }}>
-              {p.brand}
-            </p>
-          </div>
-        ))}
-
-        {/* Bouton Ajouter Photo / Produit */}
-        <button 
-          onClick={() => go('scan')} 
-          className="rounded-[16px] p-4 flex flex-col items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          style={{ background: 'rgba(163, 123, 104, 0.04)', border: '1.5px dashed var(--line-strong)' }}
-        >
-          <Camera size={20} strokeWidth={1.5} style={{ color: '#A37B68' }} />
-          <span className="font-body tracking-caps text-[10px] uppercase font-semibold text-center" style={{ color: '#A37B68' }}>
-            {t('addPhoto')}
-          </span>
-        </button>
-      </div>
-
-      {data.demo && (
-        <p className="font-body italic text-[12px] mt-4 text-center" style={{ color: 'var(--ink-faint)' }}>
-          {t('demoNote')}
+      {/* Boîte "CE QUE JE REMARQUE" (déplacée sur la page d'accueil) */}
+      <div className="p-5 rounded-[18px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+          {lang === 'fr' ? 'CE QUE JE REMARQUE' : 'WHAT I NOTICE'}
         </p>
-      )}
+        <p className="font-body italic text-[13.5px] mt-2 leading-relaxed" style={{ color: 'var(--ink)' }}>
+          "{insight}"
+        </p>
+      </div>
 
-      {/* Suggestion douce du moment */}
-      {data.suggestion && (
-        <div className="flex gap-3.5 mt-8 p-4 rounded-[16px]" style={{ background: 'rgba(230, 168, 154, 0.12)', border: '1px solid rgba(230, 168, 154, 0.3)' }}>
-          <Sparkles size={18} strokeWidth={1.5} className="mt-0.5 shrink-0" style={{ color: '#A37B68' }} />
-          <div>
-            <p className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>{data.suggestion.title}</p>
-            <p className="font-body italic text-[12.5px] leading-relaxed mt-1" style={{ color: '#8C6250' }}>{data.suggestion.text}</p>
-          </div>
+      {/* Étagère Rapide */}
+      <div>
+        <div className="flex justify-between items-center mb-3">
+          <span className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+            {lang === 'fr' ? 'TON ÉTAGÈRE' : 'YOUR SHELF'}
+          </span>
+          <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+            {products.length} {lang === 'fr' ? 'produits' : 'products'}
+          </span>
         </div>
-      )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {products.slice(0, 3).map((p) => (
+            <div key={p.id} className="p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <p className="font-body text-[9px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>{p.categorie || 'SOIN'}</p>
+              <p className="font-display text-[13px] line-clamp-1" style={{ color: 'var(--ink)' }}>{p.nom}</p>
+              <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.marque}</p>
+            </div>
+          ))}
+
+          <button onClick={() => go('scan')} className="p-4 rounded-[16px] flex flex-col items-center justify-center gap-1 border-dashed" style={{ border: '1px dashed var(--line-strong)', background: 'rgba(250, 246, 240, 0.5)' }}>
+            <Camera size={20} style={{ color: 'var(--gold)' }} />
+            <span className="font-body text-[10px] uppercase tracking-caps font-medium mt-1" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr' ? 'AJOUTER PAR PHOTO' : 'ADD BY PHOTO'}
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
