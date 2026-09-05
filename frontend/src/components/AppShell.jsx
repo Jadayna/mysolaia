@@ -55,21 +55,21 @@ const AppShell = () => {
 
   return (
     <div className="app-shell relative min-h-screen pb-20">
-      {/* Header Mis à Jour (Soleil seul + Étincelle sur le i) */}
+      {/* Header avec Logo Image */}
       <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => go('accueil')}>
-          <Sun size={20} style={{ color: '#D4A373' }} />
-          <span className="font-display text-[20px] font-semibold tracking-wide flex items-center" style={{ color: '#A37B68' }}>
-            MySola
-            <span className="relative inline-flex items-center justify-center">
-              i
-              <Sparkles 
-                size={9} 
-                className="absolute -top-1 left-1/2 -translate-x-1/2" 
-                style={{ color: '#D4A373' }} 
-              />
-            </span>
-            a
+          <img 
+            src="/icon-192.png" 
+            alt="MySolaia" 
+            className="h-8 w-auto object-contain"
+            onError={(e) => {
+              // Fallback si l'image n'est pas encore trouvée dans public/
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+          <span className="font-display text-[20px] font-semibold hidden items-center" style={{ color: '#A37B68' }}>
+            MySolaia
           </span>
         </div>
         
