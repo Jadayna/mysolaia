@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
@@ -24,19 +24,28 @@ const AppShell = () => {
   const [routinePhase, setRoutinePhase] = useState('soir');
   const [showMenuModal, setShowMenuModal] = useState(false);
 
+  // Synchronisation automatique du fuseau horaire navigateur
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    api.post('/user/timezone', { timezone: tz }).catch(() => {});
+  }, []);
+
   const go = (id, opts) => {
-    if (id === 'routine' && opts?.phase) setRoutinePhase(opts.phase);
+    if (opts?.phase) setRoutinePhase(opts.phase);
+    
     if (id === 'menu') {
       setShowMenuModal(true);
       return;
     }
+
+    setShowMenuModal(false);
     setActive(id);
   };
 
   const handleManageSubscription = async () => {
     try {
       const { data } = await api.post('/payments/portal', { origin_url: window.location.origin });
-      if (data.url) window.location.href = data.url;
+      if (data?.url) window.location.href = data.url;
     } catch (e) {
       console.error("Erreur portail Stripe", e);
     }
@@ -76,7 +85,7 @@ const AppShell = () => {
           return (
             <button key={tb.id} onClick={() => go(tb.id)} className={`nav-item ${isActive ? 'active' : ''}`}>
               <Icon size={20} strokeWidth={1.6} />
-              <span>{tb.id === 'menu' ? 'Menu' : t(`nav.${tb.id}`)}</span>
+              <span>{tb.id === 'menu' ? 'Menu' : (t(`nav.${tb.id}`) || tb.id)}</span>
             </button>
           );
         })}
@@ -104,8 +113,7 @@ const AppShell = () => {
 
             {/* Options du Menu */}
             <div className="mt-6 space-y-2.5">
-              {/* 1. Profil & Type de peau */}
-              <button onClick={() => { setShowMenuModal(false); setActive('accueil'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => go('accueil')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <User size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
@@ -115,8 +123,7 @@ const AppShell = () => {
                 </div>
               </button>
 
-              {/* 2. Mes Produits / Vanité */}
-              <button onClick={() => { setShowMenuModal(false); setActive('routine'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => go('scan')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <Package size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
@@ -126,7 +133,6 @@ const AppShell = () => {
                 </div>
               </button>
 
-              {/* 3. Mon Abonnement */}
               <button onClick={() => { setShowMenuModal(false); handleManageSubscription(); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <CreditCard size={18} style={{ color: '#A37B68' }} />
@@ -137,8 +143,7 @@ const AppShell = () => {
                 </div>
               </button>
 
-              {/* 4. Aide & Support */}
-              <button onClick={() => { setShowMenuModal(false); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => setShowMenuModal(false)} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <HelpCircle size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
@@ -148,8 +153,7 @@ const AppShell = () => {
                 </div>
               </button>
 
-              {/* 5. Confidentialité & CGU */}
-              <button onClick={() => { setShowMenuModal(false); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => setShowMenuModal(false)} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <Shield size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
@@ -159,7 +163,6 @@ const AppShell = () => {
                 </div>
               </button>
 
-              {/* 6. Déconnexion */}
               <button onClick={() => { setShowMenuModal(false); logout(); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] text-red-600" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <LogOut size={18} />
