@@ -59,7 +59,7 @@ const AppShell = () => {
       <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => go('accueil')}>
           <img 
-            src="/icon-192.png" 
+            src="/icon-512.png" 
             alt="Solaia Sun" 
             className="h-9 w-9 object-contain"
           />
