@@ -55,18 +55,18 @@ const AppShell = () => {
 
   return (
     <div className="app-shell relative min-h-screen pb-20">
-      {/* Header avec Icône et Logo Nom (Point #2) */}
-      <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
+      {/* Header avec Soleil et Nom parfaitement alignés */}
+      <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => go('accueil')}>
           <img 
-            src="/icon-192.png" 
-            alt="Solaia Icon" 
-            className="h-7 w-auto object-contain"
+            src="/favicon-512.png" 
+            alt="Solaia Sun" 
+            className="h-6 w-6 object-contain"
           />
           <img 
             src="/mysolaia-nom-4096.png" 
             alt="MySolaia" 
-            className="h-5 w-auto object-contain"
+            className="h-3.5 w-auto object-contain"
           />
         </div>
         
@@ -104,10 +104,10 @@ const AppShell = () => {
       {showMenuModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end animate-fade-in">
           <div className="bg-white rounded-t-[24px] p-6 max-h-[85vh] overflow-y-auto animate-fade-up shadow-xl" style={{ background: '#FAF6F0' }}>
-            {/* Header Modale avec Soleil Image (Point #6) */}
+            {/* Header Modale avec Soleil Image */}
             <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'rgba(163, 123, 104, 0.2)' }}>
               <div className="flex items-center gap-3">
-                <img src="/icon-192.png" alt="Solaia Sun" className="w-7 h-7 object-contain" />
+                <img src="/favicon-512.png" alt="Solaia Sun" className="w-7 h-7 object-contain" />
                 <div>
                   <h3 className="font-display text-[20px]" style={{ color: '#A37B68' }}>
                     {user?.prenom ? `Bonjour, ${user.prenom}` : 'Mon Compte'}
@@ -132,7 +132,6 @@ const AppShell = () => {
                 </div>
               </button>
 
-              {/* Point #4 Fix: redirection propre vers l'écran Scan */}
               <button onClick={() => go('scan')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <Package size={18} style={{ color: '#A37B68' }} />
