@@ -7,8 +7,12 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import AppShell from './components/AppShell';
 
 const Splash = () => (
-  <div className="app-shell items-center justify-center" style={{ display: 'flex' }}>
-    <h1 className="font-display text-[40px]" style={{ color: 'var(--gold)' }}>MySolaia</h1>
+  <div className="app-shell items-center justify-center min-h-screen flex bg-[#FAF6F0]">
+    <img 
+      src="/mysolaia-logo-4096.png" 
+      alt="MySolaia" 
+      className="w-52 object-contain animate-pulse" 
+    />
   </div>
 );
 

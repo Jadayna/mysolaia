@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle, Sun } from 'lucide-react';
+import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import HomeScreen from '../screens/HomeScreen';
@@ -55,22 +55,19 @@ const AppShell = () => {
 
   return (
     <div className="app-shell relative min-h-screen pb-20">
-      {/* Header avec Logo Image */}
+      {/* Header avec Icône et Logo Nom (Point #2) */}
       <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => go('accueil')}>
           <img 
             src="/icon-192.png" 
-            alt="MySolaia" 
-            className="h-8 w-auto object-contain"
-            onError={(e) => {
-              // Fallback si l'image n'est pas encore trouvée dans public/
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'flex';
-            }}
+            alt="Solaia Icon" 
+            className="h-7 w-auto object-contain"
           />
-          <span className="font-display text-[20px] font-semibold hidden items-center" style={{ color: '#A37B68' }}>
-            MySolaia
-          </span>
+          <img 
+            src="/mysolaia-nom-4096.png" 
+            alt="MySolaia" 
+            className="h-5 w-auto object-contain"
+          />
         </div>
         
         <div className="flex items-center gap-4">
@@ -107,10 +104,10 @@ const AppShell = () => {
       {showMenuModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end animate-fade-in">
           <div className="bg-white rounded-t-[24px] p-6 max-h-[85vh] overflow-y-auto animate-fade-up shadow-xl" style={{ background: '#FAF6F0' }}>
-            {/* Header Modale */}
+            {/* Header Modale avec Soleil Image (Point #6) */}
             <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'rgba(163, 123, 104, 0.2)' }}>
               <div className="flex items-center gap-3">
-                <Sun size={28} style={{ color: '#D4A373' }} />
+                <img src="/icon-192.png" alt="Solaia Sun" className="w-7 h-7 object-contain" />
                 <div>
                   <h3 className="font-display text-[20px]" style={{ color: '#A37B68' }}>
                     {user?.prenom ? `Bonjour, ${user.prenom}` : 'Mon Compte'}
@@ -135,6 +132,7 @@ const AppShell = () => {
                 </div>
               </button>
 
+              {/* Point #4 Fix: redirection propre vers l'écran Scan */}
               <button onClick={() => go('scan')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <Package size={18} style={{ color: '#A37B68' }} />

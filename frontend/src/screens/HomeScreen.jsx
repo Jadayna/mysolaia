@@ -11,7 +11,7 @@ const HomeScreen = ({ go }) => {
   const [weather, setWeather] = useState({ temp: '--', condition: '', tip: '' });
   const [products, setProducts] = useState([]);
 
-  // Récupération intelligente du prénom
+  // Récupération multi-champs du prénom
   const userName = user?.prenom || user?.first_name || user?.name || '';
 
   const currentHour = new Date().getHours();
@@ -36,6 +36,7 @@ const HomeScreen = ({ go }) => {
     : "Your routines are consistent, keep it up!";
 
   useEffect(() => {
+    // 1. Météo
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -70,6 +71,7 @@ const HomeScreen = ({ go }) => {
       );
     }
 
+    // 2. Chargement de la liste des produits
     api.get('/shelf/')
       .then((res) => {
         const data = res?.data;
