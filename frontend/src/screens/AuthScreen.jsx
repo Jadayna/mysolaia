@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 
@@ -33,17 +32,18 @@ const AuthScreen = () => {
       </div>
 
       {/* En-tête / Logo */}
-      <div className="my-auto space-y-2">
+      <div className="my-auto space-y-4">
         <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
           THE ROUTINE THAT BUILDS ITSELF
         </p>
 
-        {/* Logo MySolaia avec l'étoile collée juste à droite sans espace vertical */}
-        <div className="flex items-baseline justify-center gap-1">
-          <h1 className="font-display text-[42px] leading-none" style={{ color: 'var(--ink)' }}>
-            MySolaia
-          </h1>
-          <Sparkles size={16} style={{ color: 'var(--gold, #B68235)' }} />
+        {/* Logo Officiel de l'application */}
+        <div className="flex justify-center items-center">
+          <img 
+            src="/mysolaia-nom-4096.png" 
+            alt="MySolaia" 
+            className="h-16 object-contain mx-auto" 
+          />
         </div>
 
         {/* Formulaire */}
