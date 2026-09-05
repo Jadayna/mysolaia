@@ -55,28 +55,28 @@ const AppShell = () => {
 
   return (
     <div className="app-shell relative min-h-screen pb-20">
-      {/* Header avec Soleil et Nom parfaitement alignés */}
-      <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid var(--line)' }}>
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => go('accueil')}>
+      {/* Header agrandi avec Soleil et Nom bien lisibles */}
+      <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--line)' }}>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => go('accueil')}>
           <img 
-            src="/icon-512.png" 
+            src="/icon-192.png" 
             alt="Solaia Sun" 
-            className="h-6 w-6 object-contain"
+            className="h-9 w-9 object-contain"
           />
           <img 
             src="/mysolaia-nom-4096.png" 
             alt="MySolaia" 
-            className="h-3.5 w-auto object-contain"
+            className="h-6 w-auto object-contain"
           />
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5" style={{ color: 'var(--ink-soft)' }}>
-            <Globe size={15} strokeWidth={1.6} />
-            <span className="font-body text-[11px] uppercase tracking-caps">{lang}</span>
+            <Globe size={18} strokeWidth={1.6} />
+            <span className="font-body text-[12px] uppercase tracking-caps font-medium">{lang}</span>
           </button>
           <button onClick={logout} style={{ color: 'var(--ink-soft)' }}>
-            <LogOut size={16} strokeWidth={1.6} />
+            <LogOut size={19} strokeWidth={1.6} />
           </button>
         </div>
       </div>
