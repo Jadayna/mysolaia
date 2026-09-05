@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Sparkle } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,7 +28,7 @@ const AuthScreen = () => {
 
   return (
     <div className="app-shell flex flex-col justify-between min-h-screen">
-      {/* Selector de Langue */}
+      {/* Sélecteur de Langue */}
       <div className="flex justify-end px-5 py-3">
         <button 
           onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} 
@@ -44,18 +45,16 @@ const AuthScreen = () => {
           {lang === 'fr' ? 'La routine qui se construit toute seule' : 'The routine that builds itself'}
         </span>
 
-        {/* LOGO MYSOLAIA AVEC LE CŒUR SUR LE I */}
+        {/* LOGO MYSOLAIA AVEC L'ÉTINCELLE SUR LE I */}
         <h1 className="font-display text-[52px] leading-none mt-2 flex items-center select-none" style={{ color: 'var(--ink)' }}>
           MySola
           <span className="relative inline-block">
             <span className="inline-block">ı</span>
-            <svg 
-              className="absolute -top-[0.16em] left-1/2 -translate-x-1/2 fill-current" 
-              style={{ width: '0.28em', height: '0.28em', color: 'var(--ink)' }} 
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
+            <Sparkle 
+              size={13} 
+              className="absolute -top-[0.22em] left-1/2 -translate-x-1/2 fill-current" 
+              style={{ color: 'var(--ink)' }} 
+            />
           </span>
           a
         </h1>
