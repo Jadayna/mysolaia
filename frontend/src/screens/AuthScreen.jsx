@@ -1,113 +1,116 @@
 import React, { useState } from 'react';
-import { Sparkle } from 'lucide-react';
-import { useT } from '../i18n';
+import { Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useT } from '../i18n';
 
 const AuthScreen = () => {
-  const { t, lang, setLang } = useT();
-  const { login, register } = useAuth();
-  const [mode, setMode] = useState('signup');
+  // 1. Par défaut sur "Sign In" (Se connecter)
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
+  const { login, register } = useAuth();
+  const { lang, setLang } = useT();
 
-  const submit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setErr(''); 
-    setBusy(true);
-    try {
-      if (mode === 'signup') await register(email, password, lang);
-      else await login(email, password);
-    } catch (e2) {
-      setErr(e2?.response?.data?.detail || 'Erreur');
-    } finally { 
-      setBusy(false); 
+    if (isLogin) {
+      login(email, password);
+    } else {
+      register(email, password);
     }
   };
 
   return (
-    <div className="app-shell flex flex-col justify-between min-h-screen">
-      {/* Sélecteur de Langue */}
-      <div className="flex justify-end px-5 py-3">
+    <div className="min-h-screen flex flex-col justify-between p-8 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
+      {/* Selector de langue en haut à droite */}
+      <div className="flex justify-end">
         <button 
-          onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} 
-          className="font-body text-[11px] uppercase tracking-caps" 
+          onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
+          className="font-body text-[11px] uppercase tracking-caps font-semibold" 
           style={{ color: 'var(--ink-soft)' }}
         >
           {lang === 'fr' ? 'EN' : 'FR'}
         </button>
       </div>
 
-      {/* Contenu principal */}
-      <div className="flex-1 flex flex-col justify-center px-8 pb-20">
-        <span className="font-body tracking-caps text-[11px] uppercase font-medium" style={{ color: 'var(--gold)' }}>
-          {lang === 'fr' ? 'La routine qui se construit toute seule' : 'The routine that builds itself'}
-        </span>
+      {/* En-tête / Logo */}
+      <div className="my-auto space-y-2">
+        <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+          THE ROUTINE THAT BUILDS ITSELF
+        </p>
 
-        {/* LOGO MYSOLAIA AVEC L'ÉTINCELLE SUR LE I */}
-        <h1 className="font-display text-[52px] leading-none mt-2 flex items-center select-none" style={{ color: 'var(--ink)' }}>
-          MySola
-          <span className="relative inline-block">
-            <span className="inline-block">ı</span>
-            <Sparkle 
-              size={13} 
-              className="absolute -top-[0.22em] left-1/2 -translate-x-1/2 fill-current" 
-              style={{ color: 'var(--ink)' }} 
-            />
-          </span>
-          a
-        </h1>
+        {/* 2. Logo + Étoile ramenés ensemble proprement */}
+        <div className="flex items-center justify-center gap-1">
+          <h1 className="font-display text-[42px] leading-none" style={{ color: 'var(--ink)' }}>
+            MySolaia
+          </h1>
+          <Sparkles size={16} style={{ color: 'var(--gold)', transform: 'translateY(-8px)' }} />
+        </div>
 
         {/* Formulaire */}
-        <form onSubmit={submit} className="mt-10 space-y-3">
-          <input 
-            className="field w-full p-3.5 rounded-[12px] font-body text-[14px] outline-none" 
-            type="email" 
-            required 
-            placeholder={t('email')} 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            style={{ background: 'var(--cream-card)', border: '1px solid var(--line-strong)' }}
+        <form onSubmit={handleSubmit} className="mt-8 space-y-3 max-w-sm mx-auto">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
+            style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
+            required
           />
-          <input 
-            className="field w-full p-3.5 rounded-[12px] font-body text-[14px] outline-none" 
-            type="password" 
-            required 
-            minLength={6} 
-            placeholder={t('password')} 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            style={{ background: 'var(--cream-card)', border: '1px solid var(--line-strong)' }}
+          <input
+            type="password"
+            placeholder={lang === 'fr' ? 'Mot de passe' : 'Password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
+            style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
+            required
           />
 
-          {err && <p className="font-body italic text-[13px]" style={{ color: '#a4552f' }}>{err}</p>}
-
-          <button 
-            disabled={busy} 
-            className="w-full rounded-[12px] py-3.5 mt-2 font-body tracking-caps text-[11px] uppercase font-semibold text-white transition-all active:scale-[0.98]"
-            style={{ background: '#A37B68', boxShadow: '0 4px 12px rgba(163, 123, 104, 0.2)' }}
+          <button
+            type="submit"
+            className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm"
+            style={{ background: '#A37B68' }}
           >
-            {mode === 'signup' ? t('signUp') : t('signIn')}
+            {isLogin 
+              ? (lang === 'fr' ? 'SE CONNECTER' : 'SIGN IN') 
+              : (lang === 'fr' ? 'CRÉER UN COMPTE' : 'CREATE ACCOUNT')}
           </button>
         </form>
 
-        {/* Inverser Inscription / Connexion */}
-        <button 
-          onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')} 
-          className="mt-5 font-body italic text-[13.5px] text-left" 
-          style={{ color: 'var(--ink-soft)' }}
-        >
-          {mode === 'signup' ? t('haveAccount') : t('noAccount')}{' '}
-          <span className="font-semibold underline" style={{ color: 'var(--gold)' }}>
-            {mode === 'signup' ? t('signIn') : t('signUp')}
-          </span>
-        </button>
-
-        <p className="font-body italic text-[11.5px] leading-relaxed mt-12" style={{ color: 'var(--ink-faint)' }}>
-          {t('legal')}
+        {/* Bascule entre Se Connecter / Créer un compte */}
+        <p className="font-body text-[12.5px] mt-4" style={{ color: 'var(--ink-soft)' }}>
+          {isLogin ? (
+            <>
+              {lang === 'fr' ? 'Pas encore de compte ? ' : "Don't have an account? "}
+              <button 
+                onClick={() => setIsLogin(false)} 
+                className="font-semibold underline cursor-pointer"
+                style={{ color: 'var(--ink)' }}
+              >
+                {lang === 'fr' ? 'Créer un compte' : 'Create account'}
+              </button>
+            </>
+          ) : (
+            <>
+              {lang === 'fr' ? 'Déjà un compte ? ' : 'Already have an account? '}
+              <button 
+                onClick={() => setIsLogin(true)} 
+                className="font-semibold underline cursor-pointer"
+                style={{ color: 'var(--ink)' }}
+              >
+                {lang === 'fr' ? 'Se connecter' : 'Sign in'}
+              </button>
+            </>
+          )}
         </p>
       </div>
+
+      {/* Avertissement bas de page */}
+      <p className="font-body italic text-[11px] text-center" style={{ color: 'var(--ink-faint)' }}>
+        No medical advice: the app orders and warns, it does not diagnose.
+      </p>
     </div>
   );
 };
