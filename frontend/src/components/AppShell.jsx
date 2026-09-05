@@ -11,8 +11,8 @@ import api from '../lib/api';
 
 const TABS = [
   { id: 'accueil', icon: Home, screen: HomeScreen },
+  { id: 'routine', icon: ListChecks, screen: RoutineScreen }, // Placé juste à côté d'Accueil
   { id: 'scan', icon: Camera, screen: ScanScreen },
-  { id: 'routine', icon: ListChecks, screen: RoutineScreen },
   { id: 'journal', icon: LineChart, screen: JournalScreen },
   { id: 'menu', icon: Sparkles, screen: TrialScreen },
 ];
