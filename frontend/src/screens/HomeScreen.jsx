@@ -12,24 +12,21 @@ const HomeScreen = ({ go }) => {
   const [products, setProducts] = useState([]);
   const [insight, setInsight] = useState('Tes routines sont bien régulières, continue comme ça !');
 
-  // Détection dynamique du moment de la journée (Jour entre 06h et 18h, sinon Soir)
   const currentHour = new Date().getHours();
   const isDay = currentHour >= 6 && currentHour < 18;
   const phase = isDay ? 'jour' : 'soir';
 
   useEffect(() => {
-    // Géolocalisation sécurisée pour météo & conseil skincare
+    // Géolocalisation météo sécurisée
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           try {
             const { latitude, longitude } = pos.coords;
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-            
             if (!res.ok) return;
             const data = await res.json();
             
-            // Validation sécurisée de la réponse météo
             if (data && data.current_weather && typeof data.current_weather.temperature === 'number') {
               const temp = Math.round(data.current_weather.temperature);
               let tip = "Hydrate bien ta peau aujourd'hui.";
@@ -43,18 +40,29 @@ const HomeScreen = ({ go }) => {
           }
         },
         (err) => {
-          // Gestion du refus de géolocalisation ou VPN sans faire planter React
           console.warn("Géolocalisation non disponible :", err.message);
         },
         { timeout: 5000 }
       );
     }
 
-    // Chargement produits
+    // Extraction 100% sécurisée de l'API
     api.get('/shelf/')
-      .then((res) => setProducts(res?.data || []))
+      .then((res) => {
+        const data = res?.data;
+        if (Array.isArray(data)) {
+          setProducts(data);
+        } else if (data && Array.isArray(data.products)) {
+          setProducts(data.products);
+        } else {
+          setProducts([]);
+        }
+      })
       .catch(() => setProducts([]));
   }, []);
+
+  // Garantie absolue que safeProducts est TOUJOURS un tableau
+  const safeProducts = Array.isArray(products) ? products : [];
 
   return (
     <div className="px-6 pt-6 pb-12 space-y-6">
@@ -81,7 +89,7 @@ const HomeScreen = ({ go }) => {
         </div>
       )}
 
-      {/* Carte Routine Recommandée (Jour / Soir) */}
+      {/* Carte Routine Recommandée */}
       <div className="p-6 rounded-[20px] shadow-sm space-y-4" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <div className="flex items-center gap-2 font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>
           {isDay ? <Sun size={14} /> : <Moon size={14} />}
@@ -104,7 +112,7 @@ const HomeScreen = ({ go }) => {
         </button>
       </div>
 
-      {/* Boîte "CE QUE JE REMARQUE" */}
+      {/* Remarque */}
       <div className="p-5 rounded-[18px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
           {lang === 'fr' ? 'CE QUE JE REMARQUE' : 'WHAT I NOTICE'}
@@ -121,12 +129,12 @@ const HomeScreen = ({ go }) => {
             {lang === 'fr' ? 'TON ÉTAGÈRE' : 'YOUR SHELF'}
           </span>
           <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
-            {(products?.length || 0)} {lang === 'fr' ? 'produits' : 'products'}
+            {safeProducts.length} {lang === 'fr' ? 'produits' : 'products'}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {(products || []).slice(0, 3).map((p) => (
+          {safeProducts.slice(0, 3).map((p) => (
             <div key={p.id || p.nom} className="p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
               <p className="font-body text-[9px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>{p.categorie || 'SOIN'}</p>
               <p className="font-display text-[13px] line-clamp-1" style={{ color: 'var(--ink)' }}>{p.nom}</p>
