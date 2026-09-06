@@ -127,11 +127,15 @@ const HomeScreen = ({ go }) => {
         </h3>
 
         <button
-          onClick={() => go('routine', { phase })}
+          onClick={() => go(safeProducts.length === 0 ? 'scan' : 'routine', { phase })}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98]"
           style={{ background: '#A37B68' }}
         >
-          <span>{lang === 'fr' ? 'COMMENCER · 3 ÉTAPES' : 'START · 3 STEPS'}</span>
+          <span>
+            {safeProducts.length === 0
+              ? (lang === 'fr' ? 'AJOUTER UN PRODUIT' : 'ADD A PRODUCT')
+              : (lang === 'fr' ? 'COMMENCER MA ROUTINE' : 'START MY ROUTINE')}
+          </span>
           <ArrowRight size={14} />
         </button>
       </div>
