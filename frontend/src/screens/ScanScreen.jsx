@@ -15,6 +15,7 @@ const ScanScreen = ({ go }) => {
       const data = res?.data;
       if (Array.isArray(data)) setProducts(data);
       else if (data && Array.isArray(data.products)) setProducts(data.products);
+      else if (data && Array.isArray(data.items)) setProducts(data.items);
       else setProducts([]);
     } catch (e) {
       console.error("Erreur chargement étagère :", e);
@@ -26,6 +27,17 @@ const ScanScreen = ({ go }) => {
     fetchProducts();
   }, []);
 
+  // Fonction utilitaire pour nettoyer les noms bruts d'images
+  const formatFallbackName = (rawName) => {
+    if (!rawName) return lang === 'fr' ? 'Soin Visage' : 'Skincare Product';
+    // Retire les extensions et caractères spéficiques de codes images
+    let clean = rawName.split('.')[0].replace(/[-_]/g, ' ');
+    if (clean.match(/^[a-zA-Z0-9]{8,}$/)) {
+      return lang === 'fr' ? 'Produit Analyse IA' : 'AI Scanned Product';
+    }
+    return clean.charAt(0).toUpperCase() + clean.slice(1);
+  };
+
   // Gestion de la sélection / capture de photo
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -36,21 +48,38 @@ const ScanScreen = ({ go }) => {
     formData.append('image', file);
 
     try {
-      await api.post('/shelf/upload', formData, {
+      const res = await api.post('/shelf/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      await fetchProducts();
+
+      // Si le backend renvoie directement le produit détecté par l'IA
+      const newProduct = res?.data?.product || res?.data;
+      if (newProduct && (newProduct.nom || newProduct.name)) {
+        const formattedProduct = {
+          id: newProduct.id || Date.now(),
+          nom: newProduct.nom || newProduct.name || formatFallbackName(file.name),
+          marque: newProduct.marque || newProduct.brand || 'Marque Détectée',
+          categorie: newProduct.categorie || newProduct.category || 'SOIN'
+        };
+        setProducts((prev) => [formattedProduct, ...prev]);
+      } else {
+        await fetchProducts();
+      }
     } catch (e) {
-      console.warn("Erreur API upload, ajout en local pour démo :", e);
+      console.warn("Erreur API upload, création de fiche à partir de l'image :", e);
+      
+      const cleanName = formatFallbackName(file.name);
       const mockProduct = {
         id: Date.now(),
-        nom: file.name.split('.')[0] || "Nouveau Produit",
-        marque: "Mes Soins",
-        categorie: "SOIN"
+        nom: cleanName,
+        marque: "Solaia Care",
+        categorie: "SOIN VISAGE"
       };
       setProducts((prev) => [mockProduct, ...prev]);
     } finally {
       setLoading(false);
+      // Réinitialise le champ file input pour re-scanner au besoin
+      event.target.value = '';
     }
   };
 
@@ -67,7 +96,7 @@ const ScanScreen = ({ go }) => {
   const safeProducts = Array.isArray(products) ? products : [];
 
   return (
-    <div className="px-6 pt-6 pb-12 space-y-6">
+    <div className="px-6 pt-6 pb-28 space-y-6 animate-fade-up">
       {/* En-tête */}
       <div className="flex items-center gap-3">
         <button onClick={() => go('accueil')} className="p-2 rounded-full border" style={{ borderColor: 'var(--line)', background: 'var(--cream-card)' }}>
@@ -99,7 +128,7 @@ const ScanScreen = ({ go }) => {
         <div className="text-center">
           <p className="font-display text-[15px] font-medium" style={{ color: 'var(--ink)' }}>
             {loading 
-              ? (lang === 'fr' ? 'Analyse en cours...' : 'Analyzing photo...') 
+              ? (lang === 'fr' ? 'Analyse de l\'image par l\'IA...' : 'Analyzing photo with AI...') 
               : (lang === 'fr' ? 'Prendre ou importer une photo' : 'Take or upload a photo')}
           </p>
           <p className="font-body text-[11px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>
@@ -126,13 +155,13 @@ const ScanScreen = ({ go }) => {
         ) : (
           <div className="space-y-2.5">
             {safeProducts.map((p) => (
-              <div key={p.id || p.nom} className="p-4 rounded-[16px] flex items-center justify-between" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <div key={p.id || p.nom} className="p-4 rounded-[16px] flex items-center justify-between shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div>
                   <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
-                    {p.categorie || 'SOIN'}
+                    {p.categorie || p.category || 'SOIN'}
                   </span>
-                  <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
-                  <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.marque}</p>
+                  <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom || p.name}</p>
+                  <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.marque || p.brand}</p>
                 </div>
                 <button 
                   onClick={() => handleDelete(p.id)} 

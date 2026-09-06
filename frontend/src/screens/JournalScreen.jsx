@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
 
 const JournalScreen = ({ go }) => {
   const { t } = useT();
   const [data, setData] = useState(null);
-  const [entryIndex, setEntryIndex] = useState(0);
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = cette semaine, -1 = semaine passée, etc.
 
   useEffect(() => {
     api.get('/journal')
@@ -18,11 +18,30 @@ const JournalScreen = ({ go }) => {
     return <div className="px-6 pt-10 font-body" style={{ color: 'var(--ink-faint)' }}>…</div>;
   }
 
-  const entries = data.entries || [];
-  const currentEntry = entries[entryIndex];
+  // Si l'API retourne un tableau de semaines ou de jours, on s'adapte
+  const allWeeks = data.weeks || [
+    {
+      label: weekOffset === 0 ? "Cette semaine" : `Il y a ${Math.abs(weekOffset)} sem.`,
+      days: data.days || [],
+      entries: data.entries || []
+    }
+  ];
 
-  const prevEntry = () => setEntryIndex((prev) => Math.max(0, prev - 1));
-  const nextEntry = () => setEntryIndex((prev) => Math.min(entries.length - 1, prev + 1));
+  // Gestion des limites de navigation par semaine
+  const currentWeekIndex = Math.min(Math.max(0, -weekOffset), allWeeks.length - 1);
+  const currentWeek = allWeeks[currentWeekIndex] || { days: data.days || [], entries: data.entries || [], label: "Semaine" };
+
+  const handlePrevWeek = () => {
+    if (currentWeekIndex < allWeeks.length - 1) {
+      setWeekOffset((prev) => prev - 1);
+    }
+  };
+
+  const handleNextWeek = () => {
+    if (currentWeekIndex > 0) {
+      setWeekOffset((prev) => prev + 1);
+    }
+  };
 
   return (
     <div className="px-6 pt-6 pb-28 max-h-screen overflow-y-auto animate-fade-up space-y-6">
@@ -34,10 +53,38 @@ const JournalScreen = ({ go }) => {
         <h2 className="font-display text-[28px] mt-1">{t('holdRhythm')}</h2>
       </div>
 
-      {/* Graphique des jours */}
+      {/* Navigation Semaine par Semaine */}
+      <div className="flex items-center justify-between p-3 rounded-[12px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <button 
+          onClick={handlePrevWeek} 
+          disabled={currentWeekIndex >= allWeeks.length - 1}
+          className="p-1.5 rounded-full border disabled:opacity-30 flex items-center justify-center"
+          style={{ borderColor: 'var(--line)' }}
+        >
+          <ChevronLeft size={16} />
+        </button>
+
+        <div className="flex items-center gap-2">
+          <Calendar size={14} style={{ color: 'var(--gold)' }} />
+          <span className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+            {currentWeek.label || `Semaine ${currentWeekIndex + 1}`}
+          </span>
+        </div>
+
+        <button 
+          onClick={handleNextWeek} 
+          disabled={currentWeekIndex <= 0}
+          className="p-1.5 rounded-full border disabled:opacity-30 flex items-center justify-center"
+          style={{ borderColor: 'var(--line)' }}
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* Graphique des jours de la semaine */}
       <div>
         <div className="flex items-end justify-between gap-[3px]" style={{ height: 70 }}>
-          {data.days.map((day, i) => (
+          {currentWeek.days.map((day, i) => (
             <div key={i} className="flex-1 flex flex-col justify-end gap-[3px] h-full">
               <div 
                 className="rounded-[2px]" 
@@ -51,7 +98,7 @@ const JournalScreen = ({ go }) => {
           ))}
         </div>
         <div className="flex justify-between mt-1.5">
-          {data.days.map((day, i) => (
+          {currentWeek.days.map((day, i) => (
             <span key={i} className="flex-1 text-center font-body text-[9px] tnum" style={{ color: 'var(--ink-faint)' }}>
               {day.d}
             </span>
@@ -87,58 +134,39 @@ const JournalScreen = ({ go }) => {
         ))}
       </div>
 
-      {/* Section Dernières Entrées Déroulante avec Flèches (Point #5) */}
+      {/* Section Dernières Entrées de la Semaine */}
       <div className="p-4 rounded-[12px] space-y-3" style={{ border: '1px solid var(--line)', background: 'var(--cream-card)' }}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: 'var(--line)' }}>
           <span className="font-body tracking-caps text-[10px] uppercase font-semibold" style={{ color: 'var(--gold)' }}>
             {t('lastEntries')}
           </span>
-
-          {entries.length > 0 && (
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={prevEntry} 
-                disabled={entryIndex === 0}
-                className="p-1 rounded-full border disabled:opacity-30"
-                style={{ borderColor: 'var(--line)' }}
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <span className="font-body text-[10px] px-1 tnum">
-                {entryIndex + 1} / {entries.length}
-              </span>
-              <button 
-                onClick={nextEntry} 
-                disabled={entryIndex === entries.length - 1}
-                className="p-1 rounded-full border disabled:opacity-30"
-                style={{ borderColor: 'var(--line)' }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          )}
+          <span className="font-body text-[10px] tnum" style={{ color: 'var(--ink-soft)' }}>
+            {currentWeek.entries.length} entrée(s)
+          </span>
         </div>
 
-        {entries.length === 0 ? (
-          <p className="font-body italic text-[13px]" style={{ color: 'var(--ink-faint)' }}>
-            {t('demoNote')}
+        {currentWeek.entries.length === 0 ? (
+          <p className="font-body italic text-[13px] py-2" style={{ color: 'var(--ink-faint)' }}>
+            {t('demoNote') || "Aucune activité enregistrée pour cette semaine."}
           </p>
         ) : (
-          currentEntry && (
-            <div className="pt-2">
-              <div className="flex justify-between items-start">
+          <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+            {currentWeek.entries.map((entry, idx) => (
+              <div key={idx} className="flex justify-between items-start py-1.5 border-b last:border-b-0" style={{ borderColor: 'rgba(163, 123, 104, 0.1)' }}>
                 <div>
-                  <p className="font-body text-[14px] font-medium">{currentEntry.title}</p>
-                  <p className="font-body italic text-[11.5px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>
-                    {currentEntry.meta}
-                  </p>
+                  <p className="font-body text-[13.5px] font-medium">{entry.title}</p>
+                  {entry.meta && (
+                    <p className="font-body italic text-[11px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>
+                      {entry.meta}
+                    </p>
+                  )}
                 </div>
-                <span className="font-body text-[12px] tnum" style={{ color: 'var(--ink-soft)' }}>
-                  {currentEntry.time}
+                <span className="font-body text-[11px] tnum whitespace-nowrap ml-2" style={{ color: 'var(--ink-soft)' }}>
+                  {entry.time}
                 </span>
               </div>
-            </div>
-          )
+            ))}
+          </div>
         )}
       </div>
 
