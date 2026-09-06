@@ -95,29 +95,37 @@ const ScanScreen = ({ go }) => {
         </div>
       </div>
 
-      {/* Bouton Importation / Caméra */}
-      <label className="w-full p-6 rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-all active:scale-[0.99]" style={{ borderColor: '#D4A373', background: 'var(--cream-card)' }}>
-        <input 
-          type="file" 
-          accept="image/*"  
-          onChange={handleFileUpload} 
-          className="hidden" 
-          disabled={loading}
-        />
+      {/* Zone d'ajout : Caméra + Galerie */}
+      <div className="w-full p-5 rounded-[20px] border-2 border-dashed flex flex-col items-center gap-4" style={{ borderColor: '#D4A373', background: 'var(--cream-card)' }}>
         <div className="p-3.5 rounded-full text-white" style={{ background: '#A37B68' }}>
           {loading ? <Loader2 size={24} className="animate-spin" /> : <Camera size={24} />}
         </div>
-        <div className="text-center">
+
+        {loading ? (
           <p className="font-display text-[15px] font-medium" style={{ color: 'var(--ink)' }}>
-            {loading 
-              ? (lang === 'fr' ? 'Analyse de ton produit...' : 'Analyzing your product...') 
-              : (lang === 'fr' ? 'Scanner un produit' : 'Scan a product')}
+            {lang === 'fr' ? 'Analyse de ton produit...' : 'Analyzing your product...'}
           </p>
-          <p className="font-body text-[11px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>
-            {lang === 'fr' ? 'Prends la face avant de la bouteille' : 'Take a photo of the front label'}
-          </p>
-        </div>
-      </label>
+        ) : (
+          <>
+            <p className="font-display text-[15px] font-medium text-center" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Ajouter un produit' : 'Add a product'}
+            </p>
+            <div className="w-full flex flex-col gap-2.5">
+              {/* Prendre une photo (caméra) */}
+              <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold text-white active:scale-[0.98] transition-all" style={{ background: '#A37B68' }}>
+                <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" disabled={loading} />
+                {lang === 'fr' ? 'Prendre une photo' : 'Take a photo'}
+              </label>
+
+              {/* Importer de la galerie */}
+              <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold active:scale-[0.98] transition-all" style={{ background: 'transparent', border: '1px solid #A37B68', color: '#A37B68' }}>
+                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={loading} />
+                {lang === 'fr' ? 'Importer de la galerie' : 'Import from gallery'}
+              </label>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Liste des produits */}
       <div className="space-y-3">
