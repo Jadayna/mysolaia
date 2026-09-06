@@ -12,7 +12,7 @@ import jwt
 import bcrypt
 
 from seed_products import SEED_PRODUCTS
-from engine import compute_routine, exfoliation_days, WEEKDAYS_FR
+from engine import compute_routine, exfoliation_days, WEEKDAYS_FR, WEEKDAYS_EN
 
 load_dotenv()
 
@@ -342,40 +342,69 @@ async def add_journal(body: JournalIn, user=Depends(current_user)):
     return {"ok": True}
 
 @api_router.get("/journal")
-async def get_journal(user=Depends(current_user)):
+async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(current_user)):
+    lang = "en" if lang == "en" else "fr"
     entries = await db.journal_entries.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
     entries.sort(key=lambda e: e["horodatage"], reverse=True)
     today = date.today()
+    n_days = 30 if periode == "month" else 7
+
+    def is_morning(rt):
+        rt = (rt or "").lower()
+        return "matin" in rt or "morning" in rt
+
+    def is_evening(rt):
+        rt = (rt or "").lower()
+        return "soir" in rt or "evening" in rt
+
     days = []
-    for i in range(13, -1, -1):
+    for i in range(n_days - 1, -1, -1):
         d = today - timedelta(days=i)
         day_entries = [e for e in entries if e["horodatage"][:10] == d.isoformat()]
-        matin = any(e["routine_type"] == "Matin" for e in day_entries)
-        soir = any("soir" in e["routine_type"].lower() for e in day_entries)
+        matin = any(is_morning(e["routine_type"]) for e in day_entries)
+        soir = any(is_evening(e["routine_type"]) for e in day_entries)
         days.append({"d": d.day, "matin": matin, "soir": soir})
+
     last30 = [e for e in entries if e["horodatage"][:10] >= (today - timedelta(days=30)).isoformat()]
-    exfo = len([e for e in last30 if "exfoliation" in e["routine_type"].lower()])
+    exfo = len([e for e in last30 if "exfoliation" in (e["routine_type"] or "").lower()])
     streak = 0
     cur = today
     day_set = {e["horodatage"][:10] for e in entries}
     while cur.isoformat() in day_set:
         streak += 1
         cur = cur - timedelta(days=1)
+
+    weekdays = WEEKDAYS_FR if lang == "fr" else WEEKDAYS_EN
+
     def fmt(e):
         dt = datetime.fromisoformat(e["horodatage"])
-        wd = WEEKDAYS_FR[dt.weekday()][:3]
-        done = "complete" if e["etapes_completees"] >= e["nb_total_etapes"] else f"{e['etapes_completees']} etapes sur {e['nb_total_etapes']}"
-        return {"title": e["routine_type"], "meta": f"{wd}. {dt.day} \u00b7 {done}",
-                "time": dt.strftime("%H h %M")}
-    stats = [{"n": str(streak), "label": "Jours de suite"},
-             {"n": str(len(last30)), "label": "Soins / 30 j"},
-             {"n": str(exfo), "label": "Exfoliations / 30 j"}]
-    return {"days": days, "stats": stats, "entries": [fmt(e) for e in entries[:6]],
-            "observation": _observation(entries)}
+        wd = weekdays[dt.weekday()][:3]
+        complete = e["etapes_completees"] >= e["nb_total_etapes"]
+        if lang == "fr":
+            done = "complété" if complete else f"{e['etapes_completees']} étapes sur {e['nb_total_etapes']}"
+            time_str = dt.strftime("%H h %M")
+        else:
+            done = "complete" if complete else f"{e['etapes_completees']} of {e['nb_total_etapes']} steps"
+            time_str = dt.strftime("%H:%M")
+        return {"title": e["routine_type"], "meta": f"{wd}. {dt.day} \u00b7 {done}", "time": time_str}
 
-def _observation(entries):
+    stats = [{"n": str(streak), "label": "streak"},
+             {"n": str(len(last30)), "label": "care30"},
+             {"n": str(exfo), "label": "exfo30"}]
+
+    start = (today - timedelta(days=n_days - 1)).isoformat()
+    ranged = [e for e in entries if e["horodatage"][:10] >= start]
+
+    return {"days": days, "stats": stats, "entries": [fmt(e) for e in ranged[:30]],
+            "observation": _observation(entries, lang)}
+
+    def _observation(entries, lang="fr"):
     if len(entries) < 3:
+        if lang == "en":
+            return "A few more days and I'll be able to tell you what I notice in your rhythm."
         return "Encore quelques jours et je pourrai te dire ce que je remarque dans ton rythme."
+    if lang == "en":
+        return "Your routines are nice and consistent, keep it up!"
     return "Tes routines sont bien régulières, continue comme ça !"
 
 
