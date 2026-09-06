@@ -8,15 +8,12 @@ const ScanScreen = ({ go }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Charger la liste des produits
+  // Charger les produits de l'étagère depuis FastAPI
   const fetchProducts = async () => {
     try {
-      const res = await api.get('/shelf/');
-      const data = res?.data;
-      if (Array.isArray(data)) setProducts(data);
-      else if (data && Array.isArray(data.products)) setProducts(data.products);
-      else if (data && Array.isArray(data.items)) setProducts(data.items);
-      else setProducts([]);
+      const res = await api.get('/shelf');
+      const data = res?.data?.shelf || res?.data || [];
+      setProducts(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Erreur chargement étagère :", e);
       setProducts([]);
@@ -27,73 +24,59 @@ const ScanScreen = ({ go }) => {
     fetchProducts();
   }, []);
 
-  // Fonction utilitaire pour nettoyer les noms bruts d'images
-  const formatFallbackName = (rawName) => {
-    if (!rawName) return lang === 'fr' ? 'Soin Visage' : 'Skincare Product';
-    // Retire les extensions et caractères spéficiques de codes images
-    let clean = rawName.split('.')[0].replace(/[-_]/g, ' ');
-    if (clean.match(/^[a-zA-Z0-9]{8,}$/)) {
-      return lang === 'fr' ? 'Produit Analyse IA' : 'AI Scanned Product';
-    }
-    return clean.charAt(0).toUpperCase() + clean.slice(1);
+  // Convertir l'image en Base64 pour l'API Gemini
+  const convertBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.readAsDataURL(file);
+      fileReader.onload = () => resolve(fileReader.result);
+      fileReader.onerror = (error) => reject(error);
+    });
   };
 
-  // Gestion de la sélection / capture de photo
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
-      const res = await api.post('/shelf/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const base64Image = await convertBase64(file);
+      
+      // 1. Envoi à la vraie route /scan acceptée par server.py
+      const res = await api.post('/scan', { image_base64: base64Image });
+      
+      if (res.data && res.data.product) {
+        const prod = res.data.product;
+        
+        // 2. Enregistrement du produit analysé par Gemini dans l'étagère
+        await api.post('/shelf/manual', {
+          brand: prod.brand || "Marque Détectée",
+          nom: prod.nom || "Produit Détecté",
+          categorie: (prod.categorie || prod.category || "serum").toLowerCase(),
+          actifs: prod.actifs || [],
+          texture: 3,
+          moment: "les_deux"
+        });
 
-      // Si le backend renvoie directement le produit détecté par l'IA
-      const newProduct = res?.data?.product || res?.data;
-      if (newProduct && (newProduct.nom || newProduct.name)) {
-        const formattedProduct = {
-          id: newProduct.id || Date.now(),
-          nom: newProduct.nom || newProduct.name || formatFallbackName(file.name),
-          marque: newProduct.marque || newProduct.brand || 'Marque Détectée',
-          categorie: newProduct.categorie || newProduct.category || 'SOIN'
-        };
-        setProducts((prev) => [formattedProduct, ...prev]);
-      } else {
         await fetchProducts();
       }
     } catch (e) {
-      console.warn("Erreur API upload, création de fiche à partir de l'image :", e);
-      
-      const cleanName = formatFallbackName(file.name);
-      const mockProduct = {
-        id: Date.now(),
-        nom: cleanName,
-        marque: "Solaia Care",
-        categorie: "SOIN VISAGE"
-      };
-      setProducts((prev) => [mockProduct, ...prev]);
+      console.error("Erreur lors de l'analyse Gemini :", e);
+      alert(lang === 'fr' ? "Impossible d'analyser l'image. Réessaie." : "Could not analyze image. Try again.");
     } finally {
       setLoading(false);
-      // Réinitialise le champ file input pour re-scanner au besoin
       event.target.value = '';
     }
   };
 
-  // Suppression d'un produit
-  const handleDelete = async (id) => {
+  const handleDelete = async (shelfId) => {
     try {
-      await api.delete(`/shelf/${id}/`);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      await api.delete(`/shelf/${shelfId}`);
+      setProducts((prev) => prev.filter((p) => p.shelf_id !== shelfId && p.id !== shelfId));
     } catch (e) {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      console.error("Erreur suppression :", e);
     }
   };
-
-  const safeProducts = Array.isArray(products) ? products : [];
 
   return (
     <div className="px-6 pt-6 pb-28 space-y-6 animate-fade-up">
@@ -107,12 +90,12 @@ const ScanScreen = ({ go }) => {
             {lang === 'fr' ? 'Mon Étagère & Produits' : 'My Shelf & Products'}
           </h1>
           <p className="font-body text-[12px]" style={{ color: 'var(--ink-faint)' }}>
-            {lang === 'fr' ? 'Prends une photo ou choisis une image' : 'Take a photo or upload an image'}
+            {lang === 'fr' ? 'Prends une photo de l\'étiquette de ton produit' : 'Take a photo of your product label'}
           </p>
         </div>
       </div>
 
-      {/* Option B : Bouton Importation / Caméra */}
+      {/* Bouton Importation / Caméra */}
       <label className="w-full p-6 rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-all active:scale-[0.99]" style={{ borderColor: '#D4A373', background: 'var(--cream-card)' }}>
         <input 
           type="file" 
@@ -128,24 +111,22 @@ const ScanScreen = ({ go }) => {
         <div className="text-center">
           <p className="font-display text-[15px] font-medium" style={{ color: 'var(--ink)' }}>
             {loading 
-              ? (lang === 'fr' ? 'Analyse de l\'image par l\'IA...' : 'Analyzing photo with AI...') 
-              : (lang === 'fr' ? 'Prendre ou importer une photo' : 'Take or upload a photo')}
+              ? (lang === 'fr' ? 'L\'IA Gemini 3.6 analyse ton produit...' : 'Gemini 3.6 is analyzing your product...') 
+              : (lang === 'fr' ? 'Scanner un produit' : 'Scan a product')}
           </p>
           <p className="font-body text-[11px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>
-            {lang === 'fr' ? 'Ouvre la caméra ou la galerie' : 'Opens camera or photo library'}
+            {lang === 'fr' ? 'Prends la face avant de la bouteille' : 'Take a photo of the front label'}
           </p>
         </div>
       </label>
 
-      {/* Liste complète des produits */}
+      {/* Liste des produits */}
       <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="font-body text-[11px] uppercase tracking-caps font-semibold" style={{ color: 'var(--ink-faint)' }}>
-            {lang === 'fr' ? 'Mes produits enregistrés' : 'My saved products'} ({safeProducts.length})
-          </h3>
-        </div>
+        <h3 className="font-body text-[11px] uppercase tracking-caps font-semibold" style={{ color: 'var(--ink-faint)' }}>
+          {lang === 'fr' ? 'Mes produits enregistrés' : 'My saved products'} ({products.length})
+        </h3>
 
-        {safeProducts.length === 0 ? (
+        {products.length === 0 ? (
           <div className="p-6 text-center rounded-[16px] border border-dashed" style={{ borderColor: 'var(--line)' }}>
             <Package size={28} className="mx-auto mb-2 opacity-40" style={{ color: 'var(--ink-faint)' }} />
             <p className="font-body text-[13px]" style={{ color: 'var(--ink-faint)' }}>
@@ -154,19 +135,18 @@ const ScanScreen = ({ go }) => {
           </div>
         ) : (
           <div className="space-y-2.5">
-            {safeProducts.map((p) => (
-              <div key={p.id || p.nom} className="p-4 rounded-[16px] flex items-center justify-between shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+            {products.map((p) => (
+              <div key={p.shelf_id || p.id} className="p-4 rounded-[16px] flex items-center justify-between shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div>
                   <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
                     {p.categorie || p.category || 'SOIN'}
                   </span>
-                  <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom || p.name}</p>
-                  <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.marque || p.brand}</p>
+                  <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
+                  <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
                 </div>
                 <button 
-                  onClick={() => handleDelete(p.id)} 
+                  onClick={() => handleDelete(p.shelf_id || p.id)} 
                   className="p-2.5 rounded-full text-red-500 hover:bg-red-50 active:scale-95 transition-all"
-                  title={lang === 'fr' ? 'Supprimer' : 'Delete'}
                 >
                   <Trash2 size={18} />
                 </button>
