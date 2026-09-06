@@ -162,22 +162,21 @@ const HomeScreen = ({ go }) => {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {safeProducts.slice(0, 3).map((p) => (
-            <div key={p.id || p.nom} className="p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        {/* Carrousel horizontal des produits */}
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+          {safeProducts.map((p) => (
+            <div key={p.id || p.nom} className="shrink-0 w-[150px] snap-start p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
               <p className="font-body text-[9px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>{p.categorie || 'SOIN'}</p>
               <p className="font-display text-[13px] line-clamp-1" style={{ color: 'var(--ink)' }}>{p.nom}</p>
               <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.marque}</p>
             </div>
           ))}
-
-          <button onClick={() => go('scan')} className="p-4 rounded-[16px] flex flex-col items-center justify-center gap-1 border-dashed" style={{ border: '1px dashed var(--line-strong)', background: 'rgba(250, 246, 240, 0.5)' }}>
-            <Camera size={20} style={{ color: 'var(--gold)' }} />
-            <span className="font-body text-[10px] uppercase tracking-caps font-medium mt-1 text-center" style={{ color: 'var(--ink-soft)' }}>
-              {lang === 'fr' ? 'GÉRER MES PRODUITS' : 'MANAGE PRODUCTS'}
-            </span>
-          </button>
         </div>
+
+        {/* Bouton Gérer mes produits */}
+        <button onClick={() => go('scan')} className="w-full mt-3 py-3 rounded-[12px] font-body text-[10px] uppercase tracking-caps font-semibold" style={{ background: 'var(--cream-card)', border: '1px solid var(--line-strong)', color: 'var(--ink-soft)' }}>
+          {lang === 'fr' ? 'GÉRER MES PRODUITS' : 'MANAGE PRODUCTS'}
+        </button>
       </div>
     </div>
   );
