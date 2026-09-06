@@ -7,6 +7,9 @@ import ScanScreen from '../screens/ScanScreen';
 import RoutineScreen from '../screens/RoutineScreen';
 import JournalScreen from '../screens/JournalScreen';
 import TrialScreen from '../screens/TrialScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import HelpScreen from '../screens/HelpScreen';
+import PrivacyScreen from '../screens/PrivacyScreen';
 import api from '../lib/api';
 
 const TABS = [
@@ -15,6 +18,14 @@ const TABS = [
   { id: 'scan', icon: Camera, screen: ScanScreen },
   { id: 'journal', icon: LineChart, screen: JournalScreen },
   { id: 'menu', icon: Sparkles, screen: TrialScreen },
+];
+
+// Écrans accessibles via le menu, mais pas affichés dans la barre du bas
+const EXTRA_SCREENS = [
+  { id: 'trial', screen: TrialScreen },
+  { id: 'profil', screen: ProfileScreen },
+  { id: 'aide', screen: HelpScreen },
+  { id: 'confidentialite', screen: PrivacyScreen },
 ];
 
 const AppShell = () => {
@@ -32,7 +43,7 @@ const AppShell = () => {
 
   const go = (id, opts) => {
     if (opts?.phase) setRoutinePhase(opts.phase);
-    
+
     if (id === 'menu') {
       setShowMenuModal(true);
       return;
@@ -42,16 +53,10 @@ const AppShell = () => {
     setActive(id);
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      const { data } = await api.post('/payments/portal', { origin_url: window.location.origin });
-      if (data?.url) window.location.href = data.url;
-    } catch (e) {
-      console.error("Erreur portail Stripe", e);
-    }
-  };
-
-  const Current = TABS.find((tb) => tb.id === active)?.screen || HomeScreen;
+  const Current =
+    TABS.find((tb) => tb.id === active)?.screen ||
+    EXTRA_SCREENS.find((s) => s.id === active)?.screen ||
+    HomeScreen;
 
   return (
     <div className="app-shell relative min-h-screen pb-20">
@@ -122,7 +127,7 @@ const AppShell = () => {
 
             {/* Options du Menu */}
             <div className="mt-6 space-y-2.5">
-              <button onClick={() => go('accueil')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => go('profil')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <User size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
@@ -132,17 +137,7 @@ const AppShell = () => {
                 </div>
               </button>
 
-              <button onClick={() => go('scan')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-                <div className="flex items-center gap-3">
-                  <Package size={18} style={{ color: '#A37B68' }} />
-                  <div className="text-left">
-                    <p className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>{lang === 'fr' ? "Mon Vanité de Soins" : "My Skincare Shelf"}</p>
-                    <p className="font-body text-[11px]" style={{ color: '#B59B8D' }}>{lang === 'fr' ? "Produits scannés et enregistrés" : "Scanned and saved products"}</p>
-                  </div>
-                </div>
-              </button>
-
-              <button onClick={() => { setShowMenuModal(false); handleManageSubscription(); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => go('trial')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <CreditCard size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
@@ -152,7 +147,7 @@ const AppShell = () => {
                 </div>
               </button>
 
-              <button onClick={() => setShowMenuModal(false)} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => go('aide')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <HelpCircle size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
@@ -162,7 +157,7 @@ const AppShell = () => {
                 </div>
               </button>
 
-              <button onClick={() => setShowMenuModal(false)} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              <button onClick={() => go('confidentialite')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <Shield size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
