@@ -5,7 +5,7 @@
   position: relative;
   width: 100%;
   max-width: 460px;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   background: var(--cream);
   display: flex;
@@ -26,14 +26,16 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 92px;
+  padding-bottom: calc(92px + env(safe-area-inset-bottom));
 }
 
 .bottom-nav {
-  position: sticky;
+  position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 460px;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   background: rgba(243,242,242,0.92);
