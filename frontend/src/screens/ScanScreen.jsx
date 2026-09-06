@@ -111,7 +111,7 @@ const ScanScreen = ({ go }) => {
         <div className="text-center">
           <p className="font-display text-[15px] font-medium" style={{ color: 'var(--ink)' }}>
             {loading 
-              ? (lang === 'fr' ? 'L\'IA Gemini 3.6 analyse ton produit...' : 'Gemini 3.6 is analyzing your product...') 
+              ? (lang === 'fr' ? 'Analyse de ton produit...' : 'Analyzing your product...') 
               : (lang === 'fr' ? 'Scanner un produit' : 'Scan a product')}
           </p>
           <p className="font-body text-[11px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>
