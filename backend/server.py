@@ -358,7 +358,6 @@ def _observation(entries):
 # ---------------- Scan (AI vision Gemini) ----------------
 @api_router.post("/scan")
 async def scan(body: ScanIn, user=Depends(current_user)):
-    from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
     key = os.environ.get("EMERGENT_LLM_KEY")
     img = body.image_base64.split(",")[-1]
     sys = ("Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
