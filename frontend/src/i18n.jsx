@@ -27,6 +27,7 @@ const DICT = {
     emptyShelfCta: 'Ajoute ton premier produit', settings: 'Réglages', language: 'Langue',
     addProduct: 'Ajouter un produit', search: 'Rechercher', add: 'Ajouter', cancel: 'Annuler',
     demoNote: "Exemple de routine — ajoute tes produits pour la tienne.",
+        thisWeek: 'Cette semaine', weeksAgo: 'Il y a (sem.)', entriesLabel: 'entrée(s)',
   },
   en: {
     appName: 'MySolaia',

@@ -21,7 +21,7 @@ const JournalScreen = ({ go }) => {
   // Si l'API retourne un tableau de semaines ou de jours, on s'adapte
   const allWeeks = data.weeks || [
     {
-      label: weekOffset === 0 ? "Cette semaine" : `Il y a ${Math.abs(weekOffset)} sem.`,
+      label: weekOffset === 0 ? (t('thisWeek')) : `${t('weeksAgo')} ${Math.abs(weekOffset)}`,
       days: data.days || [],
       entries: data.entries || []
     }
@@ -141,7 +141,7 @@ const JournalScreen = ({ go }) => {
             {t('lastEntries')}
           </span>
           <span className="font-body text-[10px] tnum" style={{ color: 'var(--ink-soft)' }}>
-            {currentWeek.entries.length} entrée(s)
+            {currentWeek.entries.length} {t('entriesLabel')}
           </span>
         </div>
 

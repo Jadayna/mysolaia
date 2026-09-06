@@ -115,7 +115,7 @@ const AppShell = () => {
                 <img src="/favicon-512.png" alt="Solaia Sun" className="w-7 h-7 object-contain" />
                 <div>
                   <h3 className="font-display text-[20px]" style={{ color: '#A37B68' }}>
-                    {user?.prenom ? `Bonjour, ${user.prenom}` : 'Mon Compte'}
+                    {user?.prenom ? (lang === 'fr' ? `Bonjour, ${user.prenom}` : `Hello, ${user.prenom}`) : (lang === 'fr' ? 'Mon Compte' : 'My Account')}
                   </h3>
                   <p className="font-body text-[12px]" style={{ color: '#A37B68', opacity: 0.7 }}>{user?.email}</p>
                 </div>
