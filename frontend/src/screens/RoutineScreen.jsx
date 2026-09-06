@@ -44,19 +44,16 @@ const RoutineScreen = ({ go, routinePhase }) => {
     if (routinePhase) setPhase(routinePhase);
   }, [routinePhase]);
 
-  const load = (p) => {
-    // Normalisation du paramètre si le backend attend 'matin' ou 'jour'
-    const apiPhase = (p === 'jour' || p === 'matin') ? 'matin' : 'soir';
-    api.get('/routine', { params: { phase: apiPhase, lang } }).then((r) => {
-      setRoutine(r.data);
-      setDone({});
-      setOpen(r.data?.steps?.[0] ? { [r.data.steps[0].n]: true } : {});
-    }).catch((e) => console.error("Erreur chargement routine", e));
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { 
-    load(phase); 
+  useEffect(() => {
+    const load = (p) => {
+      const apiPhase = (p === 'jour' || p === 'matin') ? 'matin' : 'soir';
+      api.get('/routine', { params: { phase: apiPhase, lang } }).then((r) => {
+        setRoutine(r.data);
+        setDone({});
+        setOpen(r.data?.steps?.[0] ? { [r.data.steps[0].n]: true } : {});
+      }).catch((e) => console.error("Erreur chargement routine", e));
+    };
+    load(phase);
   }, [phase, lang]);
 
   if (!routine) return <div className="px-6 pt-10 font-body" style={{ color: 'var(--ink-faint)' }}>…</div>;
