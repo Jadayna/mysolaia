@@ -276,20 +276,20 @@ async def del_shelf(shelf_id: str, user=Depends(current_user)):
 
 # ---------------- Routine & Home ----------------
 @api_router.get("/routine")
-async def get_routine(phase: str = "soir", user=Depends(current_user)):
+async def get_routine(phase: str = "soir", lang: str = "fr", user=Depends(current_user)):
     products = await _shelf_products(user["id"])
-    routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1))
+    routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1), lang=lang)
     return routine
 
 @api_router.get("/home")
-async def home(user=Depends(current_user)):
+async def home(lang: str = "fr", user=Depends(current_user)):
     now = datetime.now(timezone.utc)
     hour = now.hour
     greeting_kind = "matin" if 4 <= hour < 17 else "soir"
     phase = greeting_kind
     products = await _shelf_products(user["id"])
     demo = False
-    routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1))
+    routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1), lang=lang)
     shelf_preview = [{"categorie": p["categorie"], "nom": p["nom"], "brand": p["brand"]}
                      for p in products[:5]]
     has_spf = any(p["categorie"] == "spf" for p in products)
