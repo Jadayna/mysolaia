@@ -63,6 +63,9 @@ class SecurityUpdateIn(BaseModel):
     new_email: Optional[EmailStr] = None
     new_password: Optional[str] = None
 
+class DeleteAccountIn(BaseModel):
+    current_password: str
+
 class ShelfIn(BaseModel):
     product_id: str
     notes: str = ""
@@ -191,6 +194,27 @@ async def update_security(body: SecurityUpdateIn, user=Depends(current_user)):
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
     return {"ok": True, "user": fresh}
 
+ @api_router.post("/auth/reset-data")
+async def reset_data(user=Depends(current_user)):
+    uid = user["id"]
+    await db.user_products.delete_many({"user_id": uid})
+    await db.journal_entries.delete_many({"user_id": uid})
+    return {"ok": True}
+
+@api_router.post("/auth/delete-account")
+async def delete_account(body: DeleteAccountIn, user=Depends(current_user)):
+    full_user = await db.users.find_one({"id": user["id"]})
+    if not full_user or not verify_password(body.current_password, full_user["password"]):
+        raise HTTPException(401, "Mot de passe incorrect")
+    # Bloquer si un abonnement payant est actif
+    if full_user.get("is_premium") or full_user.get("statut_abonnement") == "actif":
+        raise HTTPException(400, "Annule ton abonnement avant de supprimer ton compte.")
+    uid = user["id"]
+    await db.user_products.delete_many({"user_id": uid})
+    await db.journal_entries.delete_many({"user_id": uid})
+    await db.payment_transactions.delete_many({"user_id": uid})
+    await db.users.delete_one({"id": uid})
+    return {"ok": True} 
 
 # ---------------- Products ----------------
 @api_router.get("/products")
