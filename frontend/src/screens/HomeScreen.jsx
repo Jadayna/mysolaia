@@ -72,10 +72,11 @@ const HomeScreen = ({ go }) => {
     }
 
     // 2. Chargement de la liste des produits
-    api.get('/shelf/')
+    api.get('/shelf')
       .then((res) => {
         const data = res?.data;
         if (Array.isArray(data)) setProducts(data);
+        else if (data && Array.isArray(data.shelf)) setProducts(data.shelf);
         else if (data && Array.isArray(data.products)) setProducts(data.products);
         else setProducts([]);
       })
