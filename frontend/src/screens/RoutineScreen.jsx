@@ -54,6 +54,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
     }).catch((e) => console.error("Erreur chargement routine", e));
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { 
     load(phase); 
   }, [phase, lang]);
