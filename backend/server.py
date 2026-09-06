@@ -389,13 +389,27 @@ async def scan(body: ScanIn, user=Depends(current_user)):
                 '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}'
             )
 
-            response = client_ai.models.generate_content(
-                model='gemini-3.6-flash',
-                contents=[
-                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                    sys_prompt
-                ]
-            )
+                        # Réessaie automatiquement si Gemini est temporairement surchargé (503)
+            import asyncio
+            response = None
+            for tentative in range(3):
+                try:
+                    response = client_ai.models.generate_content(
+                        model='gemini-3.6-flash',
+                        contents=[
+                            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                            sys_prompt
+                        ]
+                    )
+                    break  # succès : on sort de la boucle
+                except Exception as retry_err:
+                    msg = str(retry_err)
+                    est_temporaire = "503" in msg or "UNAVAILABLE" in msg or "overloaded" in msg
+                    if est_temporaire and tentative < 2:
+                        logger.warning(f"Gemini surchargé (essai {tentative + 1}/3), nouvel essai...")
+                        await asyncio.sleep(2 * (tentative + 1))  # attend 2s, puis 4s
+                        continue
+                    raise  # autre erreur ou dernier essai : on laisse le except principal gérer
 
             if response.text:
                 m = re.search(r"\{.*\}", response.text, re.S)
