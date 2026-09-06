@@ -99,8 +99,7 @@ const ScanScreen = ({ go }) => {
       <label className="w-full p-6 rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-all active:scale-[0.99]" style={{ borderColor: '#D4A373', background: 'var(--cream-card)' }}>
         <input 
           type="file" 
-          accept="image/*" 
-          capture="environment" 
+          accept="image/*"  
           onChange={handleFileUpload} 
           className="hidden" 
           disabled={loading}
