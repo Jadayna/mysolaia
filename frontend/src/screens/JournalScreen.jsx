@@ -172,7 +172,7 @@ const JournalScreen = ({ go }) => {
 
       {/* Bouton Abonnement */}
       <button 
-        onClick={() => go('essai')} 
+        onClick={() => go('trial')}
         className="gold-btn w-full rounded-[8px] py-2.5 font-body tracking-caps text-[10px] uppercase"
       >
         {t('manageSub')}
