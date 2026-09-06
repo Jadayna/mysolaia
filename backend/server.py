@@ -399,13 +399,13 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
             "observation": _observation(entries, lang)}
 
     def _observation(entries, lang="fr"):
-    if len(entries) < 3:
+        if len(entries) < 3:
+            if lang == "en":
+                return "A few more days and I'll be able to tell you what I notice in your rhythm."
+            return "Encore quelques jours et je pourrai te dire ce que je remarque dans ton rythme."
         if lang == "en":
-            return "A few more days and I'll be able to tell you what I notice in your rhythm."
-        return "Encore quelques jours et je pourrai te dire ce que je remarque dans ton rythme."
-    if lang == "en":
-        return "Your routines are nice and consistent, keep it up!"
-    return "Tes routines sont bien régulières, continue comme ça !"
+            return "Your routines are nice and consistent, keep it up!"
+        return "Tes routines sont bien régulières, continue comme ça !"
 
 
 # ---------------- Scan (AI vision Gemini) ----------------
