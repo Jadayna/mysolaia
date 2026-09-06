@@ -1,12 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Trash2, ArrowLeft, Loader2, Package } from 'lucide-react';
+import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X } from 'lucide-react';
 import { useT } from '../i18n';
 import api from '../lib/api';
+
+// Catégories offertes à l'entrée manuelle (valeur backend + libellés FR/EN)
+const CATEGORIES = [
+  { value: 'nettoyant', fr: 'Nettoyant', en: 'Cleanser' },
+  { value: 'exfoliant', fr: 'Exfoliant', en: 'Exfoliant' },
+  { value: 'toner', fr: 'Tonique', en: 'Toner' },
+  { value: 'serum', fr: 'Sérum', en: 'Serum' },
+  { value: 'traitement_cible', fr: 'Traitement ciblé', en: 'Targeted treatment' },
+  { value: 'yeux', fr: 'Contour des yeux', en: 'Eye care' },
+  { value: 'hydratant', fr: 'Hydratant', en: 'Moisturizer' },
+  { value: 'huile', fr: 'Huile', en: 'Oil' },
+  { value: 'spf', fr: 'Protection solaire (SPF)', en: 'Sunscreen (SPF)' },
+  { value: 'levres', fr: 'Lèvres', en: 'Lips' },
+  { value: 'cils_sourcils', fr: 'Cils & sourcils', en: 'Lashes & brows' },
+];
+
+const MOMENTS = [
+  { value: 'les_deux', fr: 'Les deux', en: 'Both' },
+  { value: 'matin', fr: 'Matin', en: 'Morning' },
+  { value: 'soir', fr: 'Soir', en: 'Evening' },
+];
 
 const ScanScreen = ({ go }) => {
   const { lang } = useT();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Entrée manuelle
+  const [showManual, setShowManual] = useState(false);
+  const [savingManual, setSavingManual] = useState(false);
+  const [mNom, setMNom] = useState('');
+  const [mBrand, setMBrand] = useState('');
+  const [mCat, setMCat] = useState('serum');
+  const [mMoment, setMMoment] = useState('les_deux');
 
   // Charger les produits de l'étagère depuis FastAPI
   const fetchProducts = async () => {
@@ -41,13 +70,13 @@ const ScanScreen = ({ go }) => {
     setLoading(true);
     try {
       const base64Image = await convertBase64(file);
-      
+
       // 1. Envoi à la vraie route /scan acceptée par server.py
       const res = await api.post('/scan', { image_base64: base64Image });
-      
+
       if (res.data && res.data.product) {
         const prod = res.data.product;
-        
+
         // 2. Enregistrement du produit analysé par Gemini dans l'étagère
         await api.post('/shelf/manual', {
           brand: prod.brand || "Marque Détectée",
@@ -69,6 +98,32 @@ const ScanScreen = ({ go }) => {
     }
   };
 
+  const saveManual = async () => {
+    if (!mNom.trim() || !mBrand.trim()) {
+      alert(lang === 'fr' ? 'Entre au moins le nom et la marque.' : 'Enter at least the name and brand.');
+      return;
+    }
+    setSavingManual(true);
+    try {
+      await api.post('/shelf/manual', {
+        brand: mBrand.trim(),
+        nom: mNom.trim(),
+        categorie: mCat,
+        actifs: [],
+        texture: 3,
+        moment: mMoment,
+      });
+      await fetchProducts();
+      setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux');
+      setShowManual(false);
+    } catch (e) {
+      const detail = e?.response?.data?.detail;
+      alert(detail || (lang === 'fr' ? "Impossible d'ajouter le produit." : "Could not add the product."));
+    } finally {
+      setSavingManual(false);
+    }
+  };
+
   const handleDelete = async (shelfId) => {
     try {
       await api.delete(`/shelf/${shelfId}`);
@@ -77,6 +132,8 @@ const ScanScreen = ({ go }) => {
       console.error("Erreur suppression :", e);
     }
   };
+
+  const inputStyle = { background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' };
 
   return (
     <div className="px-6 pt-6 pb-28 space-y-6 animate-fade-up">
@@ -122,10 +179,62 @@ const ScanScreen = ({ go }) => {
                 <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={loading} />
                 {lang === 'fr' ? 'Importer de la galerie' : 'Import from gallery'}
               </label>
+
+              {/* Saisir manuellement */}
+              <button onClick={() => setShowManual((v) => !v)} className="w-full py-2 flex items-center justify-center gap-1.5 font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-soft)' }}>
+                <Plus size={14} />
+                {lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}
+              </button>
             </div>
           </>
         )}
       </div>
+
+      {/* Formulaire d'entrée manuelle */}
+      {showManual && (
+        <div className="p-5 rounded-[20px] space-y-3 animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-[16px]" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}
+            </h3>
+            <button onClick={() => setShowManual(false)} className="p-1.5 rounded-full" style={{ background: '#fff', border: '1px solid var(--line)' }}>
+              <X size={16} style={{ color: 'var(--ink-soft)' }} />
+            </button>
+          </div>
+
+          <label className="block">
+            <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{lang === 'fr' ? 'Nom du produit' : 'Product name'}</span>
+            <input value={mNom} onChange={(e) => setMNom(e.target.value)} className="w-full mt-1 p-2.5 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
+          </label>
+
+          <label className="block">
+            <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{lang === 'fr' ? 'Marque' : 'Brand'}</span>
+            <input value={mBrand} onChange={(e) => setMBrand(e.target.value)} className="w-full mt-1 p-2.5 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
+          </label>
+
+          <label className="block">
+            <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{lang === 'fr' ? 'Catégorie' : 'Category'}</span>
+            <select value={mCat} onChange={(e) => setMCat(e.target.value)} className="w-full mt-1 p-2.5 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle}>
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{lang === 'fr' ? c.fr : c.en}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{lang === 'fr' ? 'Moment' : 'When'}</span>
+            <select value={mMoment} onChange={(e) => setMMoment(e.target.value)} className="w-full mt-1 p-2.5 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle}>
+              {MOMENTS.map((m) => (
+                <option key={m.value} value={m.value}>{lang === 'fr' ? m.fr : m.en}</option>
+              ))}
+            </select>
+          </label>
+
+          <button onClick={saveManual} disabled={savingManual} className="gold-btn w-full rounded-[8px] py-3 mt-1 font-body tracking-caps text-[11px] uppercase">
+            {savingManual ? (lang === 'fr' ? 'Ajout...' : 'Adding...') : (lang === 'fr' ? 'Ajouter à mon étagère' : 'Add to my shelf')}
+          </button>
+        </div>
+      )}
 
       {/* Liste des produits */}
       <div className="space-y-3">
@@ -151,8 +260,8 @@ const ScanScreen = ({ go }) => {
                   <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
                   <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
                 </div>
-                <button 
-                  onClick={() => handleDelete(p.shelf_id || p.id)} 
+                <button
+                  onClick={() => handleDelete(p.shelf_id || p.id)}
                   className="p-2.5 rounded-full text-red-500 hover:bg-red-50 active:scale-95 transition-all"
                 >
                   <Trash2 size={18} />
