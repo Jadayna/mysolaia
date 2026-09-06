@@ -26,7 +26,7 @@ const DICT = {
     continue: 'Continuer', legal: "Aucun conseil médical : l'app ordonne et prévient, elle ne diagnostique pas.",
     emptyShelfCta: 'Ajoute ton premier produit', settings: 'Réglages', language: 'Langue',
     addProduct: 'Ajouter un produit', search: 'Rechercher', add: 'Ajouter', cancel: 'Annuler',
-    thisWeek: 'Cette semaine', weeksAgo: 'Il y a (sem.)', entriesLabel: 'entrée(s)',
+        thisWeek: 'Cette semaine', weeksAgo: 'Il y a (sem.)', entriesLabel: 'entrée(s)', thisMonth: 'Ce mois',
     demoNote: "Exemple de routine — ajoute tes produits pour la tienne.",
   },
   en: {
@@ -52,7 +52,7 @@ const DICT = {
     continue: 'Continue', legal: 'No medical advice: the app orders and warns, it does not diagnose.',
     emptyShelfCta: 'Add your first product', settings: 'Settings', language: 'Language',
     addProduct: 'Add a product', search: 'Search', add: 'Add', cancel: 'Cancel',
-    thisWeek: 'This week', weeksAgo: 'weeks ago', entriesLabel: 'entries',
+    thisWeek: 'This week', weeksAgo: 'weeks ago', entriesLabel: 'entries', thisMonth: 'This month',
     demoNote: 'Sample routine — add your products to make it yours.',
   },
 };
