@@ -449,8 +449,14 @@ async def scan(body: ScanIn, user=Depends(current_user)):
 
             sys_prompt = (
                 "Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
-                "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON valide sans balises markdown:\n"
-                '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}'
+                "de soin. Identifie la marque et le nom exact, puis les ingredients actifs presents. "
+                "Pour 'actifs', retourne UNIQUEMENT les codes de cette liste qui s'appliquent, dans un tableau : "
+                "retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique. "
+                "Correspondances : acide glycolique/lactique/mandelique = aha ; acide salicylique = bha ; "
+                "acide ascorbique = vitamine_c ; benzoyl peroxide = peroxyde_benzoyle ; hyaluronic acid = acide_hyaluronique. "
+                "Si aucun actif de la liste n'est present, retourne un tableau vide []. "
+                "Reponds UNIQUEMENT en JSON valide sans balises markdown:\n"
+                '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actifs":[],"texture_label":"","confiance":0.0}'
             )
 
             # Cascade de modèles : si l'un est surchargé (503), on bascule sur le suivant
@@ -505,7 +511,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
         "nom": nom or "Produit à confirmer",
         "categorie": cat,
         "category": cat.capitalize(),
-        "actifs": [data.get("actif_cle")] if data.get("actif_cle") else [],
+        "actifs": data.get("actifs") if isinstance(data.get("actifs"), list) else [],
         "texture": 3,
         "texture_score": 3,
         "moment": "les_deux", 
