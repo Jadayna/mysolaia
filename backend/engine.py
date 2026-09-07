@@ -25,10 +25,12 @@ ACTIVE_LABELS = {
     "fr": {
         "aha": "l'acide glycolique", "bha": "l'acide salicylique", "retinol": "le rétinol",
         "vitamine_c": "la vitamine C", "niacinamide": "le niacinamide",
+        "peroxyde_benzoyle": "le peroxyde de benzoyle", "acide_hyaluronique": "l'acide hyaluronique",
     },
     "en": {
         "aha": "glycolic acid", "bha": "salicylic acid", "retinol": "retinol",
         "vitamine_c": "vitamin C", "niacinamide": "niacinamide",
+        "peroxyde_benzoyle": "benzoyl peroxide", "acide_hyaluronique": "hyaluronic acid",
     },
 }
 
@@ -94,6 +96,34 @@ TEXTS = {
     },
 }
 
+# --- Règles d'incompatibilité entre actifs -------------------------------
+# Sources : guides cosmétiques (Typology, MiiN, Aesthé...). Recommandations
+# d'usage, PAS des avis médicaux. Chaque règle : les 2 actifs en conflit +
+# lequel on garde en priorité dans la routine (l'autre est reporté).
+# priorite : l'actif à GARDER si les deux sont présents la même séance.
+INCOMPATIBILITES = [
+    {"a": "vitamine_c", "b": "aha", "garde": "vitamine_c", "raison": "efficacite"},
+    {"a": "vitamine_c", "b": "bha", "garde": "vitamine_c", "raison": "efficacite"},
+    {"a": "retinol", "b": "vitamine_c", "garde": "vitamine_c", "raison": "irritation"},
+    {"a": "retinol", "b": "peroxyde_benzoyle", "garde": "retinol", "raison": "annulation"},
+    {"a": "vitamine_c", "b": "niacinamide", "garde": "vitamine_c", "raison": "rougeurs"},
+]
+
+INCOMPAT_TEXT = {
+    "fr": {
+        "efficacite": "{a} et {b} ensemble se nuisent (perte d'efficacité). Je garde {garde} cette séance et je reporte l'autre.",
+        "irritation": "{a} et {b} la même séance, c'est irritant. Je garde {garde} et je replace l'autre à un autre moment.",
+        "annulation": "{a} et {b} s'annulent l'un l'autre. Je garde {garde} cette séance et je reporte l'autre.",
+        "rougeurs": "{a} et {b} peuvent causer des rougeurs sur peau sensible. Je les sépare — {garde} reste ce soir.",
+    },
+    "en": {
+        "efficacite": "{a} and {b} together cancel each other out (lost efficacy). I'm keeping {garde} this session and moving the other.",
+        "irritation": "{a} and {b} in the same session is irritating. I'm keeping {garde} and moving the other to another time.",
+        "annulation": "{a} and {b} neutralize each other. I'm keeping {garde} this session and moving the other.",
+        "rougeurs": "{a} and {b} can cause redness on sensitive skin. I'm separating them — {garde} stays tonight.",
+    },
+}
+
 
 def _norm_lang(lang):
     return "en" if lang == "en" else "fr"
@@ -140,6 +170,40 @@ def _why(prod, phase, lang="fr"):
     if cat == "cils_sourcils":
         return w["cils_sourcils"]
     return w["default"]
+
+
+def _resolve_incompatibilities(pool, lang):
+    """Retire les combos d'actifs incompatibles de la séance.
+    Garde l'actif prioritaire de chaque règle, reporte l'autre produit.
+    Retourne (pool_nettoye, liste_de_messages)."""
+    labels = ACTIVE_LABELS[lang]
+    txt = INCOMPAT_TEXT[lang]
+    messages = []
+
+    for rule in INCOMPATIBILITES:
+        # Produits porteurs de chaque actif de la règle, encore dans la séance
+        porteurs_a = [p for p in pool if _has(p.get("actifs"), rule["a"])]
+        porteurs_b = [p for p in pool if _has(p.get("actifs"), rule["b"])]
+        if not porteurs_a or not porteurs_b:
+            continue  # les deux actifs pas présents ensemble → rien à faire
+
+        garde = rule["garde"]
+        vire = rule["b"] if garde == rule["a"] else rule["a"]
+
+        # On retire les produits porteurs de l'actif à reporter,
+        # sauf s'ils portent AUSSI l'actif gardé (on ne se tire pas dans le pied).
+        a_retirer = [p for p in pool if _has(p.get("actifs"), vire) and not _has(p.get("actifs"), garde)]
+        if not a_retirer:
+            continue
+
+        pool = [p for p in pool if p not in a_retirer]
+        messages.append(txt[rule["raison"]].format(
+            a=labels.get(rule["a"], rule["a"]),
+            b=labels.get(rule["b"], rule["b"]),
+            garde=labels.get(garde, garde),
+        ))
+
+    return pool, messages
 
 
 def exfoliation_days(sensibilite):
@@ -201,6 +265,11 @@ def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
                 pool = [p for p in pool if not (_has(p["actifs"], "retinol") and p["categorie"] == "serum")]
                 banner = T["banner_retinol"].format(acid=acid_label)
 
+    # Combos d'actifs incompatibles (vit C + acides, rétinol + vit C, etc.)
+    pool, incompat_msgs = _resolve_incompatibilities(pool, lang)
+    for m in incompat_msgs:
+        decisions.append(m)
+
     # Too many strong actives -> lighten.
     strong = [p for p in pool if set(p["actifs"]) & STRONG_ACTIVES]
     if len(strong) >= 3:
@@ -232,6 +301,9 @@ def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
             }
         steps.append(step)
 
+    # Bannière : priorité à un combo incompatible s'il n'y en a pas déjà une.
+    if not banner and incompat_msgs:
+        banner = incompat_msgs[0]
     if decisions and not banner:
         banner = decisions[0]
 
