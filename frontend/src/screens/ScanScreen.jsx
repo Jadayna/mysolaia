@@ -35,6 +35,12 @@ const ACTIFS = [
   { value: 'acide_hyaluronique', fr: 'Acide hyaluronique', en: 'Hyaluronic acid' },
 ];
 
+// Libellés courts pour afficher les actifs sur les cartes
+const ACTIF_LABELS = {
+  fr: { retinol: 'Rétinol', vitamine_c: 'Vitamine C', aha: 'AHA', bha: 'BHA', niacinamide: 'Niacinamide', peroxyde_benzoyle: 'Peroxyde benzoyle', acide_hyaluronique: 'Ac. hyaluronique' },
+  en: { retinol: 'Retinol', vitamine_c: 'Vitamin C', aha: 'AHA', bha: 'BHA', niacinamide: 'Niacinamide', peroxyde_benzoyle: 'Benzoyl peroxide', acide_hyaluronique: 'Hyaluronic acid' },
+};
+
 const ScanScreen = ({ go }) => {
   const { lang } = useT();
   const [products, setProducts] = useState([]);
@@ -300,6 +306,15 @@ const ScanScreen = ({ go }) => {
                   </span>
                   <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
                   <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
+                  {Array.isArray(p.actifs) && p.actifs.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {p.actifs.map((a) => (
+                        <span key={a} className="px-2 py-0.5 rounded-full font-body text-[9px] font-semibold" style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)' }}>
+                          {(ACTIF_LABELS[lang === 'fr' ? 'fr' : 'en'][a]) || a}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <button
