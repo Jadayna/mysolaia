@@ -24,6 +24,17 @@ const MOMENTS = [
   { value: 'soir', fr: 'Soir', en: 'Evening' },
 ];
 
+// Actifs reconnus par le moteur (pour la détection d'incompatibilités)
+const ACTIFS = [
+  { value: 'retinol', fr: 'Rétinol', en: 'Retinol' },
+  { value: 'vitamine_c', fr: 'Vitamine C', en: 'Vitamin C' },
+  { value: 'aha', fr: 'AHA (glycolique, lactique)', en: 'AHA (glycolic, lactic)' },
+  { value: 'bha', fr: 'BHA (salicylique)', en: 'BHA (salicylic)' },
+  { value: 'niacinamide', fr: 'Niacinamide', en: 'Niacinamide' },
+  { value: 'peroxyde_benzoyle', fr: 'Peroxyde de benzoyle', en: 'Benzoyl peroxide' },
+  { value: 'acide_hyaluronique', fr: 'Acide hyaluronique', en: 'Hyaluronic acid' },
+];
+
 const ScanScreen = ({ go }) => {
   const { lang } = useT();
   const [products, setProducts] = useState([]);
@@ -36,8 +47,8 @@ const ScanScreen = ({ go }) => {
   const [mBrand, setMBrand] = useState('');
   const [mCat, setMCat] = useState('serum');
   const [mMoment, setMMoment] = useState('les_deux');
+  const [mActifs, setMActifs] = useState([]);
 
-  // Charger les produits de l'étagère depuis FastAPI
   const fetchProducts = async () => {
     try {
       const res = await api.get('/shelf');
@@ -53,7 +64,6 @@ const ScanScreen = ({ go }) => {
     fetchProducts();
   }, []);
 
-  // Convertir l'image en Base64 pour l'API Gemini
   const convertBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const fileReader = new FileReader();
@@ -70,23 +80,18 @@ const ScanScreen = ({ go }) => {
     setLoading(true);
     try {
       const base64Image = await convertBase64(file);
-
-      // 1. Envoi à la vraie route /scan acceptée par server.py
       const res = await api.post('/scan', { image_base64: base64Image });
 
       if (res.data && res.data.product) {
         const prod = res.data.product;
-
-        // 2. Enregistrement du produit analysé par Gemini dans l'étagère
         await api.post('/shelf/manual', {
           brand: prod.brand || "Marque Détectée",
           nom: prod.nom || "Produit Détecté",
           categorie: (prod.categorie || prod.category || "serum").toLowerCase(),
-          actifs: prod.actifs || [],
+          actifs: Array.isArray(prod.actifs) ? prod.actifs : [],
           texture: 3,
           moment: "les_deux"
         });
-
         await fetchProducts();
       }
     } catch (e) {
@@ -96,6 +101,10 @@ const ScanScreen = ({ go }) => {
       setLoading(false);
       event.target.value = '';
     }
+  };
+
+  const toggleActif = (value) => {
+    setMActifs((prev) => (prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]));
   };
 
   const saveManual = async () => {
@@ -109,12 +118,12 @@ const ScanScreen = ({ go }) => {
         brand: mBrand.trim(),
         nom: mNom.trim(),
         categorie: mCat,
-        actifs: [],
+        actifs: mActifs,
         texture: 3,
         moment: mMoment,
       });
       await fetchProducts();
-      setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux');
+      setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
       setShowManual(false);
     } catch (e) {
       const detail = e?.response?.data?.detail;
@@ -180,19 +189,16 @@ const ScanScreen = ({ go }) => {
               {lang === 'fr' ? 'Ajouter un produit' : 'Add a product'}
             </p>
             <div className="w-full flex flex-col gap-2.5">
-              {/* Prendre une photo (caméra) */}
               <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold text-white active:scale-[0.98] transition-all" style={{ background: '#A37B68' }}>
                 <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" disabled={loading} />
                 {lang === 'fr' ? 'Prendre une photo' : 'Take a photo'}
               </label>
 
-              {/* Importer de la galerie */}
               <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold active:scale-[0.98] transition-all" style={{ background: 'transparent', border: '1px solid #A37B68', color: '#A37B68' }}>
                 <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={loading} />
                 {lang === 'fr' ? 'Importer de la galerie' : 'Import from gallery'}
               </label>
 
-              {/* Saisir manuellement */}
               <button onClick={() => setShowManual((v) => !v)} className="w-full py-2 flex items-center justify-center gap-1.5 font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-soft)' }}>
                 <Plus size={14} />
                 {lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}
@@ -242,6 +248,27 @@ const ScanScreen = ({ go }) => {
             </select>
           </label>
 
+          {/* Actifs (pour la détection d'incompatibilités) */}
+          <div>
+            <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr' ? 'Ingrédients actifs (optionnel)' : 'Active ingredients (optional)'}
+            </span>
+            <div className="flex flex-wrap gap-2 mt-1.5">
+              {ACTIFS.map((a) => {
+                const on = mActifs.includes(a.value);
+                return (
+                  <button key={a.value} type="button" onClick={() => toggleActif(a.value)}
+                    className="px-2.5 py-1.5 rounded-full font-body text-[11px] transition-all"
+                    style={on
+                      ? { background: 'var(--gold)', color: '#fff', border: '1px solid var(--gold)' }
+                      : { background: '#fff', color: 'var(--ink-soft)', border: '1px solid var(--line)' }}>
+                    {lang === 'fr' ? a.fr : a.en}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <button onClick={saveManual} disabled={savingManual} className="gold-btn w-full rounded-[8px] py-3 mt-1 font-body tracking-caps text-[11px] uppercase">
             {savingManual ? (lang === 'fr' ? 'Ajout...' : 'Adding...') : (lang === 'fr' ? 'Ajouter à mon étagère' : 'Add to my shelf')}
           </button>
@@ -263,7 +290,7 @@ const ScanScreen = ({ go }) => {
           </div>
         ) : (
           <div className="space-y-2.5">
-        {products.map((p) => {
+            {products.map((p) => {
               const actif = p.actif !== false;
               return (
               <div key={p.shelf_id || p.id} className="p-4 rounded-[16px] flex items-center justify-between shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)', opacity: actif ? 1 : 0.5 }}>
