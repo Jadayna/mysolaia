@@ -248,7 +248,7 @@ async def _shelf_products(uid: str, active_only=True):
 async def get_shelf(user=Depends(current_user)):
     return {"shelf": await _shelf_products(user["id"], active_only=False)}
 
-MAX_FREE_PRODUCTS = 4
+MAX_FREE_PRODUCTS = 5
 
 @api_router.post("/shelf")
 async def add_shelf(body: ShelfIn, user=Depends(current_user)):
