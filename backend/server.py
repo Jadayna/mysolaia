@@ -451,7 +451,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
                 "Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
                 "de soin. Identifie la marque et le nom exact, puis les ingredients actifs presents. "
                 "Pour 'actifs', retourne UNIQUEMENT les codes de cette liste qui s'appliquent, dans un tableau : "
-                "retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique. "
+                "retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine. "
                 "Correspondances : acide glycolique/lactique/mandelique = aha ; acide salicylique = bha ; "
                 "acide ascorbique = vitamine_c ; benzoyl peroxide = peroxyde_benzoyle ; hyaluronic acid = acide_hyaluronique. "
                 "Si aucun actif de la liste n'est present, retourne un tableau vide []. "
@@ -511,7 +511,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
         "nom": nom or "Produit à confirmer",
         "categorie": cat,
         "category": cat.capitalize(),
-        "actifs": data.get("actifs") if isinstance(data.get("actifs"), list) else [],
+        "actifs": [a for a in (data.get("actifs") or []) if a in {"retinol", "vitamine_c", "aha", "bha", "niacinamide", "peroxyde_benzoyle", "acide_hyaluronique", "peptides", "ceramides", "squalane", "panthenol", "acide_azelaique", "acide_mandelique", "vitamine_e", "centella", "zinc", "allantoine", "cafeine"}],
         "texture": 3,
         "texture_score": 3,
         "moment": "les_deux", 
