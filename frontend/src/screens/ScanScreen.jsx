@@ -33,12 +33,23 @@ const ACTIFS = [
   { value: 'niacinamide', fr: 'Niacinamide', en: 'Niacinamide' },
   { value: 'peroxyde_benzoyle', fr: 'Peroxyde de benzoyle', en: 'Benzoyl peroxide' },
   { value: 'acide_hyaluronique', fr: 'Acide hyaluronique', en: 'Hyaluronic acid' },
+  { value: 'acide_azelaique', fr: 'Acide azélaïque', en: 'Azelaic acid' },
+  { value: 'acide_mandelique', fr: 'Acide mandélique', en: 'Mandelic acid' },
+  { value: 'peptides', fr: 'Peptides', en: 'Peptides' },
+  { value: 'ceramides', fr: 'Céramides', en: 'Ceramides' },
+  { value: 'squalane', fr: 'Squalane', en: 'Squalane' },
+  { value: 'panthenol', fr: 'Panthénol (B5)', en: 'Panthenol (B5)' },
+  { value: 'vitamine_e', fr: 'Vitamine E', en: 'Vitamin E' },
+  { value: 'centella', fr: 'Centella (Cica)', en: 'Centella (Cica)' },
+  { value: 'zinc', fr: 'Zinc', en: 'Zinc' },
+  { value: 'allantoine', fr: 'Allantoïne', en: 'Allantoin' },
+  { value: 'cafeine', fr: 'Caféine', en: 'Caffeine' },
 ];
 
 // Libellés courts pour afficher les actifs sur les cartes
 const ACTIF_LABELS = {
-  fr: { retinol: 'Rétinol', vitamine_c: 'Vitamine C', aha: 'AHA', bha: 'BHA', niacinamide: 'Niacinamide', peroxyde_benzoyle: 'Peroxyde benzoyle', acide_hyaluronique: 'Ac. hyaluronique' },
-  en: { retinol: 'Retinol', vitamine_c: 'Vitamin C', aha: 'AHA', bha: 'BHA', niacinamide: 'Niacinamide', peroxyde_benzoyle: 'Benzoyl peroxide', acide_hyaluronique: 'Hyaluronic acid' },
+  fr: { retinol: 'Rétinol', vitamine_c: 'Vitamine C', aha: 'AHA', bha: 'BHA', niacinamide: 'Niacinamide', peroxyde_benzoyle: 'Peroxyde benzoyle', acide_hyaluronique: 'Ac. hyaluronique', acide_azelaique: 'Ac. azélaïque', acide_mandelique: 'Ac. mandélique', peptides: 'Peptides', ceramides: 'Céramides', squalane: 'Squalane', panthenol: 'Panthénol', vitamine_e: 'Vitamine E', centella: 'Centella', zinc: 'Zinc', allantoine: 'Allantoïne', cafeine: 'Caféine' },
+  en: { retinol: 'Retinol', vitamine_c: 'Vitamin C', aha: 'AHA', bha: 'BHA', niacinamide: 'Niacinamide', peroxyde_benzoyle: 'Benzoyl peroxide', acide_hyaluronique: 'Hyaluronic acid', acide_azelaique: 'Azelaic acid', acide_mandelique: 'Mandelic acid', peptides: 'Peptides', ceramides: 'Ceramides', squalane: 'Squalane', panthenol: 'Panthenol', vitamine_e: 'Vitamin E', centella: 'Centella', zinc: 'Zinc', allantoine: 'Allantoin', cafeine: 'Caffeine' },
 };
 
 const ScanScreen = ({ go }) => {
