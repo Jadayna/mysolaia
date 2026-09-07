@@ -133,6 +133,18 @@ const ScanScreen = ({ go }) => {
     }
   };
 
+  const handleToggle = async (shelfId) => {
+    try {
+      const res = await api.post(`/shelf/${shelfId}/toggle`);
+      const actif = res?.data?.actif;
+      setProducts((prev) => prev.map((p) =>
+        (p.shelf_id === shelfId || p.id === shelfId) ? { ...p, actif } : p
+      ));
+    } catch (e) {
+      console.error("Erreur toggle :", e);
+    }
+  };
+
   const inputStyle = { background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' };
 
   return (
@@ -251,8 +263,10 @@ const ScanScreen = ({ go }) => {
           </div>
         ) : (
           <div className="space-y-2.5">
-            {products.map((p) => (
-              <div key={p.shelf_id || p.id} className="p-4 rounded-[16px] flex items-center justify-between shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        {products.map((p) => {
+              const actif = p.actif !== false;
+              return (
+              <div key={p.shelf_id || p.id} className="p-4 rounded-[16px] flex items-center justify-between shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)', opacity: actif ? 1 : 0.5 }}>
                 <div>
                   <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
                     {p.categorie || p.category || 'SOIN'}
@@ -260,14 +274,27 @@ const ScanScreen = ({ go }) => {
                   <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
                   <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
                 </div>
-                <button
-                  onClick={() => handleDelete(p.shelf_id || p.id)}
-                  className="p-2.5 rounded-full text-red-500 hover:bg-red-50 active:scale-95 transition-all"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggle(p.shelf_id || p.id)}
+                    className="px-2.5 py-1 rounded-full font-body text-[9px] uppercase tracking-caps transition-all"
+                    style={actif
+                      ? { background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }
+                      : { background: 'transparent', color: 'var(--ink-faint)', border: '1px solid var(--line)' }}
+                    title={lang === 'fr' ? 'Activer / désactiver dans la routine' : 'Enable / disable in routine'}
+                  >
+                    {actif ? (lang === 'fr' ? 'Actif' : 'On') : (lang === 'fr' ? 'Inactif' : 'Off')}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.shelf_id || p.id)}
+                    className="p-2.5 rounded-full text-red-500 hover:bg-red-50 active:scale-95 transition-all"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
