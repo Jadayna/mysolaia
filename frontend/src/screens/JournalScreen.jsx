@@ -1,12 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, CalendarDays } from 'lucide-react';
+import { Calendar, CalendarDays, Flame, Package } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
+
+// Paliers de badges (calculés à la volée depuis les données existantes)
+const STREAK_BADGES = [
+  { n: 1, fr: 'Premier jour', en: 'First day' },
+  { n: 3, fr: '3 jours de suite', en: '3-day streak' },
+  { n: 7, fr: 'Une semaine', en: 'One week' },
+  { n: 30, fr: 'Un mois', en: 'One month' },
+  { n: 100, fr: '100 jours', en: '100 days' },
+  { n: 365, fr: 'Une année', en: 'One year' },
+];
+
+const PRODUCT_BADGES = [
+  { n: 1, fr: 'Premier produit', en: 'First product' },
+  { n: 5, fr: 'Étagère garnie', en: 'Stocked shelf' },
+  { n: 10, fr: 'Collectionneuse', en: 'Collector' },
+  { n: 20, fr: 'Passionnée', en: 'Enthusiast' },
+];
 
 const JournalScreen = ({ go }) => {
   const { t, lang } = useT();
   const [periode, setPeriode] = useState('week'); // 'week' | 'month'
   const [data, setData] = useState(null);
+  const [shelfCount, setShelfCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -16,6 +34,18 @@ const JournalScreen = ({ go }) => {
     return () => { active = false; };
   }, [periode, lang]);
 
+  useEffect(() => {
+    let active = true;
+    api.get('/shelf')
+      .then((r) => {
+        if (!active) return;
+        const arr = r?.data?.shelf || r?.data || [];
+        setShelfCount(Array.isArray(arr) ? arr.length : 0);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
   if (!data) {
     return <div className="px-6 pt-10 font-body" style={{ color: 'var(--ink-faint)' }}>…</div>;
   }
@@ -23,6 +53,7 @@ const JournalScreen = ({ go }) => {
   const days = Array.isArray(data.days) ? data.days : [];
   const entries = Array.isArray(data.entries) ? data.entries : [];
   const stats = Array.isArray(data.stats) ? data.stats : [];
+  const streak = parseInt(data?.stats?.[0]?.n || '0', 10) || 0;
 
   return (
     <div className="px-6 pt-6 pb-28 max-h-screen overflow-y-auto animate-fade-up space-y-6">
@@ -89,6 +120,37 @@ const JournalScreen = ({ go }) => {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* Badges */}
+      <div className="space-y-3 pt-2">
+        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>
+          {lang === 'fr' ? 'Mes badges' : 'My badges'}
+        </span>
+        <div className="grid grid-cols-3 gap-2.5">
+          {STREAK_BADGES.map((b) => {
+            const unlocked = streak >= b.n;
+            return (
+              <div key={`s${b.n}`} className="p-3 rounded-[14px] flex flex-col items-center text-center gap-1.5"
+                style={{ background: 'var(--cream-card)', border: `1px solid ${unlocked ? 'var(--gold-soft)' : 'var(--line)'}`, opacity: unlocked ? 1 : 0.55 }}>
+                <Flame size={20} style={{ color: unlocked ? 'var(--gold)' : 'var(--ink-faint)' }} />
+                <span className="font-body text-[10px] leading-tight" style={{ color: 'var(--ink)' }}>{lang === 'fr' ? b.fr : b.en}</span>
+                {!unlocked && <span className="font-body text-[9px]" style={{ color: 'var(--ink-faint)' }}>{b.n} {lang === 'fr' ? 'j' : 'd'}</span>}
+              </div>
+            );
+          })}
+          {PRODUCT_BADGES.map((b) => {
+            const unlocked = shelfCount >= b.n;
+            return (
+              <div key={`p${b.n}`} className="p-3 rounded-[14px] flex flex-col items-center text-center gap-1.5"
+                style={{ background: 'var(--cream-card)', border: `1px solid ${unlocked ? 'var(--gold-soft)' : 'var(--line)'}`, opacity: unlocked ? 1 : 0.55 }}>
+                <Package size={20} style={{ color: unlocked ? 'var(--gold)' : 'var(--ink-faint)' }} />
+                <span className="font-body text-[10px] leading-tight" style={{ color: 'var(--ink)' }}>{lang === 'fr' ? b.fr : b.en}</span>
+                {!unlocked && <span className="font-body text-[9px]" style={{ color: 'var(--ink-faint)' }}>{b.n} {lang === 'fr' ? 'prod.' : 'prod.'}</span>}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Entrées */}
