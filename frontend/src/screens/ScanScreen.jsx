@@ -45,6 +45,7 @@ const ScanScreen = ({ go }) => {
   const { lang } = useT();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(0);
 
   // Entrée manuelle
   const [showManual, setShowManual] = useState(false);
@@ -65,6 +66,20 @@ const ScanScreen = ({ go }) => {
       setProducts([]);
     }
   };
+
+  const LOADING_STEPS = {
+    fr: ['Analyse du produit...', 'Lecture de la marque...', 'Identification de la catégorie...', 'Repérage des actifs...', 'Presque fini...'],
+    en: ['Analyzing product...', 'Reading the brand...', 'Identifying the category...', 'Spotting the actives...', 'Almost done...'],
+  };
+
+  useEffect(() => {
+    if (!loading) { setLoadingMsg(0); return; }
+    const steps = LOADING_STEPS[lang === 'fr' ? 'fr' : 'en'];
+    const id = setInterval(() => {
+      setLoadingMsg((m) => (m + 1) % steps.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, [loading, lang]);
 
   useEffect(() => {
     fetchProducts();
@@ -186,8 +201,8 @@ const ScanScreen = ({ go }) => {
         </div>
 
         {loading ? (
-          <p className="font-display text-[15px] font-medium" style={{ color: 'var(--ink)' }}>
-            {lang === 'fr' ? 'Analyse de ton produit...' : 'Analyzing your product...'}
+          <p className="font-display text-[15px] font-medium text-center transition-all" style={{ color: 'var(--ink)' }}>
+            {LOADING_STEPS[lang === 'fr' ? 'fr' : 'en'][loadingMsg]}
           </p>
         ) : (
           <>
