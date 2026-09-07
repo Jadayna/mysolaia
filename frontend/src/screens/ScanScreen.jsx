@@ -24,6 +24,11 @@ const MOMENTS = [
   { value: 'soir', fr: 'Soir', en: 'Evening' },
 ];
 
+const LOADING_STEPS = {
+  fr: ['Analyse du produit...', 'Lecture de la marque...', 'Identification de la catégorie...', 'Repérage des actifs...', 'Presque fini...'],
+  en: ['Analyzing product...', 'Reading the brand...', 'Identifying the category...', 'Spotting the actives...', 'Almost done...'],
+};
+
 // Actifs reconnus par le moteur (pour la détection d'incompatibilités)
 const ACTIFS = [
   { value: 'retinol', fr: 'Rétinol', en: 'Retinol' },
@@ -76,11 +81,6 @@ const ScanScreen = ({ go }) => {
       console.error("Erreur chargement étagère :", e);
       setProducts([]);
     }
-  };
-
-  const LOADING_STEPS = {
-    fr: ['Analyse du produit...', 'Lecture de la marque...', 'Identification de la catégorie...', 'Repérage des actifs...', 'Presque fini...'],
-    en: ['Analyzing product...', 'Reading the brand...', 'Identifying the category...', 'Spotting the actives...', 'Almost done...'],
   };
 
   useEffect(() => {
