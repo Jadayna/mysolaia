@@ -297,6 +297,18 @@ async def del_shelf(shelf_id: str, user=Depends(current_user)):
     await db.user_products.delete_one({"id": shelf_id, "user_id": user["id"]})
     return {"ok": True}
 
+@api_router.post("/shelf/{shelf_id}/toggle")
+async def toggle_shelf(shelf_id: str, user=Depends(current_user)):
+    up = await db.user_products.find_one({"id": shelf_id, "user_id": user["id"]})
+    if not up:
+        raise HTTPException(404, "Produit introuvable")
+    nouveau = not up.get("actif", True)
+    await db.user_products.update_one(
+        {"id": shelf_id, "user_id": user["id"]},
+        {"$set": {"actif": nouveau}}
+    )
+    return {"ok": True, "actif": nouveau}
+
 
 # ---------------- Routine & Home ----------------
 @api_router.get("/routine")
