@@ -87,7 +87,7 @@ const ScanScreen = ({ go }) => {
     if (!loading) { setLoadingMsg(0); return; }
     const steps = LOADING_STEPS[lang === 'fr' ? 'fr' : 'en'];
     const id = setInterval(() => {
-      setLoadingMsg((m) => (m + 1) % steps.length);
+      setLoadingMsg((m) => Math.min(m + 1, steps.length - 1));
     }, 3500);
     return () => clearInterval(id);
   }, [loading, lang]);
