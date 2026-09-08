@@ -497,7 +497,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
 
     if nom:
         matched = await db.products.find_one(
-            {"nom": {"$regex": re.escape(nom[:12]), "$options": "i"}, "source": "catalogue"}, {"_id": 0})
+            {"nom": {"$regex": re.escape(nom[:12]), "$options": "i"}}, {"_id": 0})
 
     if matched:
         matched["category"] = matched.get("category") or matched.get("categorie") or "Serum"
