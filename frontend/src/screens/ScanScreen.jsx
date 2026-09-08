@@ -334,8 +334,8 @@ const ScanScreen = ({ go }) => {
                   <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
                   {Array.isArray(p.actifs) && p.actifs.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
-                      {p.actifs.map((a) => (
-                        <span key={a} className="px-2 py-0.5 rounded-full font-body text-[9px] font-semibold" style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)' }}>
+                      {p.actifs.flatMap((a) => String(a).split(',')).map((a) => a.trim()).filter(Boolean).map((a, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded-full font-body text-[9px] font-semibold" style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)' }}>
                           {(ACTIF_LABELS[lang === 'fr' ? 'fr' : 'en'][a]) || a}
                         </span>
                       ))}
