@@ -309,6 +309,11 @@ async def toggle_shelf(shelf_id: str, user=Depends(current_user)):
     )
     return {"ok": True, "actif": nouveau}
 
+@api_router.delete("/shelf/clear")
+async def clear_shelf(user=Depends(current_user)):
+    await db.user_products.delete_many({"user_id": user["id"]})
+    return {"ok": True}
+
 
 # ---------------- Routine & Home ----------------
 @api_router.get("/routine")
