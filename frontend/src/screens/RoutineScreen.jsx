@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, Play, Pause, Sun, Moon } from 'lucide-react';
+import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
 
@@ -38,6 +38,11 @@ const RoutineScreen = ({ go, routinePhase }) => {
   const [routine, setRoutine] = useState(null);
   const [done, setDone] = useState({});
   const [open, setOpen] = useState({});
+  const [open, setOpen] = useState({});
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [skinRating, setSkinRating] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   // Réaligne la phase si la prop change
   useEffect(() => {
@@ -61,10 +66,28 @@ const RoutineScreen = ({ go, routinePhase }) => {
   const total = routine.steps?.length || 0;
   const doneCount = Object.values(done).filter(Boolean).length;
 
-  const finish = async () => {
-    await api.post('/journal', { routine_type: routine.title, etapes_completees: doneCount, nb_total_etapes: total });
-    go('journal');
+    const finish = () => {
+    setShowRatingModal(true);
   };
+
+  const submitJournal = async (rating = null) => {
+    setIsSubmitting(true);
+    try {
+      await api.post('/journal', {
+        routine_type: routine.title,
+        etapes_completees: doneCount,
+        nb_total_etapes: total,
+        note_peau: rating,
+      });
+      setShowRatingModal(false);
+      go('journal');
+    } catch (e) {
+      console.error("Erreur enregistrement journal :", e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   return (
     <div className="px-6 pt-6 pb-12 animate-fade-up">
@@ -160,6 +183,67 @@ const RoutineScreen = ({ go, routinePhase }) => {
       <button onClick={finish} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">
         {t('routineDone')}
       </button>
+
+            {/* Modal Ressenti Peau */}
+      {showRatingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="w-full max-w-sm rounded-[20px] p-6 space-y-4 animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+            <div className="flex justify-between items-center">
+              <h3 className="font-display text-[18px]" style={{ color: 'var(--ink)' }}>
+                {lang === 'fr' ? 'Routine complétée !' : 'Routine complete!'}
+              </h3>
+              <button onClick={() => setShowRatingModal(false)} className="p-1 rounded-full text-stone-400">
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="font-body text-[13px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr' 
+                ? 'Comment se sent ta peau après cette séance ?' 
+                : 'How does your skin feel after this session?'}
+            </p>
+
+            {/* Choix du ressenti */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { score: 1, fr: 'Tiraillement', en: 'Tight', emoji: '😣' },
+                { score: 3, fr: 'Bien', en: 'Good', emoji: '✨' },
+                { score: 5, fr: 'Rayonnante', en: 'Glowing', emoji: '🌟' },
+              ].map((item) => (
+                <button
+                  key={item.score}
+                  type="button"
+                  onClick={() => setSkinRating(item.score)}
+                  className="p-3 rounded-[12px] flex flex-col items-center gap-1 transition-all"
+                  style={skinRating === item.score
+                    ? { background: 'rgba(182,130,53,0.15)', border: '1.5px solid var(--gold)', color: 'var(--gold)' }
+                    : { background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}
+                >
+                  <span className="text-2xl">{item.emoji}</span>
+                  <span className="font-body text-[11px] font-medium">{lang === 'fr' ? item.fr : item.en}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => submitJournal(null)}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 rounded-[8px] font-body tracking-caps text-[10px] uppercase text-stone-500 bg-white border border-stone-200"
+              >
+                {lang === 'fr' ? 'Passer' : 'Skip'}
+              </button>
+              <button
+                onClick={() => submitJournal(skinRating)}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 rounded-[8px] font-body tracking-caps text-[10px] uppercase text-white gold-btn"
+              >
+                {isSubmitting ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer' : 'Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

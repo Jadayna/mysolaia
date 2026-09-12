@@ -47,6 +47,9 @@ const ProfileScreen = ({ go }) => {
   const [objectifs, setObjectifs] = useState(Array.isArray(user?.objectifs) ? user.objectifs : []);
   const [busyProfile, setBusyProfile] = useState(false);
   const [msgProfile, setMsgProfile] = useState(null);
+  const [trackSkinFeel, setTrackSkinFeel] = useState(
+    user?.track_skin_feel !== undefined ? user.track_skin_feel : true
+  );
 
   // --- Réinitialiser ---
   const [showReset, setShowReset] = useState(false);
@@ -75,7 +78,9 @@ const ProfileScreen = ({ go }) => {
         type_de_peau: skinType || null,
         sensibilite: sensibilite,
         objectifs: objectifs,
+        track_skin_feel: trackSkinFeel,
       });
+      localStorage.setItem('solaia_track_skin', JSON.stringify(trackSkinFeel));
       setMsgProfile({ type: 'ok', text: lang === 'fr' ? 'Profil enregistré.' : 'Profile saved.' });
     } catch (e) {
       const detail = e?.response?.data?.detail;
@@ -274,6 +279,41 @@ const ProfileScreen = ({ go }) => {
         <Save size={16} />
         {busy ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer courriel / mot de passe' : 'Save email / password')}
       </button>
+
+      {/* ===== Préférences du journal ===== */}
+      <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
+          {lang === 'fr' ? 'Préférences du journal' : 'Journal preferences'}
+        </h2>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-body text-[13px] font-medium" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Évaluation du ressenti' : 'Track skin feel'}
+            </p>
+            <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? 'Demander l’état de ta peau à la fin de chaque routine.'
+                : 'Ask how your skin feels after each completed routine.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !trackSkinFeel;
+              setTrackSkinFeel(next);
+              localStorage.setItem('solaia_track_skin', JSON.stringify(next));
+            }}
+            className="w-11 h-6 rounded-full transition-colors relative p-0.5 shrink-0"
+            style={{ background: trackSkinFeel ? 'var(--gold)' : 'var(--line)' }}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                trackSkinFeel ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
 
       {/* ===== Vider mon étagère ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
