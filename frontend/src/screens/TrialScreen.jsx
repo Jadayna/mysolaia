@@ -19,7 +19,11 @@ const TrialScreen = () => {
     const params = new URLSearchParams(window.location.search);
     const sid = params.get('session_id');
     if (sid) {
-      api.get(`/payments/status/${sid}`).then((r) => { if (r.data.payment_status === 'paid') setPaid(true); }).catch(() => {});
+      api.get(`/payments/status/${sid}`).then((r) => {
+        // En essai gratuit, Stripe renvoie 'no_payment_required' ou status 'complete'
+        const isSuccessful = r.data.payment_status === 'paid' || r.data.payment_status === 'no_payment_required' || r.data.status === 'complete';
+        if (isSuccessful) setPaid(true);
+      }).catch(() => {});
     }
   }, []);
 
