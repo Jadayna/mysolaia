@@ -169,7 +169,14 @@ const JournalScreen = ({ go }) => {
             {entries.map((entry, idx) => (
               <div key={idx} className="flex justify-between items-start py-1.5 border-b last:border-b-0" style={{ borderColor: 'rgba(163, 123, 104, 0.1)' }}>
                 <div>
-                  <p className="font-body text-[13.5px] font-medium">{entry.title}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-body text-[13.5px] font-medium">{entry.title}</p>
+                    {entry.note_peau && (
+                      <span className="text-[13px]" title={lang === 'fr' ? 'Ressenti peau' : 'Skin feel'}>
+                        {entry.note_peau <= 2 ? '😣' : entry.note_peau <= 4 ? '✨' : '🌟'}
+                      </span>
+                    )}
+                  </div>
                   {entry.meta && (
                     <p className="font-body italic text-[11px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>{entry.meta}</p>
                   )}
