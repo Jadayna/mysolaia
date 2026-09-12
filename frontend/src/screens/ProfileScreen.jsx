@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Trash2, AlertTriangle, RotateCcw, CreditCard } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, AlertTriangle, RotateCcw, CreditCard, Layers } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
@@ -51,6 +51,10 @@ const ProfileScreen = ({ go }) => {
   // --- Réinitialiser ---
   const [showReset, setShowReset] = useState(false);
   const [resetting, setResetting] = useState(false);
+
+  // --- Vider l'étagère uniquement ---
+  const [showClearShelf, setShowClearShelf] = useState(false);
+  const [clearingShelf, setClearingShelf] = useState(false);
 
   // --- Suppression de compte ---
   const [showDelete, setShowDelete] = useState(false);
@@ -119,6 +123,19 @@ const ProfileScreen = ({ go }) => {
       alert(lang === 'fr' ? 'Impossible de réinitialiser tes données.' : 'Could not reset your data.');
     } finally {
       setResetting(false);
+    }
+  };
+
+    const clearShelf = async () => {
+    setClearingShelf(true);
+    try {
+      await api.delete('/shelf/clear');
+      setShowClearShelf(false);
+      alert(lang === 'fr' ? 'Ton étagère a été vidée.' : 'Your shelf has been cleared.');
+    } catch (e) {
+      alert(lang === 'fr' ? "Impossible de vider l'étagère." : 'Could not clear your shelf.');
+    } finally {
+      setClearingShelf(false);
     }
   };
 
@@ -257,6 +274,66 @@ const ProfileScreen = ({ go }) => {
         <Save size={16} />
         {busy ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer courriel / mot de passe' : 'Save email / password')}
       </button>
+
+            {/* ===== Vider mon étagère ===== */}
+      <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <div className="flex items-center gap-2">
+          <Layers size={16} style={{ color: 'var(--ink)' }} />
+          <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
+            {lang === 'fr' ? 'Vider mon étagère' : 'Clear my shelf'}
+          </h2>
+        </div>
+        <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
+          {lang === 'fr'
+            ? 'Retire tous les produits de ton étagère tout en conservant tes notes et ton journal.'
+            : 'Removes all products from your shelf while keeping your notes and journal history.'}
+        </p>
+
+        {!showClearShelf ? (
+          <button onClick={() => setShowClearShelf(true)} className="w-full rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}>
+            {lang === 'fr' ? 'Vider mon étagère' : 'Clear shelf'}
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => setShowClearShelf(false)} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-soft)' }}>
+              {lang === 'fr' ? 'Annuler' : 'Cancel'}
+            </button>
+            <button onClick={clearShelf} disabled={clearingShelf} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase text-white" style={{ background: 'var(--ink)' }}>
+              {clearingShelf ? (lang === 'fr' ? 'En cours...' : 'Clearing...') : (lang === 'fr' ? 'Confirmer' : 'Confirm')}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ===== Vider mon étagère ===== */}
+      <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <div className="flex items-center gap-2">
+          <Layers size={16} style={{ color: 'var(--ink)' }} />
+          <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
+            {lang === 'fr' ? 'Vider mon étagère' : 'Clear my shelf'}
+          </h2>
+        </div>
+        <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
+          {lang === 'fr'
+            ? 'Retire tous les produits de ton étagère tout en conservant tes notes et ton journal.'
+            : 'Removes all products from your shelf while keeping your notes and journal history.'}
+        </p>
+
+        {!showClearShelf ? (
+          <button onClick={() => setShowClearShelf(true)} className="w-full rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}>
+            {lang === 'fr' ? 'Vider mon étagère' : 'Clear shelf'}
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => setShowClearShelf(false)} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-soft)' }}>
+              {lang === 'fr' ? 'Annuler' : 'Cancel'}
+            </button>
+            <button onClick={clearShelf} disabled={clearingShelf} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase text-white" style={{ background: 'var(--ink)' }}>
+              {clearingShelf ? (lang === 'fr' ? 'En cours...' : 'Clearing...') : (lang === 'fr' ? 'Confirmer' : 'Confirm')}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* ===== Réinitialiser mes données ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'rgba(182,130,53,0.06)', border: '1px solid var(--gold-soft)' }}>
