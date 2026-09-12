@@ -10,8 +10,10 @@ const TrialScreen = () => {
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
 
-  const trialEnd = user?.fin_essai ? new Date(user.fin_essai) : null;
-  const endLabel = trialEnd ? trialEnd.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { day: 'numeric', month: 'long' }) : '';
+  const inSevenDays = new Date();
+  inSevenDays.setDate(inSevenDays.getDate() + 7);
+  const endLabel = inSevenDays.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { day: 'numeric', month: 'long' });
+
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -42,23 +44,23 @@ const TrialScreen = () => {
   };
 
   const timeline = lang === 'fr' ? [
-    ['J1', 'Accès complet — produits illimités, ordre calculé, journal.'],
-    ['J5', "Un rappel t'avertit deux jours avant la fin."],
-    ['J7', 'Premier prélèvement, sauf si tu as annulé. Une touche pour annuler.'],
+    ['J1', 'Accès complet immédiat — étagère illimitée, routines personnalisées, journal.'],
+    ['J5', "Rappel par courriel 2 jours avant la fin de ton essai gratuit."],
+    ['J7', `Premier prélèvement (${plan === 'yearly' ? '39,99 $' : '4,99 $'}) uniquement si tu décides de continuer. Annulation en 1 clic.`],
   ] : [
-    ['D1', 'Full access — unlimited products, calculated order, journal.'],
-    ['D5', 'A reminder warns you two days before the end.'],
-    ['D7', 'First charge, unless you cancelled. One tap to cancel.'],
+    ['D1', 'Instant full access — unlimited shelf, personalized routines, journal.'],
+    ['D5', 'Email reminder 2 days before your free trial ends.'],
+    ['D7', `First charge (${plan === 'yearly' ? '$39.99' : '$4.99'}) only if you decide to keep it. Cancel in 1 tap.`],
   ];
 
   return (
     <div className="px-6 pt-6 animate-fade-up">
       <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{t('trialTitle')}</span>
-      <h2 className="font-display text-[28px] mt-1">{lang === 'fr' ? `Gratuit jusqu'au ${endLabel}` : `Free until ${endLabel}`}</h2>
+      <h2 className="font-display text-[28px] mt-1">{lang === 'fr' ? `7 jours d'essai gratuit` : `7-day free trial`}</h2>
       <p className="font-body text-[13px] leading-relaxed mt-3" style={{ color: 'var(--ink-soft)' }}>
         {lang === 'fr'
-          ? `Rien n'est prélevé aujourd'hui. Ta carte sert seulement à ouvrir l'essai — l'abonnement démarre le ${endLabel} si tu ne l'annules pas.`
-          : `Nothing is charged today. Your card only opens the trial — the subscription starts on ${endLabel} unless you cancel.`}
+          ? `Rien n'est prélevé aujourd'hui. Profite de MySolaia sans aucune limite jusqu'au ${endLabel}. Tu peux annuler en 1 clic à tout moment.`
+          : `Nothing is charged today. Enjoy MySolaia without limits until ${endLabel}. Cancel anytime in 1 tap.`}
       </p>
 
       {paid && <p className="font-body italic text-[13px] mt-3" style={{ color: 'var(--gold)' }}>{lang === 'fr' ? 'Ton essai est ouvert. Merci !' : 'Your trial is open. Thank you!'}</p>}
