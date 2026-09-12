@@ -80,6 +80,9 @@ TEXTS = {
         "timer_note": ("Il a besoin d'environ {wait} minutes avant la suite. Pars le compte "
                        "quand tu es prête — c'est la seule attente de ce soir."),
         "default_acid": "l'acide",
+        "decision_duplicate": ("Tu as plusieurs {cat_fr} sur ton étagère. J'ai gardé {nom} pour cette séance — "
+                        "l'autre revient à la prochaine, pour finir les deux flacons."),
+
     },
     "en": {
         "title_matin": "Morning",
@@ -93,6 +96,8 @@ TEXTS = {
         "timer_note": ("It needs about {wait} minutes before the next step. Start the timer "
                        "when you're ready — it's the only wait tonight."),
         "default_acid": "the acid",
+        "decision_duplicate": ("You have several {cat_en} on your shelf. I kept {nom} for this session — "
+                        "the other comes back next time, so you finish both bottles."),
     },
 }
 
@@ -216,6 +221,31 @@ def exfoliation_days(sensibilite):
         return {4}     # vendredi (1x)
     return {4}          # very sensitive: 1x, gentlest
 
+def _resolve_duplicates(pool, lang):
+    """Une seule étape par catégorie et par séance (sauf yeux / traitement_cible / SPF).
+    Garde le produit le moins récemment utilisé n'est pas tracké, donc on garde
+    celui de plus faible rang (le plus fluide d'abord) et on reporte les autres."""
+    txt = TEXTS[lang]
+    cats = CATEGORY_LABELS[lang]
+    # Catégories autorisées en double (cibles différentes, usages multiples)
+    EXEMPT = {"traitement_cible", "yeux", "spf", "levres", "cils_sourcils"}
+    messages = []
+
+    cats_present = {p["categorie"] for p in pool}
+    for cat in cats_present:
+        if cat in EXEMPT:
+            continue
+        prods = [p for p in pool if p["categorie"] == cat]
+        if len(prods) <= 1:
+            continue
+        prods_sorted = sorted(prods, key=_rank)
+        keep = prods_sorted[0]
+        for extra in prods_sorted[1:]:
+            pool = [p for p in pool if p is not extra]
+        messages.append(txt["decision_duplicate"].format(
+            cat_fr=cat, cat_en=cat, nom=keep["nom"]))
+    return pool, messages
+
 
 def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
     """products: list of product dicts (the user's active shelf).
@@ -268,6 +298,11 @@ def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
     # Combos d'actifs incompatibles (vit C + acides, rétinol + vit C, etc.)
     pool, incompat_msgs = _resolve_incompatibilities(pool, lang)
     for m in incompat_msgs:
+        decisions.append(m)
+
+    # Doublons de catégorie : une seule étape par catégorie (alternance douce)
+    pool, dup_msgs = _resolve_duplicates(pool, lang)
+    for m in dup_msgs:
         decisions.append(m)
 
     # Too many strong actives -> lighten.
