@@ -11,8 +11,8 @@ const OnboardingScreen = () => {
   const [busy, setBusy] = useState(false);
 
   const skinTypes = lang === 'fr'
-    ? [['seche', 'Sèche'], ['mixte', 'Mixte'], ['grasse', 'Grasse'], ['normale', 'Normale']]
-    : [['seche', 'Dry'], ['mixte', 'Combination'], ['grasse', 'Oily'], ['normale', 'Normal']];
+    ? [['seche', 'Sèche'], ['mixte', 'Mixte'], ['grasse', 'Grasse'], ['normale', 'Normale'], ['sensible', 'Sensible']]
+    : [['seche', 'Dry'], ['mixte', 'Combination'], ['grasse', 'Oily'], ['normale', 'Normal'], ['sensible', 'Sensitive']];
   const sensLabels = lang === 'fr'
     ? ['Pas du tout', 'Un peu', 'Assez', 'Très']
     : ['Not at all', 'A little', 'Fairly', 'Very'];
