@@ -180,6 +180,7 @@ const HomeScreen = ({ go }) => {
 
   const [weather, setWeather] = useState({ temp: '--', tip: '', cond: null });
   const [products, setProducts] = useState([]);
+  const [entries, setEntries] = useState([]);
 
   const userName = user?.prenom || user?.first_name || user?.name || '';
 
@@ -200,9 +201,47 @@ const HomeScreen = ({ go }) => {
     }
   };
 
-  const insightText = lang === 'fr'
-    ? "Tes routines sont bien régulières, continue comme ça !"
-    : "Your routines are consistent, keep it up!";
+  // Streak : nombre de jours consécutifs avec au moins 1 routine complétée
+  const computeStreak = () => {
+    const days = new Set(
+      entries.map((e) => {
+        const d = e.date || e.created_at || e.timestamp;
+        return d ? new Date(d).toISOString().slice(0, 10) : null;
+      }).filter(Boolean)
+    );
+    let streak = 0;
+    const cursor = new Date();
+    // Si rien aujourd'hui, on part d'hier (la journée n'est peut-être pas finie)
+    if (!days.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1);
+    while (days.has(cursor.toISOString().slice(0, 10))) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  };
+  const streak = computeStreak();
+  const totalEntries = entries.length;
+
+  const insightText = (() => {
+    const fr = lang === 'fr';
+    if (totalEntries === 0) {
+      return fr
+        ? "Je ne t'ai pas encore observée — fais ta première routine et je commencerai à noter ce qui fonctionne pour ta peau."
+        : "I haven't observed you yet — do your first routine and I'll start noting what works for your skin.";
+    }
+    if (streak >= 3) {
+      return fr
+        ? `${streak} jours de suite ! Ta régularité est ta plus force — c'est ça qui fait la différence.`
+        : `${streak} days in a row! Consistency is your superpower — that's what makes the difference.`;
+    }
+    return fr
+      ? totalEntries === 1
+        ? "Première routine notée ! Chaque séance m'aide à mieux te connaître."
+        : `${totalEntries} routines notées jusqu'ici. Vise 3 jours de suite pour ancrer l'habitude.`
+      : totalEntries === 1
+        ? "First routine logged! Every session helps me know you better."
+        : `${totalEntries} routines logged so far. Aim for 3 days in a row to build the habit.`;
+  })();
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -237,7 +276,16 @@ const HomeScreen = ({ go }) => {
         else setProducts([]);
       })
       .catch(() => setProducts([]));
+
+    api.get('/journal')
+      .then((res) => {
+        const data = res?.data;
+        setEntries(Array.isArray(data) ? data : (Array.isArray(data?.entries) ? data.entries : []));
+      })
+      .catch(() => setEntries([]));
   }, [lang]);
+
+
 
   const safeProducts = Array.isArray(products) ? products : [];
   const WeatherIcon = COND_ICONS[weather.cond] || CloudSun;
@@ -269,13 +317,20 @@ const HomeScreen = ({ go }) => {
 
       {/* Routine */}
       <div className="p-6 rounded-[20px] shadow-sm space-y-4" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-        <div className="flex items-center gap-2 font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>
-          {isNight ? <Moon size={14} /> : <Sun size={14} />}
-          <span>
-            {isNight
-              ? (lang === 'fr' ? 'CE SOIR' : 'TONIGHT')
-              : (lang === 'fr' ? 'CE JOUR' : 'THIS DAY')}
-          </span>
+        <div className="flex items-center justify-between font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>
+          <div className="flex items-center gap-2">
+            {isNight ? <Moon size={14} /> : <Sun size={14} />}
+            <span>
+              {isNight
+                ? (lang === 'fr' ? 'CE SOIR' : 'TONIGHT')
+                : (lang === 'fr' ? 'CE JOUR' : 'THIS DAY')}
+            </span>
+          </div>
+          {streak > 0 && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(182,130,53,0.12)' }}>
+              🔥 {streak} {lang === 'fr' ? (streak > 1 ? 'jours' : 'jour') : (streak > 1 ? 'days' : 'day')}
+            </span>
+          )}
         </div>
 
         <h3 className="font-display text-[22px]" style={{ color: 'var(--ink)' }}>
