@@ -154,23 +154,38 @@ const ScanScreen = ({ go }) => {
       alert(lang === 'fr' ? 'Entre au moins le nom et la marque.' : 'Enter at least the name and brand.');
       return;
     }
+
+    // Vérification de doublon sur l'étagère
+    const nomClean = mNom.trim().toLowerCase();
+    const existing = products.find(
+      (p) => p.nom && p.nom.toLowerCase() === nomClean
+    );
+
+    if (existing) {
+      const confirmMsg = lang === 'fr'
+        ? `"${existing.nom}" semble déjà être sur ton étagère. Veux-tu l'ajouter une deuxième fois ?`
+        : `"${existing.nom}" seems to already be on your shelf. Do you want to add it again?`;
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    }
+
     setSavingManual(true);
     try {
-            await api.post('/shelf/manual', {
+      await api.post('/shelf/manual', {
         brand: mBrand.trim(),
         nom: mNom.trim(),
         categorie: mCat,
         actifs: mActifs,
         texture: 3,
         moment: mMoment,
-        photo_url: mPhoto, // ← AJOUTER CETTE LIGNE
+        photo_url: mPhoto,
       });
       await fetchProducts();
       setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
-      setMPhoto(null); // ← AJOUTER CETTE LIGNE
+      setMPhoto(null);
       setDetectedFromScan(false);
       setShowManual(false);
-
     } catch (e) {
       const detail = e?.response?.data?.detail;
       alert(detail || (lang === 'fr' ? "Impossible d'ajouter le produit." : "Could not add the product."));
