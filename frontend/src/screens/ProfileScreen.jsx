@@ -275,36 +275,6 @@ const ProfileScreen = ({ go }) => {
         {busy ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer courriel / mot de passe' : 'Save email / password')}
       </button>
 
-            {/* ===== Vider mon étagère ===== */}
-      <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-        <div className="flex items-center gap-2">
-          <Layers size={16} style={{ color: 'var(--ink)' }} />
-          <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
-            {lang === 'fr' ? 'Vider mon étagère' : 'Clear my shelf'}
-          </h2>
-        </div>
-        <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
-          {lang === 'fr'
-            ? 'Retire tous les produits de ton étagère tout en conservant tes notes et ton journal.'
-            : 'Removes all products from your shelf while keeping your notes and journal history.'}
-        </p>
-
-        {!showClearShelf ? (
-          <button onClick={() => setShowClearShelf(true)} className="w-full rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}>
-            {lang === 'fr' ? 'Vider mon étagère' : 'Clear shelf'}
-          </button>
-        ) : (
-          <div className="flex gap-2">
-            <button onClick={() => setShowClearShelf(false)} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-soft)' }}>
-              {lang === 'fr' ? 'Annuler' : 'Cancel'}
-            </button>
-            <button onClick={clearShelf} disabled={clearingShelf} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase text-white" style={{ background: 'var(--ink)' }}>
-              {clearingShelf ? (lang === 'fr' ? 'En cours...' : 'Clearing...') : (lang === 'fr' ? 'Confirmer' : 'Confirm')}
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* ===== Vider mon étagère ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <div className="flex items-center gap-2">
