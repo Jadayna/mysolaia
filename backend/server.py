@@ -78,6 +78,7 @@ class ManualProductIn(BaseModel):
     texture: int = 3
     moment: str = "les_deux"
     notes: str = ""
+    photo_url: Optional[str] = None
 
 class ScanIn(BaseModel):
     image_base64: str
@@ -297,7 +298,7 @@ async def add_manual(body: ManualProductIn, user=Depends(current_user)):
             "source": "manuel", "verifie": False}
     await db.products.insert_one(prod)
     up = {"id": str(uuid.uuid4()), "user_id": user["id"], "product_id": prod["id"],
-          "photo_url": None, "date_ajout": datetime.now(timezone.utc).isoformat(),
+          "photo_url": body.photo_url, "date_ajout": datetime.now(timezone.utc).isoformat(),
           "actif": True, "notes": body.notes}
     await db.user_products.insert_one(up)
     return {"ok": True, "product": {k: v for k, v in prod.items() if k != "_id"}}
