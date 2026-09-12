@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle } from 'lucide-react';
+import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle, Share, Download } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import HomeScreen from '../screens/HomeScreen';
@@ -34,6 +34,52 @@ const AppShell = () => {
   const [active, setActive] = useState('accueil');
   const [routinePhase, setRoutinePhase] = useState('soir');
   const [showMenuModal, setShowMenuModal] = useState(false);
+
+  // --- Gestion Installation PWA (iOS & Android) ---
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Vérifier si l'app est déjà installée (mode autonome/standalone)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const dismissed = localStorage.getItem('solaia_pwa_dismissed');
+    if (isStandalone || dismissed) return;
+
+    // Détection iOS Safari
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(ua);
+    setIsIOS(isIosDevice);
+
+    if (isIosDevice) {
+      setShowInstallBanner(true);
+    } else {
+      // Android / Chrome : écouter l'événement système
+      const handleBeforeInstall = (e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setShowInstallBanner(true);
+      };
+      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+      return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallBanner(false);
+      }
+      setDeferredPrompt(null);
+    }
+  };
+
+  const dismissInstall = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('solaia_pwa_dismissed', 'true');
+  };
 
   // Synchronisation automatique du fuseau horaire navigateur
   useEffect(() => {
@@ -90,6 +136,51 @@ const AppShell = () => {
       <div className="screen">
         <Current go={go} routinePhase={routinePhase} />
       </div>
+
+      {/* Bandeau d'installation PWA (iOS & Android) */}
+      {showInstallBanner && (
+        <div className="fixed bottom-20 left-4 right-4 z-40 p-4 rounded-[20px] shadow-lg animate-fade-up" style={{ background: '#FAF6F0', border: '1.5px solid var(--gold)' }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <img src="/icon-192.png" alt="MySolaia" className="w-10 h-10 rounded-[10px] object-contain shadow-sm" />
+              <div>
+                <h4 className="font-display text-[14px] font-semibold" style={{ color: 'var(--ink)' }}>
+                  {lang === 'fr' ? "Installer MySolaia" : "Install MySolaia"}
+                </h4>
+                <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                  {isIOS
+                    ? (lang === 'fr' 
+                        ? "Touche Partager puis « Sur l'écran d'accueil » pour l'avoir en plein écran." 
+                        : "Tap Share then 'Add to Home Screen' for full-screen experience.")
+                    : (lang === 'fr' 
+                        ? "Ajoute l'app sur ton écran pour y accéder en 1 clic." 
+                        : "Add the app to your home screen for quick access.")}
+                </p>
+              </div>
+            </div>
+            <button onClick={dismissInstall} className="p-1 rounded-full text-stone-400 hover:text-stone-600">
+              <X size={16} />
+            </button>
+          </div>
+
+          {!isIOS && deferredPrompt && (
+            <button
+              onClick={handleInstallClick}
+              className="mt-3 w-full py-2 px-3 rounded-[10px] text-white font-body text-[11px] font-medium uppercase tracking-caps flex items-center justify-center gap-2 gold-btn"
+            >
+              <Download size={14} />
+              {lang === 'fr' ? "Ajouter à l'écran d'accueil" : "Add to Home Screen"}
+            </button>
+          )}
+
+          {isIOS && (
+            <div className="mt-2 pt-2 border-t flex items-center gap-2 font-body text-[11px]" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
+              <Share size={14} style={{ color: 'var(--gold)' }} />
+              <span>{lang === 'fr' ? "Bouton Partager dans Safari" : "Share button in Safari"}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation du bas */}
       <nav className="bottom-nav">
