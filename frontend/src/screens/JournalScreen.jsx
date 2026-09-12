@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, CalendarDays, Flame, Package } from 'lucide-react';
+import { Calendar, CalendarDays, Flame, Package, Camera, Trash2, Plus, X } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
 
@@ -25,6 +25,56 @@ const JournalScreen = ({ go }) => {
   const [periode, setPeriode] = useState('week'); // 'week' | 'month'
   const [data, setData] = useState(null);
   const [shelfCount, setShelfCount] = useState(0);
+  const [skinPhotos, setSkinPhotos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('solaia_skin_photos');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [previewPhoto, setPreviewPhoto] = useState(null);
+
+  // Compression photo côté client (max 800px)
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 800;
+        let w = img.width, h = img.height;
+        if (w > h && w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
+        else if (h > MAX) { w = Math.round((w * MAX) / h); h = MAX; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+        const newPhoto = {
+          id: Date.now(),
+          date: new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' }),
+          url: dataUrl,
+        };
+
+        const updated = [newPhoto, ...skinPhotos].slice(0, 10); // Garder les 10 dernières photos
+        setSkinPhotos(updated);
+        try { localStorage.setItem('solaia_skin_photos', JSON.stringify(updated)); } catch {}
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const deletePhoto = (id) => {
+    const updated = skinPhotos.filter((p) => p.id !== id);
+    setSkinPhotos(updated);
+    try { localStorage.setItem('solaia_skin_photos', JSON.stringify(updated)); } catch {}
+    setPreviewPhoto(null);
+  };
 
   useEffect(() => {
     let active = true;
@@ -64,6 +114,69 @@ const JournalScreen = ({ go }) => {
         </span>
         <h2 className="font-display text-[28px] mt-1">{t('holdRhythm')}</h2>
       </div>
+
+      {/* Galerie Évolution de la peau */}
+      <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Camera size={16} style={{ color: 'var(--gold)' }} />
+            <h3 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Évolution de ma peau' : 'Skin Evolution'}
+            </h3>
+          </div>
+          <label className="cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-full font-body text-[10px] uppercase tracking-caps text-white gold-btn">
+            <Plus size={12} />
+            <span>{lang === 'fr' ? 'Ajouter' : 'Add'}</span>
+            <input type="file" accept="image/*" capture="user" onChange={handlePhotoUpload} className="hidden" />
+          </label>
+        </div>
+
+        {skinPhotos.length === 0 ? (
+          <p className="font-body italic text-[12px] py-2 text-center" style={{ color: 'var(--ink-faint)' }}>
+            {lang === 'fr' 
+              ? 'Prends un selfie chaque semaine pour observer l\'éclat de ta peau au fil du temps.' 
+              : 'Take a selfie every week to track your skin glow over time.'}
+          </p>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-1 pt-1">
+            {skinPhotos.map((p) => (
+              <div 
+                key={p.id} 
+                onClick={() => setPreviewPhoto(p)}
+                className="shrink-0 cursor-pointer flex flex-col items-center gap-1 group"
+              >
+                <div className="w-16 h-16 rounded-[12px] overflow-hidden shadow-sm" style={{ border: '1.5px solid var(--gold-soft)' }}>
+                  <img src={p.url} alt="Skin selfie" className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                </div>
+                <span className="font-body text-[10px] tnum" style={{ color: 'var(--ink-soft)' }}>{p.date}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal Zoom Photo */}
+      {previewPhoto && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-fade-in">
+          <div className="w-full max-w-xs rounded-[20px] overflow-hidden p-4 space-y-3 animate-fade-up" style={{ background: '#FAF6F0' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-body text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>{previewPhoto.date}</span>
+              <button onClick={() => setPreviewPhoto(null)} className="p-1 rounded-full text-stone-400">
+                <X size={18} />
+              </button>
+            </div>
+            <img src={previewPhoto.url} alt="Selfie zoom" className="w-full h-64 object-cover rounded-[14px]" />
+            <button
+              onClick={() => deletePhoto(previewPhoto.id)}
+              className="w-full py-2 rounded-[8px] flex items-center justify-center gap-1.5 text-red-600 font-body text-[11px] uppercase tracking-caps"
+              style={{ background: 'rgba(239,68,68,0.1)' }}
+            >
+              <Trash2 size={13} />
+              <span>{lang === 'fr' ? 'Supprimer cette photo' : 'Delete photo'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Toggle Semaine / Mois */}
       <div className="grid grid-cols-2 rounded-[10px] overflow-hidden p-1" style={{ border: '1px solid var(--line-strong)', background: 'var(--cream-card)' }}>
