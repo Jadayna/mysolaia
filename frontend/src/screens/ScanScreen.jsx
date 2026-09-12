@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { useT } from '../i18n';
 import api from '../lib/api';
 
@@ -23,6 +23,49 @@ const MOMENTS = [
   { value: 'matin', fr: 'Matin', en: 'Morning' },
   { value: 'soir', fr: 'Soir', en: 'Evening' },
 ];
+
+const PAO_OPTIONS = [
+  { value: 0, fr: 'Non spécifié', en: 'Not specified' },
+  { value: 3, fr: '3 mois (3M)', en: '3 months (3M)' },
+  { value: 6, fr: '6 mois (6M)', en: '6 months (6M)' },
+  { value: 12, fr: '12 mois (12M)', en: '12 months (12M)' },
+  { value: 24, fr: '24 mois (24M)', en: '24 months (24M)' },
+];
+
+// Calcule l'état de fraîcheur du produit
+const computeFreshness = (openedAt, paoMonths, lang) => {
+  if (!openedAt || !paoMonths || paoMonths === 0) return null;
+  const opened = new Date(openedAt);
+  const expiry = new Date(opened);
+  expiry.setMonth(expiry.getMonth() + parseInt(paoMonths, 10));
+
+  const now = new Date();
+  const diffDays = Math.round((expiry - now) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return {
+      status: 'expired',
+      color: '#EF4444',
+      bg: 'rgba(239, 68, 68, 0.1)',
+      label: lang === 'fr' ? `Périmé (${Math.abs(diffDays)}j)` : `Expired (${Math.abs(diffDays)}d ago)`,
+    };
+  }
+  if (diffDays <= 30) {
+    return {
+      status: 'soon',
+      color: '#F59E0B',
+      bg: 'rgba(245, 158, 11, 0.12)',
+      label: lang === 'fr' ? `Expire bientôt (${diffDays}j)` : `Expires soon (${diffDays}d)`,
+    };
+  }
+  const monthsLeft = Math.round(diffDays / 30);
+  return {
+    status: 'fresh',
+    color: '#10B981',
+    bg: 'rgba(16, 185, 129, 0.1)',
+    label: lang === 'fr' ? `Frais (~${monthsLeft} mois)` : `Fresh (~${monthsLeft} mo)`,
+  };
+};
 
 const LOADING_STEPS = {
   fr: ['Analyse du produit...', 'Lecture de la marque...', 'Identification de la catégorie...', 'Repérage des actifs...', 'Presque fini...'],
@@ -71,6 +114,8 @@ const ScanScreen = ({ go }) => {
   const [mCat, setMCat] = useState('serum');
   const [mMoment, setMMoment] = useState('les_deux');
   const [mActifs, setMActifs] = useState([]);
+  const [mOpenedAt, setMOpenedAt] = useState('');
+  const [mPaoMonths, setMPaoMonths] = useState(0);
   const [detectedFromScan, setDetectedFromScan] = useState(false); // ← AJOUTER
   const [mPhoto, setMPhoto] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -180,9 +225,13 @@ const ScanScreen = ({ go }) => {
         texture: 3,
         moment: mMoment,
         photo_url: mPhoto,
+        date_ouverture: mOpenedAt || null,
+        pao_mois: Number(mPaoMonths) || 0,
       });
       await fetchProducts();
       setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
+      setMOpenedAt('');
+      setMPaoMonths(0);
       setMPhoto(null);
       setDetectedFromScan(false);
       setShowManual(false);
@@ -310,6 +359,37 @@ const ScanScreen = ({ go }) => {
             </select>
           </label>
 
+          {/* Suivi PAO / Fraîcheur */}
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                {lang === 'fr' ? 'Ouvert le (optionnel)' : 'Opened on (optional)'}
+              </span>
+              <input 
+                type="date" 
+                value={mOpenedAt} 
+                onChange={(e) => setMOpenedAt(e.target.value)} 
+                className="w-full mt-1 p-2 rounded-[10px] font-body text-[12px] outline-none" 
+                style={inputStyle} 
+              />
+            </label>
+
+            <label className="block">
+              <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                {lang === 'fr' ? 'Durée après ouverture' : 'Period after opening'}
+              </span>
+              <select 
+                value={mPaoMonths} 
+                onChange={(e) => setMPaoMonths(Number(e.target.value))} 
+                className="w-full mt-1 p-2.5 rounded-[10px] font-body text-[12px] outline-none" 
+                style={inputStyle}
+              >
+                {PAO_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{lang === 'fr' ? opt.fr : opt.en}</option>
+                ))}
+              </select>
+            </label>
+          </div>
           <label className="block">
             <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{lang === 'fr' ? 'Moment' : 'When'}</span>
             <select value={mMoment} onChange={(e) => setMMoment(e.target.value)} className="w-full mt-1 p-2.5 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle}>
@@ -378,6 +458,20 @@ const ScanScreen = ({ go }) => {
                     </span>
                     <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
                     <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
+                    
+                    {/* Badge de Fraîcheur */}
+                    {(() => {
+                      const fresh = computeFreshness(p.date_ouverture, p.pao_mois, lang);
+                      if (!fresh) return null;
+                      return (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full font-body text-[9px] font-semibold" style={{ background: fresh.bg, color: fresh.color }}>
+                            <Clock size={10} />
+                            <span>{fresh.label}</span>
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
