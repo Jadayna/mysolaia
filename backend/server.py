@@ -144,8 +144,8 @@ async def register(body: RegisterIn):
         "sensibilite": 1,
         "objectifs": [],
         "date_inscription": now.isoformat(),
-        "statut_abonnement": "essai",
-        "fin_essai": (now + timedelta(days=7)).isoformat(),
+        "statut_abonnement": "gratuit",
+        "fin_essai": None,
         "onboarded": False,
     }
     await db.users.insert_one(user)
@@ -207,9 +207,19 @@ async def delete_account(body: DeleteAccountIn, user=Depends(current_user)):
     if not full_user or not verify_password(body.current_password, full_user["password"]):
         raise HTTPException(401, "Mot de passe incorrect")
     # Bloquer si un abonnement payant est actif
-    if full_user.get("is_premium") or full_user.get("statut_abonnement") == "actif":
-        raise HTTPException(400, "Annule ton abonnement avant de supprimer ton compte.")
+       # Annulation automatique de tout abonnement Stripe en cours
+    try:
+        tx = await db.payment_transactions.find_one({"user_id": user["id"], "customer_id": {"$exists": True}})
+        if tx and tx.get("customer_id"):
+            subscriptions = stripe.Subscription.list(customer=tx["customer_id"], status="all")
+            for sub in subscriptions.auto_paging_iter():
+                if sub.status in ("active", "trialing", "past_due"):
+                    stripe.Subscription.cancel(sub.id)
+    except Exception as e:
+        logger.error(f"Erreur annulation Stripe à la suppression du compte: {e}")
+
     uid = user["id"]
+
     await db.user_products.delete_many({"user_id": uid})
     await db.journal_entries.delete_many({"user_id": uid})
     await db.payment_transactions.delete_many({"user_id": uid})
@@ -257,7 +267,7 @@ async def add_shelf(body: ShelfIn, user=Depends(current_user)):
         if current_count >= MAX_FREE_PRODUCTS:
             raise HTTPException(
                 status_code=403,
-                detail="Ton essai gratuit est terminé. Passe à MySolaia Illimité pour ajouter plus de 4 produits !"
+                detail="Tu as atteint la limite gratuite de 5 produits. Passe à MySolaia Illimité pour en ajouter davantage !"
             )
 
     prod = await db.products.find_one({"id": body.product_id}, {"_id": 0})
@@ -276,7 +286,7 @@ async def add_manual(body: ManualProductIn, user=Depends(current_user)):
         if current_count >= MAX_FREE_PRODUCTS:
             raise HTTPException(
                 status_code=403,
-                detail="Ton essai gratuit est terminé. Passe à MySolaia Illimité pour ajouter plus de 4 produits !"
+                detail="Tu as atteint la limite gratuite de 5 produits. Passe à MySolaia Illimité pour en ajouter davantage !"
             )
 
     prod = {"id": str(uuid.uuid4()), "brand": body.brand, "nom": body.nom,
@@ -311,6 +321,7 @@ async def toggle_shelf(shelf_id: str, user=Depends(current_user)):
 
 @api_router.delete("/shelf/clear")
 async def clear_shelf(user=Depends(current_user)):
+    """Vide l'étagère de l'utilisateur tout en conservant son journal"""
     await db.user_products.delete_many({"user_id": user["id"]})
     return {"ok": True}
 
@@ -502,7 +513,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
 
     if nom:
         matched = await db.products.find_one(
-            {"nom": {"$regex": re.escape(nom[:12]), "$options": "i"}}, {"_id": 0})
+            {"source": "catalogue", "nom": {"$regex": re.escape(nom[:12]), "$options": "i"}}, {"_id": 0})
 
     if matched:
         matched["category"] = matched.get("category") or matched.get("categorie") or "Serum"
