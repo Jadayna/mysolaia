@@ -79,6 +79,8 @@ class ManualProductIn(BaseModel):
     moment: str = "les_deux"
     notes: str = ""
     photo_url: Optional[str] = None
+    date_ouverture: Optional[str] = None
+    pao_mois: Optional[int] = 0
 
 class ScanIn(BaseModel):
     image_base64: str
@@ -251,7 +253,8 @@ async def _shelf_products(uid: str, active_only=True):
         prod = await db.products.find_one({"id": up["product_id"]}, {"_id": 0})
         if prod:
             merged = {**prod, "shelf_id": up["id"], "photo_url": up.get("photo_url"),
-                      "notes": up.get("notes", ""), "actif": up.get("actif", True)}
+                      "notes": up.get("notes", ""), "actif": up.get("actif", True),
+                      "date_ouverture": up.get("date_ouverture"), "pao_mois": up.get("pao_mois", 0)}
             result.append(merged)
     return result
 
@@ -299,6 +302,7 @@ async def add_manual(body: ManualProductIn, user=Depends(current_user)):
     await db.products.insert_one(prod)
     up = {"id": str(uuid.uuid4()), "user_id": user["id"], "product_id": prod["id"],
           "photo_url": body.photo_url, "date_ajout": datetime.now(timezone.utc).isoformat(),
+          "date_ouverture": body.date_ouverture, "pao_mois": body.pao_mois or 0,
           "actif": True, "notes": body.notes}
     await db.user_products.insert_one(up)
     return {"ok": True, "product": {k: v for k, v in prod.items() if k != "_id"}}
