@@ -116,3 +116,20 @@ body {
   background: rgba(182, 130, 53, 0.18);
   color: var(--ink);
 }
+
+/* Adaptation iOS PWA & Safe Area */
+html, body, #root {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prise en compte de la barre d'accueil iPhone (barre noire du bas) */
+.bottom-nav {
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+}
+
+/* Empêcher le rebond élastique excessif sur mobile */
+body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
