@@ -71,6 +71,7 @@ const ScanScreen = ({ go }) => {
   const [mCat, setMCat] = useState('serum');
   const [mMoment, setMMoment] = useState('les_deux');
   const [mActifs, setMActifs] = useState([]);
+  const [detectedFromScan, setDetectedFromScan] = useState(false); // ← AJOUTER
 
   const fetchProducts = async () => {
     try {
@@ -116,15 +117,21 @@ const ScanScreen = ({ go }) => {
 
       if (res.data && res.data.product) {
         const prod = res.data.product;
-        await api.post('/shelf/manual', {
-          brand: prod.brand || "Marque Détectée",
-          nom: prod.nom || "Produit Détecté",
-          categorie: (prod.categorie || prod.category || "serum").toLowerCase(),
-          actifs: Array.isArray(prod.actifs) ? prod.actifs : [],
-          texture: 3,
-          moment: "les_deux"
-        });
-        await fetchProducts();
+        const validCats = CATEGORIES.map((c) => c.value);
+        const detectedCat = (prod.categorie || prod.category || 'serum').toLowerCase();
+        const rawActifs = Array.isArray(prod.actifs) ? prod.actifs : [];
+        const validActifs = ACTIFS.map((a) => a.value);
+        const cleaned = rawActifs.flatMap((a) => String(a).split(',')).map((a) => a.trim().toLowerCase()).filter((a) => validActifs.includes(a));
+        // Pré-remplir le formulaire pour confirmation (au lieu d'ajouter à l'aveugle)
+        setMNom(prod.nom || '');
+        setMBrand(prod.brand || '');
+        setMCat(validCats.includes(detectedCat) ? detectedCat : 'serum');
+        setMActifs(cleaned);
+        setMMoment('les_deux');
+        setDetectedFromScan(true);
+        setShowManual(true);
+      } else {
+        alert(lang === 'fr' ? "Produit non reconnu. Réessaie ou saisis-le manuellement." : "Product not recognized. Try again or enter it manually.");
       }
     } catch (e) {
       console.error("Erreur lors de l'analyse Gemini :", e);
@@ -156,6 +163,7 @@ const ScanScreen = ({ go }) => {
       });
       await fetchProducts();
       setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
+      setDetectedFromScan(false); // ← ICI
       setShowManual(false);
     } catch (e) {
       const detail = e?.response?.data?.detail;
@@ -240,17 +248,27 @@ const ScanScreen = ({ go }) => {
         )}
       </div>
 
-      {/* Formulaire d'entrée manuelle */}
+      {/* Formulaire d'entrée manuelle / confirmation */}
       {showManual && (
         <div className="p-5 rounded-[20px] space-y-3 animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
           <div className="flex items-center justify-between">
             <h3 className="font-display text-[16px]" style={{ color: 'var(--ink)' }}>
-              {lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}
+              {detectedFromScan 
+                ? (lang === 'fr' ? 'Confirmer le produit scanné' : 'Confirm scanned product')
+                : (lang === 'fr' ? 'Saisir manuellement' : 'Enter manually')}
             </h3>
-            <button onClick={() => setShowManual(false)} className="p-1.5 rounded-full" style={{ background: '#fff', border: '1px solid var(--line)' }}>
+            <button onClick={() => { setShowManual(false); setDetectedFromScan(false); }} className="p-1.5 rounded-full" style={{ background: '#fff', border: '1px solid var(--line)' }}>
               <X size={16} style={{ color: 'var(--ink-soft)' }} />
             </button>
           </div>
+
+          {detectedFromScan && (
+            <p className="font-body italic text-[11.5px] px-3 py-2 rounded-[8px]" style={{ background: 'rgba(182,130,53,0.08)', color: 'var(--gold)' }}>
+              {lang === 'fr'
+                ? "Détecté par le scan — vérifie et corrige si besoin, puis confirme."
+                : "Detected by the scan — review and edit if needed, then confirm."}
+            </p>
+          )}
 
           <label className="block">
             <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>{lang === 'fr' ? 'Nom du produit' : 'Product name'}</span>
@@ -302,7 +320,11 @@ const ScanScreen = ({ go }) => {
           </div>
 
           <button onClick={saveManual} disabled={savingManual} className="gold-btn w-full rounded-[8px] py-3 mt-1 font-body tracking-caps text-[11px] uppercase">
-            {savingManual ? (lang === 'fr' ? 'Ajout...' : 'Adding...') : (lang === 'fr' ? 'Ajouter à mon étagère' : 'Add to my shelf')}
+            {savingManual 
+              ? (lang === 'fr' ? 'Ajout...' : 'Adding...') 
+              : (detectedFromScan 
+                  ? (lang === 'fr' ? 'Confirmer et ajouter' : 'Confirm and add')
+                  : (lang === 'fr' ? 'Ajouter à mon étagère' : 'Add to my shelf'))}
           </button>
         </div>
       )}
