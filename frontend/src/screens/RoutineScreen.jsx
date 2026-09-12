@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X } from 'lucide-react';
+import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X, ChevronRight, ChevronLeft, Compass, List } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
 
@@ -41,7 +41,15 @@ const RoutineScreen = ({ go, routinePhase }) => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [skinRating, setSkinRating] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [guideMode, setGuideMode] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
+  // Fonction de retour haptique doux pour mobile
+  const triggerHaptic = () => {
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(40); // 40ms de vibration douce
+    }
+  };
 
   // Réaligne la phase si la prop change
   useEffect(() => {
@@ -134,41 +142,152 @@ const RoutineScreen = ({ go, routinePhase }) => {
         </div>
       )}
 
-      {/* Liste des étapes */}
-      <div className="mt-4">
-        {routine.steps?.map((s) => {
-          const isDone = done[s.n]; 
-          const isOpen = open[s.n];
-          return (
-            <div key={s.n} className={`py-4 hairline ${isDone ? 'step-done' : ''}`}>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setDone((d) => ({ ...d, [s.n]: !d[s.n] }))} 
-                  className="shrink-0 rounded-full flex items-center justify-center font-body text-[11px] tnum"
-                  style={isDone ? { width: 30, height: 30, background: 'var(--gold)', color: '#fff', border: '1px solid var(--gold)' } : { width: 30, height: 30, color: 'var(--gold)', border: '1px solid var(--gold-soft)' }}
-                >
-                  {s.n}
-                </button>
-                <button onClick={() => setOpen((o) => ({ ...o, [s.n]: !o[s.n] }))} className="text-left flex-1">
-                  <p className="step-title font-body text-[15px]">{s.title}</p>
-                  <p className="step-sub font-body italic text-[12px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>{s.sub}</p>
-                </button>
-              </div>
-              {isOpen && (
-                <div className="pl-[42px] mt-2 animate-fade-up">
-                  <p className="font-body text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{s.why}</p>
-                  {s.timer && (
-                    <>
-                      <Timer seconds={s.timer.seconds} />
-                      <p className="font-body italic text-[11.5px] leading-relaxed mt-2" style={{ color: 'var(--ink-faint)' }}>{s.timer.note}</p>
-                    </>
+      {/* Sélecteur Mode : Liste vs Rituel Guidé */}
+      <div className="flex justify-end mt-3">
+        <button
+          onClick={() => { setGuideMode(!guideMode); triggerHaptic(); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body text-[11px] font-medium transition-all"
+          style={guideMode 
+            ? { background: 'var(--gold)', color: '#fff' }
+            : { background: 'var(--cream-card)', border: '1px solid var(--line)', color: 'var(--ink)' }}
+        >
+          {guideMode ? <List size={13} /> : <Compass size={13} />}
+          <span>{guideMode ? (lang === 'fr' ? 'Vue Liste' : 'List View') : (lang === 'fr' ? 'Rituel Guidé ✨' : 'Guided Ritual ✨')}</span>
+        </button>
+      </div>
+
+            {/* Contenu : Mode Rituel Guidé OU Mode Liste */}
+      {guideMode ? (
+        /* ===== MODE RITUEL GUIDÉ (Plein écran & pas à pas) ===== */
+        <div className="mt-4 p-6 rounded-[24px] space-y-5 animate-fade-up shadow-sm text-center" style={{ background: 'var(--cream-card)', border: '1.5px solid var(--gold-soft)' }}>
+          {routine.steps && routine.steps[currentStepIndex] && (() => {
+            const step = routine.steps[currentStepIndex];
+            const isStepDone = done[step.n];
+
+            return (
+              <>
+                <div className="flex items-center justify-between font-body text-[11px] tracking-caps uppercase" style={{ color: 'var(--gold)' }}>
+                  <span>{lang === 'fr' ? 'Étape' : 'Step'} {step.n} / {total}</span>
+                  <span className="px-2 py-0.5 rounded-full" style={{ background: 'rgba(182,130,53,0.1)' }}>
+                    {isStepDone ? '✓ ' + (lang === 'fr' ? 'Fait' : 'Done') : (lang === 'fr' ? 'En cours' : 'In progress')}
+                  </span>
+                </div>
+
+                <div className="py-2">
+                  <h3 className="font-display text-[22px] leading-snug" style={{ color: 'var(--ink)' }}>{step.title}</h3>
+                  <p className="font-body italic text-[13px] mt-1" style={{ color: 'var(--gold)' }}>{step.sub}</p>
+                </div>
+
+                <div className="p-4 rounded-[16px] text-left" style={{ background: '#FAF6F0' }}>
+                  <p className="font-body text-[13px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{step.why}</p>
+                  {step.timer && (
+                    <div className="mt-3 pt-3 border-t border-stone-200">
+                      <Timer seconds={step.timer.seconds} />
+                      <p className="font-body italic text-[11px] mt-1" style={{ color: 'var(--ink-faint)' }}>{step.timer.note}</p>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+
+                {/* Validation de l'étape en cours */}
+                <button
+                  onClick={() => {
+                    triggerHaptic();
+                    setDone((d) => ({ ...d, [step.n]: !d[step.n] }));
+                  }}
+                  className="w-full py-3 rounded-[12px] font-body text-[12px] font-medium uppercase tracking-caps flex items-center justify-center gap-2 transition-all"
+                  style={isStepDone 
+                    ? { background: 'var(--gold)', color: '#fff' } 
+                    : { background: '#fff', border: '1.5px solid var(--gold)', color: 'var(--gold)' }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{isStepDone ? (lang === 'fr' ? 'Étape validée ✓' : 'Step completed ✓') : (lang === 'fr' ? 'Marquer comme fait' : 'Mark as done')}</span>
+                </button>
+
+                {/* Navigation entre les étapes */}
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    disabled={currentStepIndex === 0}
+                    onClick={() => { setCurrentStepIndex((i) => Math.max(0, i - 1)); triggerHaptic(); }}
+                    className="p-2.5 rounded-full disabled:opacity-30"
+                    style={{ background: '#FAF6F0', color: 'var(--ink)' }}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  <div className="flex gap-1.5">
+                    {routine.steps.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="w-2 h-2 rounded-full transition-all"
+                        style={{
+                          background: idx === currentStepIndex ? 'var(--gold)' : done[idx + 1] ? 'var(--gold-soft)' : 'var(--line)',
+                          transform: idx === currentStepIndex ? 'scale(1.3)' : 'scale(1)'
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {currentStepIndex < total - 1 ? (
+                    <button
+                      onClick={() => { setCurrentStepIndex((i) => Math.min(total - 1, i + 1)); triggerHaptic(); }}
+                      className="p-2.5 rounded-full"
+                      style={{ background: '#FAF6F0', color: 'var(--ink)' }}
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={finish}
+                      className="px-4 py-2 rounded-full font-body text-[11px] uppercase tracking-caps text-white gold-btn"
+                    >
+                      {lang === 'fr' ? 'Finir ✨' : 'Finish ✨'}
+                    </button>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+        /* ===== MODE LISTE CLASSIQUE ===== */
+        <div className="mt-4">
+          {routine.steps?.map((s) => {
+            const isDone = done[s.n]; 
+            const isOpen = open[s.n];
+            return (
+              <div key={s.n} className={`py-4 hairline ${isDone ? 'step-done' : ''}`}>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => {
+                      triggerHaptic();
+                      setDone((d) => ({ ...d, [s.n]: !d[s.n] }));
+                    }} 
+                    className="shrink-0 rounded-full flex items-center justify-center font-body text-[11px] tnum"
+                    style={isDone ? { width: 30, height: 30, background: 'var(--gold)', color: '#fff', border: '1px solid var(--gold)' } : { width: 30, height: 30, color: 'var(--gold)', border: '1px solid var(--gold-soft)' }}
+                  >
+                    {s.n}
+                  </button>
+                  <button onClick={() => setOpen((o) => ({ ...o, [s.n]: !o[s.n] }))} className="text-left flex-1">
+                    <p className="step-title font-body text-[15px]">{s.title}</p>
+                    <p className="step-sub font-body italic text-[12px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>{s.sub}</p>
+                  </button>
+                </div>
+                {isOpen && (
+                  <div className="pl-[42px] mt-2 animate-fade-up">
+                    <p className="font-body text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{s.why}</p>
+                    {s.timer && (
+                      <>
+                        <Timer seconds={s.timer.seconds} />
+                        <p className="font-body italic text-[11.5px] leading-relaxed mt-2" style={{ color: 'var(--ink-faint)' }}>{s.timer.note}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Progression */}
       <div className="flex items-baseline justify-between mt-5">
