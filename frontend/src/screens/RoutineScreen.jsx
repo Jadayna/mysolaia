@@ -38,7 +38,6 @@ const RoutineScreen = ({ go, routinePhase }) => {
   const [routine, setRoutine] = useState(null);
   const [done, setDone] = useState({});
   const [open, setOpen] = useState({});
-  const [open, setOpen] = useState({});
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [skinRating, setSkinRating] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
