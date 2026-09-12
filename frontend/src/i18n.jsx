@@ -31,7 +31,7 @@ const DICT = {
   },
   en: {
     appName: 'MySolaia',
-    nav: { accueil: 'Home', scan: 'Scan', routine: 'Routine', journal: 'Journal', essai: 'Trial' },
+    nav: { accueil: 'Home', scan: 'Scan', routine: 'Routine', journal: 'Journal', essai: 'Trial', menu: 'Menu' },
     greetingMorning: 'Good morning', greetingEvening: 'Good evening',
     shelf: 'Your shelf', products: 'products', addPhoto: 'Add by photo',
     start: 'Start', steps: 'steps', tonight: 'Tonight', thisMorning: 'This morning',
