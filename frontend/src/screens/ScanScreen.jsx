@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X } from 'lucide-react';
+import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useT } from '../i18n';
 import api from '../lib/api';
 
@@ -72,6 +72,8 @@ const ScanScreen = ({ go }) => {
   const [mMoment, setMMoment] = useState('les_deux');
   const [mActifs, setMActifs] = useState([]);
   const [detectedFromScan, setDetectedFromScan] = useState(false); // ← AJOUTER
+  const [mPhoto, setMPhoto] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const fetchProducts = async () => {
     try {
@@ -129,6 +131,7 @@ const ScanScreen = ({ go }) => {
         setMActifs(cleaned);
         setMMoment('les_deux');
         setDetectedFromScan(true);
+        setMPhoto(base64Image);
         setShowManual(true);
       } else {
         alert(lang === 'fr' ? "Produit non reconnu. Réessaie ou saisis-le manuellement." : "Product not recognized. Try again or enter it manually.");
@@ -153,18 +156,21 @@ const ScanScreen = ({ go }) => {
     }
     setSavingManual(true);
     try {
-      await api.post('/shelf/manual', {
+            await api.post('/shelf/manual', {
         brand: mBrand.trim(),
         nom: mNom.trim(),
         categorie: mCat,
         actifs: mActifs,
         texture: 3,
         moment: mMoment,
+        photo_url: mPhoto, // ← AJOUTER CETTE LIGNE
       });
       await fetchProducts();
       setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
-      setDetectedFromScan(false); // ← ICI
+      setMPhoto(null); // ← AJOUTER CETTE LIGNE
+      setDetectedFromScan(false);
       setShowManual(false);
+
     } catch (e) {
       const detail = e?.response?.data?.detail;
       alert(detail || (lang === 'fr' ? "Impossible d'ajouter le produit." : "Could not add the product."));
@@ -345,46 +351,75 @@ const ScanScreen = ({ go }) => {
         ) : (
           <div className="space-y-2.5">
             {products.map((p) => {
+              const pid = p.shelf_id || p.id;
               const actif = p.actif !== false;
+              const isExpanded = expandedId === pid;
               return (
-              <div key={p.shelf_id || p.id} className="p-4 rounded-[16px] flex items-center justify-between shadow-sm" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)', opacity: actif ? 1 : 0.5 }}>
-                <div>
-                  <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
-                    {p.categorie || p.category || 'SOIN'}
-                  </span>
-                  <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
-                  <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
-                  {Array.isArray(p.actifs) && p.actifs.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {p.actifs.flatMap((a) => String(a).split(',')).map((a) => a.trim()).filter(Boolean).map((a, idx) => (
-                        <span key={idx} className="px-2 py-0.5 rounded-full font-body text-[9px] font-semibold" style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)' }}>
-                          {(ACTIF_LABELS[lang === 'fr' ? 'fr' : 'en'][a]) || a}
-                        </span>
-                      ))}
+              <div key={pid} className="rounded-[16px] overflow-hidden shadow-sm transition-all" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)', opacity: actif ? 1 : 0.6 }}>
+                <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : pid)}>
+                  <div className="flex-1 pr-2">
+                    <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+                      {p.categorie || p.category || 'SOIN'}
+                    </span>
+                    <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
+                    <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
+                  </div>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleToggle(pid)}
+                      className="px-2.5 py-1 rounded-full font-body text-[9px] uppercase tracking-caps transition-all"
+                      style={actif
+                        ? { background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }
+                        : { background: 'transparent', color: 'var(--ink-faint)', border: '1px solid var(--line)' }}
+                    >
+                      {actif ? (lang === 'fr' ? 'Actif' : 'On') : (lang === 'fr' ? 'Inactif' : 'Off')}
+                    </button>
+                    <button onClick={() => handleDelete(pid)} className="p-2 text-red-500 hover:bg-red-50 rounded-full">
+                      <Trash2 size={16} />
+                    </button>
+                    <button onClick={() => setExpandedId(isExpanded ? null : pid)} className="p-1 text-stone-400">
+                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Vue détaillée dépliable */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-2 border-t space-y-3 animate-fade-up" style={{ borderColor: 'var(--line)' }}>
+                    {p.photo_url && (
+                      <div className="w-full h-40 rounded-[12px] overflow-hidden bg-stone-100 flex items-center justify-center">
+                        <img src={p.photo_url} alt={p.nom} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-body">
+                      <div className="p-2.5 rounded-[10px] bg-white border border-stone-200">
+                        <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Moment' : 'When'}</span>
+                        <span className="font-medium text-stone-800 capitalize">{p.moment ? (lang === 'fr' ? p.moment.replace('_', ' ') : p.moment) : 'Tous les moments'}</span>
+                      </div>
+                      <div className="p-2.5 rounded-[10px] bg-white border border-stone-200">
+                        <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Catégorie' : 'Category'}</span>
+                        <span className="font-medium text-stone-800 capitalize">{p.categorie || p.category}</span>
+                      </div>
                     </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleToggle(p.shelf_id || p.id)}
-                    className="px-2.5 py-1 rounded-full font-body text-[9px] uppercase tracking-caps transition-all"
-                    style={actif
-                      ? { background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }
-                      : { background: 'transparent', color: 'var(--ink-faint)', border: '1px solid var(--line)' }}
-                    title={lang === 'fr' ? 'Activer / désactiver dans la routine' : 'Enable / disable in routine'}
-                  >
-                    {actif ? (lang === 'fr' ? 'Actif' : 'On') : (lang === 'fr' ? 'Inactif' : 'Off')}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p.shelf_id || p.id)}
-                    className="p-2.5 rounded-full text-red-500 hover:bg-red-50 active:scale-95 transition-all"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+
+                    {Array.isArray(p.actifs) && p.actifs.length > 0 && (
+                      <div>
+                        <span className="text-stone-400 block text-[9px] uppercase tracking-caps mb-1.5">{lang === 'fr' ? 'Actifs détectés' : 'Detected actives'}</span>
+                        <div className="flex flex-wrap gap-1">
+                          {p.actifs.flatMap((a) => String(a).split(',')).map((a) => a.trim()).filter(Boolean).map((a, idx) => (
+                            <span key={idx} className="px-2 py-0.5 rounded-full font-body text-[10px] font-semibold" style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)' }}>
+                              {(ACTIF_LABELS[lang === 'fr' ? 'fr' : 'en'][a]) || a}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               );
             })}
+
           </div>
         )}
       </div>
