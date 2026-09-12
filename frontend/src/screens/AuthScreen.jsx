@@ -33,9 +33,9 @@ const AuthScreen = () => {
 
       {/* En-tête / Logo */}
       <div className="my-auto space-y-4">
-        <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
-          THE ROUTINE THAT BUILDS ITSELF
-        </p>
+      <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+        {lang === 'fr' ? "LA ROUTINE QUI SE CONSTRUIT D'ELLE-MÊME" : 'THE ROUTINE THAT BUILDS ITSELF'}
+      </p>
 
         {/* Logo Officiel de l'application */}
         <div className="flex justify-center items-center">
@@ -110,7 +110,9 @@ const AuthScreen = () => {
 
       {/* Avertissement bas de page */}
       <p className="font-body italic text-[11px] text-center" style={{ color: 'var(--ink-faint)' }}>
-        No medical advice: the app orders and warns, it does not diagnose.
+        {lang === 'fr' 
+          ? "Aucun avis médical : l'application ordonne et prévient, elle ne pose pas de diagnostic."
+          : "No medical advice: the app orders and warns, it does not diagnose."}
       </p>
     </div>
   );
