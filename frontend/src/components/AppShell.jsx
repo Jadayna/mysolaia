@@ -66,14 +66,23 @@ const AppShell = () => {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  const [showAndroidHelp, setShowAndroidHelp] = useState(false);
+
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setShowInstallBanner(false);
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setShowInstallBanner(false);
+          setDeferredPrompt(null);
+        }
+      } catch {
+        setShowAndroidHelp(true);
       }
-      setDeferredPrompt(null);
+    } else {
+      // Si Chrome n'a pas déclenché l'événement automatique, guider l'utilisateur
+      setShowAndroidHelp(true);
     }
   };
 
@@ -138,15 +147,15 @@ const AppShell = () => {
         <Current go={go} routinePhase={routinePhase} />
       </div>
 
-            {/* Bandeau d'installation PWA parfaitement aligné */}
+      {/* Bandeau d'installation PWA parfaitement aligné & toujours actif */}
       {showInstallBanner && (
         <div 
-          className="fixed bottom-[74px] left-3.5 right-3.5 z-40 p-3.5 rounded-[18px] shadow-xl animate-fade-up" 
-          style={{ background: '#FAF6F0', border: '1.5px solid var(--gold)', boxShadow: '0 10px 30px -10px rgba(163, 123, 104, 0.4)' }}
+          className="fixed bottom-[74px] left-3.5 right-3.5 z-40 p-4 rounded-[20px] shadow-2xl animate-fade-up" 
+          style={{ background: '#FAF6F0', border: '1.5px solid var(--gold)', boxShadow: '0 12px 35px -10px rgba(163, 123, 104, 0.45)' }}
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[12px] bg-white border border-stone-200 shadow-xs flex items-center justify-center p-1 shrink-0">
+              <div className="w-12 h-12 rounded-[14px] bg-white border border-stone-200 shadow-xs flex items-center justify-center p-1 shrink-0">
                 <img src="/icon-192.png" alt="MySolaia" className="w-full h-full object-contain" />
               </div>
               <div className="pr-1">
@@ -154,13 +163,9 @@ const AppShell = () => {
                   {lang === 'fr' ? "Installer MySolaia" : "Install MySolaia"}
                 </h4>
                 <p className="font-body text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--ink-soft)' }}>
-                  {isIOS
-                    ? (lang === 'fr' 
-                        ? "Touche Partager puis « Sur l'écran d'accueil »." 
-                        : "Tap Share then 'Add to Home Screen'.")
-                    : (lang === 'fr' 
-                        ? "Ajoute l'app sur ton écran pour y accéder en 1 clic." 
-                        : "Add the app to your home screen for quick access.")}
+                  {lang === 'fr' 
+                    ? "Accède à ta routine en 1 clic sans passer par le navigateur." 
+                    : "Access your ritual in 1 tap without using the browser."}
                 </p>
               </div>
             </div>
@@ -173,10 +178,11 @@ const AppShell = () => {
             </button>
           </div>
 
-          {!isIOS && deferredPrompt && (
+          {/* Bouton d'action TOUJOURS visible sur Android / Web */}
+          {!isIOS && (
             <button
               onClick={handleInstallClick}
-              className="mt-2.5 w-full py-2.5 px-3 rounded-[12px] text-white font-body text-[11px] font-semibold uppercase tracking-caps flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
+              className="mt-3 w-full py-2.5 px-3 rounded-[12px] text-white font-body text-[11px] font-semibold uppercase tracking-caps flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
               style={{ background: '#A37B68' }}
             >
               <Download size={14} />
@@ -184,10 +190,24 @@ const AppShell = () => {
             </button>
           )}
 
+          {/* Guide de secours Android si Chrome bloque le prompt automatique */}
+          {showAndroidHelp && !isIOS && (
+            <div className="mt-2.5 p-2 rounded-[10px] bg-white border border-stone-200 text-[11px] font-body text-stone-600 animate-fade-up">
+              {lang === 'fr'
+                ? "💡 Touche les 3 points ⋮ en haut à droite de Chrome, puis choisis « Installer l'application »."
+                : "💡 Tap the 3 dots ⋮ at the top right of Chrome, then select 'Install app'."}
+            </div>
+          )}
+
+          {/* Guide iPhone */}
           {isIOS && (
-            <div className="mt-2 pt-2 border-t flex items-center gap-2 font-body text-[11px]" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
+            <div className="mt-2.5 pt-2 border-t flex items-center gap-2 font-body text-[11px]" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
               <Share size={13} style={{ color: 'var(--gold)' }} />
-              <span>{lang === 'fr' ? "Bouton Partager dans Safari" : "Share button in Safari"}</span>
+              <span>
+                {lang === 'fr' 
+                  ? "Touche Partager (icône carré + flèche), puis « Sur l'écran d'accueil »." 
+                  : "Tap Share (square with arrow), then 'Add to Home Screen'."}
+              </span>
             </div>
           )}
         </div>
@@ -233,12 +253,13 @@ const AppShell = () => {
                 <button 
                   onClick={() => {
                     setShowMenuModal(false);
-                    if (!isIOS && deferredPrompt) {
+                    if (!isIOS) {
                       handleInstallClick();
+                      setShowInstallBanner(true);
                     } else {
                       setShowInstallBanner(true);
                     }
-                  }} 
+                  }}
                   className="w-full flex items-center justify-between p-3.5 rounded-[16px] shadow-sm transition-all active:scale-[0.98]" 
                   style={{ background: 'rgba(182,130,53,0.12)', border: '1.5px solid var(--gold)' }}
                 >
