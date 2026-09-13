@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp, Clock, Pencil, Check } from 'lucide-react';
+import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp, Clock, Pencil, Check, Search } from 'lucide-react';
 import { useT } from '../i18n';
 import api from '../lib/api';
 
@@ -102,6 +102,16 @@ const ACTIF_LABELS = {
 const ScanScreen = ({ go }) => {
   const { lang } = useT();
   const [products, setProducts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredProducts = products.filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const matchNom = p.nom && p.nom.toLowerCase().includes(q);
+    const matchBrand = (p.brand || p.marque || '').toLowerCase().includes(q);
+    const matchCat = (p.categorie || p.category || '').toLowerCase().includes(q);
+    const matchActifs = Array.isArray(p.actifs) && p.actifs.some((a) => a.toLowerCase().includes(q));
+    return matchNom || matchBrand || matchCat || matchActifs;
+  });
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
   const [toastMsg, setToastMsg] = useState(null);
@@ -557,27 +567,58 @@ const ScanScreen = ({ go }) => {
         </div>
       )}
 
-      {/* Liste des produits */}
-      <div className="space-y-3">
-        <h3 className="font-body text-[11px] uppercase tracking-caps font-semibold" style={{ color: 'var(--ink-faint)' }}>
-          {lang === 'fr' ? 'Mes produits enregistrés' : 'My saved products'} ({products.length})
-        </h3>
+    {/* Liste des produits avec Barre de Recherche & Scroll dédié */}
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-body text-[11px] uppercase tracking-caps font-semibold" style={{ color: 'var(--ink-faint)' }}>
+            {lang === 'fr' ? 'Mes produits enregistrés' : 'My saved products'} ({filteredProducts.length}{searchQuery ? ` / ${products.length}` : ''})
+          </h3>
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="font-body text-[10px] uppercase tracking-caps underline" style={{ color: 'var(--ink-faint)' }}>
+              {lang === 'fr' ? 'Effacer' : 'Clear'}
+            </button>
+          )}
+        </div>
 
-        {products.length === 0 ? (
-          <div className="p-6 text-center rounded-[16px] border border-dashed" style={{ borderColor: 'var(--line)' }}>
-            <Package size={28} className="mx-auto mb-2 opacity-40" style={{ color: 'var(--ink-faint)' }} />
-            <p className="font-body text-[13px]" style={{ color: 'var(--ink-faint)' }}>
-              {lang === 'fr' ? 'Aucun produit dans ton étagère pour l\'instant.' : 'No products on your shelf yet.'}
-            </p>
+        {/* Barre de Recherche Élégante */}
+        {products.length > 2 && (
+          <div className="relative">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--ink-faint)' }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={lang === 'fr' ? 'Rechercher un soin, marque, actif...' : 'Search product, brand, active...'}
+              className="w-full pl-9 pr-8 py-2.5 rounded-[12px] font-body text-[12px] outline-none transition-all"
+              style={{ background: 'var(--cream-card)', border: '1px solid var(--line)', color: 'var(--ink)' }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
+                <X size={13} />
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="space-y-2.5">
-            {products.map((p) => {
+        )}
+
+        {/* Zone de défilement dédiée aux produits */}
+        <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+          {filteredProducts.length === 0 ? (
+            <div className="p-6 text-center rounded-[16px] border border-dashed" style={{ borderColor: 'var(--line)' }}>
+              <Package size={28} className="mx-auto mb-2 opacity-40" style={{ color: 'var(--ink-faint)' }} />
+              <p className="font-body text-[13px]" style={{ color: 'var(--ink-faint)' }}>
+                {searchQuery
+                  ? (lang === 'fr' ? 'Aucun produit ne correspond à ta recherche.' : 'No products match your search.')
+                  : (lang === 'fr' ? 'Aucun produit dans ton étagère pour l\'instant.' : 'No products on your shelf yet.')}
+              </p>
+            </div>
+          ) : (
+            filteredProducts.map((p) => {
               const pid = p.shelf_id || p.id;
               const actif = p.actif !== false;
               const isExpanded = expandedId === pid;
               return (
                 <div key={pid} className="rounded-[16px] overflow-hidden shadow-sm transition-all" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)', opacity: actif ? 1 : 0.6 }}>
+                  {/* Carte identique à avant */}
                   <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : pid)}>
                     <div className="flex-1 pr-2">
                       <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
@@ -673,11 +714,12 @@ const ScanScreen = ({ go }) => {
                   )}
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
-            {/* Modale de Confirmation Chic MySolaia */}
+
+    {/* Modale de Confirmation Chic MySolaia */}
       {modalConfirm && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-6 animate-fade-in">
           <div className="w-full max-w-sm rounded-[20px] p-5 space-y-4 shadow-xl animate-fade-up" style={{ background: '#FAF6F0', border: '1px solid var(--gold-soft)' }}>
