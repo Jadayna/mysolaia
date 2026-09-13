@@ -262,29 +262,113 @@ const go = (id, opts) => {
         })}
       </nav>
 
-      {/* Modale du Menu */}
+            {/* Modale Tiroir du Menu Chic & Épuré */}
       {showMenuModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end animate-fade-in">
-          <div className="bg-white rounded-t-[24px] p-6 max-h-[85vh] overflow-y-auto animate-fade-up shadow-xl" style={{ background: '#FAF6F0' }}>
-            {/* Header Modale avec Soleil Image */}
-            <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'rgba(163, 123, 104, 0.2)' }}>
+          <div className="w-full bg-[#FAF6F0] rounded-t-[32px] p-6 pb-8 border-t border-[#e2ded7] shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up space-y-5">
+            
+            {/* Header du Menu : Soleil + Mon Compte */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200/60">
               <div className="flex items-center gap-3">
-                <img src="/favicon-512.png" alt="Solaia Sun" className="w-7 h-7 object-contain" />
+                <img 
+                  src="/icon-512.png" 
+                  alt="Solaia Sun" 
+                  className="w-9 h-9 object-contain rounded-full shadow-xs"
+                />
                 <div>
-                  <h3 className="font-display text-[20px]" style={{ color: '#A37B68' }}>
+                  <h3 className="font-display text-[18px] font-semibold" style={{ color: 'var(--ink)' }}>
                     {user?.prenom ? (lang === 'fr' ? `Bonjour, ${user.prenom}` : `Hello, ${user.prenom}`) : (lang === 'fr' ? 'Mon Compte' : 'My Account')}
                   </h3>
-                  <p className="font-body text-[12px]" style={{ color: '#A37B68', opacity: 0.7 }}>{user?.email}</p>
+                  <p className="font-body text-[11px] text-stone-500">{user?.email}</p>
                 </div>
               </div>
-              <button onClick={() => setShowMenuModal(false)} className="p-2 rounded-full" style={{ background: 'var(--cream-card)' }}>
-                <X size={20} style={{ color: 'var(--ink)' }} />
+              <button 
+                onClick={() => setShowMenuModal(false)}
+                className="w-9 h-9 rounded-full bg-stone-200/60 flex items-center justify-center text-stone-500 hover:text-stone-800 transition-colors"
+              >
+                <X size={18} />
               </button>
             </div>
 
-            {/* Options du Menu */}
-            <div className="mt-6 space-y-2.5">
-               {(!window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone) && (
+            {/* SECTION 1 : Mon Rituel & Mes Soins */}
+            <div className="space-y-2">
+              <span className="font-body text-[9.5px] uppercase tracking-caps font-semibold px-1" style={{ color: 'var(--gold)' }}>
+                {lang === 'fr' ? 'Mon Rituel & Mes Soins' : 'My Ritual & Skincare'}
+              </span>
+
+              {/* Profil & Diagnostic */}
+              <button onClick={() => { setShowMenuModal(false); go('profil'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] bg-white border border-stone-200/80 shadow-xs hover:border-amber-300 transition-all">
+                <div className="flex items-center gap-3">
+                  <User size={18} style={{ color: '#A37B68' }} />
+                  <div className="text-left">
+                    <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+                      {lang === 'fr' ? "Profil & Diagnostic" : "Profile & Skin Type"}
+                    </p>
+                    <p className="font-body text-[11px] text-stone-400">
+                      {lang === 'fr' ? "Type de peau, préoccupations et objectifs" : "Skin type, concerns and goals"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-stone-400" />
+              </button>
+
+              {/* Mon Abonnement */}
+              <button onClick={() => { setShowMenuModal(false); go('trial'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] bg-white border border-stone-200/80 shadow-xs hover:border-amber-300 transition-all">
+                <div className="flex items-center gap-3">
+                  <CreditCard size={18} style={{ color: '#A37B68' }} />
+                  <div className="text-left">
+                    <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+                      {user?.statut_abonnement === 'actif' || user?.is_premium 
+                        ? (lang === 'fr' ? "Mon Abonnement Illimité ✨" : "My Unlimited Plan ✨")
+                        : (lang === 'fr' ? "Mon Abonnement" : "My Subscription")}
+                    </p>
+                    <p className="font-body text-[11px] text-stone-400">
+                      {lang === 'fr' ? "Gérer mon offre et mes moyens de paiement" : "Manage plan and payment methods"}
+                    </p>
+                  </div>
+                </div>
+                <span className="font-body text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(182, 130, 53, 0.12)', color: 'var(--gold)' }}>
+                  {user?.statut_abonnement === 'actif' || user?.is_premium ? 'VIP' : 'FREE'}
+                </span>
+              </button>
+            </div>
+
+            {/* SECTION 2 : Préférences & Application */}
+            <div className="space-y-2">
+              <span className="font-body text-[9.5px] uppercase tracking-caps font-semibold px-1 text-stone-500">
+                {lang === 'fr' ? 'Préférences' : 'Preferences'}
+              </span>
+
+              {/* Choix de la langue */}
+              <div className="flex items-center justify-between p-3.5 rounded-[16px] bg-white border border-stone-200/80 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <Globe size={18} style={{ color: '#A37B68' }} />
+                  <span className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+                    {lang === 'fr' ? "Langue d'affichage" : "Display Language"}
+                  </span>
+                </div>
+                <div className="flex items-center bg-stone-100 p-1 rounded-[10px] border border-stone-200/60">
+                  <button
+                    onClick={() => setLang('fr')}
+                    className={`px-3 py-1 rounded-[8px] font-body text-[11px] font-semibold uppercase tracking-caps transition-all ${
+                      lang === 'fr' ? 'bg-[#A37B68] text-white shadow-xs' : 'text-stone-500'
+                    }`}
+                  >
+                    FR
+                  </button>
+                  <button
+                    onClick={() => setLang('en')}
+                    className={`px-3 py-1 rounded-[8px] font-body text-[11px] font-semibold uppercase tracking-caps transition-all ${
+                      lang === 'en' ? 'bg-[#A37B68] text-white shadow-xs' : 'text-stone-500'
+                    }`}
+                  >
+                    EN
+                  </button>
+                </div>
+              </div>
+
+              {/* Bouton Installer l'application */}
+              {(!window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone) && (
                 <button 
                   onClick={() => {
                     setShowMenuModal(false);
@@ -295,8 +379,8 @@ const go = (id, opts) => {
                       setShowInstallBanner(true);
                     }
                   }}
-                  className="w-full flex items-center justify-between p-3.5 rounded-[16px] shadow-sm transition-all active:scale-[0.98]" 
-                  style={{ background: 'rgba(182,130,53,0.12)', border: '1.5px solid var(--gold)' }}
+                  className="w-full flex items-center justify-between p-3.5 rounded-[16px] shadow-xs transition-all active:scale-[0.98]" 
+                  style={{ background: 'rgba(182, 130, 53, 0.08)', border: '1px solid var(--gold-soft)' }}
                 >
                   <div className="flex items-center gap-3">
                     <Download size={18} style={{ color: 'var(--gold)' }} />
@@ -314,105 +398,80 @@ const go = (id, opts) => {
                   </span>
                 </button>
               )}
+            </div>
 
-              <button onClick={() => go('profil')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-                <div className="flex items-center gap-3">
-                  <User size={18} style={{ color: '#A37B68' }} />
-                  <div className="text-left">
-                    <p className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>{lang === 'fr' ? "Profil & Diagnostic" : "Profile & Skin Type"}</p>
-                    <p className="font-body text-[11px]" style={{ color: '#B59B8D' }}>{lang === 'fr' ? "Type de peau, préoccupations et objectifs" : "Skin type, concerns and goals"}</p>
-                  </div>
-                </div>
-              </button>
+            {/* SECTION 3 : Assistance & Confidentialité */}
+            <div className="space-y-2">
+              <span className="font-body text-[9.5px] uppercase tracking-caps font-semibold px-1 text-stone-500">
+                {lang === 'fr' ? 'Aide & Sécurité' : 'Help & Security'}
+              </span>
 
-              <button onClick={() => go('trial')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-                <div className="flex items-center gap-3">
-                  <CreditCard size={18} style={{ color: '#A37B68' }} />
-                  <div className="text-left">
-                    <p className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>{lang === 'fr' ? "Mon Abonnement" : "My Subscription"}</p>
-                    <p className="font-body text-[11px]" style={{ color: '#B59B8D' }}>{lang === 'fr' ? "Gérer mon offre et mes moyens de paiement" : "Manage plan and payment methods"}</p>
-                  </div>
-                </div>
-              </button>
-
-                            {/* Choix de la langue */}
-              <div className="flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-                <div className="flex items-center gap-3">
-                  <Globe size={18} style={{ color: '#A37B68' }} />
-                  <span className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>
-                    {lang === 'fr' ? "Langue d'affichage" : "Display Language"}
-                  </span>
-                </div>
-                <div className="flex items-center bg-stone-200/60 p-1 rounded-[10px]">
-                  <button
-                    onClick={() => setLang('fr')}
-                    className={`px-2.5 py-1 rounded-[8px] font-body text-[11px] font-semibold uppercase tracking-caps transition-all ${
-                      lang === 'fr' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500'
-                    }`}
-                  >
-                    FR
-                  </button>
-                  <button
-                    onClick={() => setLang('en')}
-                    className={`px-2.5 py-1 rounded-[8px] font-body text-[11px] font-semibold uppercase tracking-caps transition-all ${
-                      lang === 'en' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500'
-                    }`}
-                  >
-                    EN
-                  </button>
-                </div>
-              </div>
-
-              <button onClick={() => go('aide')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              {/* Aide & FAQ */}
+              <button onClick={() => { setShowMenuModal(false); go('aide'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] bg-white border border-stone-200/80 shadow-xs hover:border-amber-300 transition-all">
                 <div className="flex items-center gap-3">
                   <HelpCircle size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
-                    <p className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>{lang === 'fr' ? "Aide & Support" : "Help & Support"}</p>
-                    <p className="font-body text-[11px]" style={{ color: '#B59B8D' }}>{lang === 'fr' ? "Questions fréquentes et contact" : "FAQ and customer support"}</p>
+                    <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+                      {lang === 'fr' ? "Aide & Support" : "Help & Support"}
+                    </p>
+                    <p className="font-body text-[11px] text-stone-400">
+                      {lang === 'fr' ? "Questions fréquentes et contact" : "FAQ and customer support"}
+                    </p>
                   </div>
                 </div>
+                <ChevronRight size={16} className="text-stone-400" />
               </button>
 
-              <button onClick={() => go('confidentialite')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              {/* Confidentialité & CGU */}
+              <button onClick={() => { setShowMenuModal(false); go('confidentialite'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] bg-white border border-stone-200/80 shadow-xs hover:border-amber-300 transition-all">
                 <div className="flex items-center gap-3">
                   <Shield size={18} style={{ color: '#A37B68' }} />
                   <div className="text-left">
-                    <p className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>{lang === 'fr' ? "Confidentialité & CGU" : "Privacy & Terms"}</p>
-                    <p className="font-body text-[11px]" style={{ color: '#B59B8D' }}>{lang === 'fr' ? "Protection des données de santé" : "Data protection and legal terms"}</p>
+                    <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+                      {lang === 'fr' ? "Confidentialité & CGU" : "Privacy & Terms"}
+                    </p>
+                    <p className="font-body text-[11px] text-stone-400">
+                      {lang === 'fr' ? "Protection des données de santé" : "Data protection and legal terms"}
+                    </p>
                   </div>
                 </div>
+                <ChevronRight size={16} className="text-stone-400" />
               </button>
 
-             <button onClick={() => { setShowMenuModal(false); logout(); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] text-red-600" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+              {/* Déconnexion */}
+              <button 
+                onClick={() => { setShowMenuModal(false); logout(); }} 
+                className="w-full flex items-center justify-between p-3.5 rounded-[16px] bg-rose-50/50 border border-rose-200/60 shadow-xs text-rose-600 hover:bg-rose-100/60 transition-all"
+              >
                 <div className="flex items-center gap-3">
                   <LogOut size={18} />
-                  <span className="font-display text-[14px] font-medium">{lang === 'fr' ? "Se déconnecter" : "Log out"}</span>
+                  <span className="font-display text-[14px] font-medium">
+                    {lang === 'fr' ? "Se déconnecter" : "Log out"}
+                  </span>
                 </div>
               </button>
-            
-            {/* Version de l'application & Vérification des Mises à jour */}
-              <div className="pt-3 border-t border-stone-200/60 flex items-center justify-between px-1">
-                <span className="font-body text-[11px] text-stone-600">
-                  MySolaia · v1.0.2
-                </span>
-                <button
-                  onClick={async () => {
-                    // Vider les caches du navigateur / PWA
-                    if ('caches' in window) {
-                      const names = await caches.keys();
-                      await Promise.all(names.map(name => caches.delete(name)));
-                    }
-                    // Forcer le rechargement de la dernière version depuis le serveur
-                    window.location.reload(true);
-                  }}
-                  className="flex items-center gap-1.5 font-body text-[11px] font-medium transition-all active:scale-95 px-2.5 py-1 rounded-full bg-stone-200/70 text-stone-700 hover:bg-stone-300"
-                >
-                  <RotateCcw size={12} />
-                  <span>{lang === 'fr' ? 'Mettre à jour' : 'Update'}</span>
-                </button>
-              </div>
-
             </div>
+
+            {/* Footer : Version & Mise à jour instantanée */}
+            <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between px-1">
+              <span className="font-body text-[11px] text-stone-400">
+                MySolaia · v1.0.2
+              </span>
+              <button
+                onClick={async () => {
+                  if ('caches' in window) {
+                    const names = await caches.keys();
+                    await Promise.all(names.map(name => caches.delete(name)));
+                  }
+                  window.location.reload(true);
+                }}
+                className="flex items-center gap-1.5 font-body text-[11px] font-medium transition-all active:scale-95 px-3 py-1 rounded-full bg-stone-200/80 text-stone-700 hover:bg-stone-300"
+              >
+                <RotateCcw size={12} />
+                <span>{lang === 'fr' ? 'Mettre à jour' : 'Update'}</span>
+              </button>
+            </div>
+
           </div>
         </div>
       )}
