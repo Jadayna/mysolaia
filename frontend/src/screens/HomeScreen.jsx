@@ -229,11 +229,29 @@ const HomeScreen = ({ go }) => {
         ? "Je ne t'ai pas encore observée — fais ta première routine et je commencerai à noter ce qui fonctionne pour ta peau."
         : "I haven't observed you yet — do your first routine and I'll start noting what works for your skin.";
     }
+
+    // 1. Détecter un tiraillement récent
+    const lastEntry = entries[0];
+    if (lastEntry?.note_peau && lastEntry.note_peau <= 2) {
+      return fr
+        ? "Ta peau a tiraillé lors de ta dernière routine. Ce soir, privilégie une hydratation réconfortante et laisse tes acides exfoliants de côté."
+        : "Your skin felt tight during your last routine. Tonight, focus on comforting hydration and give strong exfoliating acids a rest.";
+    }
+
+    // 2. Détecter une peau rayonnante
+    if (lastEntry?.note_peau === 5) {
+      return fr
+        ? "Ta peau est rayonnante ! L'ordre et l'alternance de tes soins lui font le plus grand bien."
+        : "Your skin is glowing! The balance and order of your current products work wonders.";
+    }
+
+    // 3. Suivi du streak
     if (streak >= 3) {
       return fr
-        ? `${streak} jours de suite ! Ta régularité est ta plus force — c'est ça qui fait la différence.`
+        ? `${streak} jours de suite ! Ta régularité est ta plus grande force — c'est ça qui fait la différence.`
         : `${streak} days in a row! Consistency is your superpower — that's what makes the difference.`;
     }
+
     return fr
       ? totalEntries === 1
         ? "Première routine notée ! Chaque séance m'aide à mieux te connaître."
@@ -384,8 +402,20 @@ const HomeScreen = ({ go }) => {
           ))}
         </div>
 
-        <button onClick={() => go('scan')} className="w-full mt-3 py-3 rounded-[12px] font-body text-[10px] uppercase tracking-caps font-semibold" style={{ background: 'var(--cream-card)', border: '1px solid var(--line-strong)', color: 'var(--ink-soft)' }}>
-          {lang === 'fr' ? 'GÉRER MES PRODUITS' : 'MANAGE PRODUCTS'}
+                <button
+          onClick={() => go(safeProducts.length === 0 ? 'scan' : 'routine', { phase })}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all duration-200 active:scale-[0.98] hover:opacity-95"
+          style={{ 
+            background: 'var(--ink)', 
+            boxShadow: '0 8px 20px -6px rgba(163, 123, 104, 0.35)' 
+          }}
+        >
+          <span>
+            {safeProducts.length === 0
+              ? (lang === 'fr' ? 'AJOUTER UN PRODUIT' : 'ADD A PRODUCT')
+              : (lang === 'fr' ? 'COMMENCER MA ROUTINE' : 'START MY ROUTINE')}
+          </span>
+          <ArrowRight size={14} />
         </button>
       </div>
     </div>
