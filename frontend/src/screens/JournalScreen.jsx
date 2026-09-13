@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, CalendarDays, Flame, Package, Camera, Trash2, Plus, X } from 'lucide-react';
+import { Calendar, CalendarDays, Flame, Package, Camera, Trash2, Plus, X, Award, ShieldCheck, Lock, Sparkles } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
 
@@ -235,34 +235,111 @@ const JournalScreen = ({ go }) => {
         ))}
       </div>
 
-      {/* Badges */}
-      <div className="space-y-3 pt-2">
+            {/* ===== Mes Victoires de Soin ===== */}
+      <div className="space-y-2 pt-2">
         <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>
-          {lang === 'fr' ? 'Mes badges' : 'My badges'}
+          {lang === 'fr' ? 'Mes victoires de soin' : 'My skincare milestones'}
         </span>
-        <div className="grid grid-cols-3 gap-2.5">
-          {STREAK_BADGES.map((b) => {
-            const unlocked = streak >= b.n;
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Badge 1 : Première Lueur */}
+          {(() => {
+            const unlocked = entries.length >= 1;
             return (
-              <div key={`s${b.n}`} className="p-3 rounded-[14px] flex flex-col items-center text-center gap-1.5"
-                style={{ background: 'var(--cream-card)', border: `1px solid ${unlocked ? 'var(--gold-soft)' : 'var(--line)'}`, opacity: unlocked ? 1 : 0.55 }}>
-                <Flame size={20} style={{ color: unlocked ? 'var(--gold)' : 'var(--ink-faint)' }} />
-                <span className="font-body text-[10px] leading-tight" style={{ color: 'var(--ink)' }}>{lang === 'fr' ? b.fr : b.en}</span>
-                {!unlocked && <span className="font-body text-[9px]" style={{ color: 'var(--ink-faint)' }}>{b.n} {lang === 'fr' ? 'j' : 'd'}</span>}
+              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
+                style={{
+                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
+                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
+                  opacity: unlocked ? 1 : 0.45
+                }}>
+                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
+                  {unlocked ? <Sparkles size={16} /> : <Lock size={16} />}
+                </div>
+                <div>
+                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
+                    {lang === 'fr' ? "Première Lueur" : 'First Glow'}
+                  </p>
+                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
+                    {lang === 'fr' ? '1ère routine faite' : '1st routine done'}
+                  </p>
+                </div>
               </div>
             );
-          })}
-          {PRODUCT_BADGES.map((b) => {
-            const unlocked = shelfCount >= b.n;
+          })()}
+
+          {/* Badge 2 : Rythme Solaire */}
+          {(() => {
+            const unlocked = streak >= 3;
             return (
-              <div key={`p${b.n}`} className="p-3 rounded-[14px] flex flex-col items-center text-center gap-1.5"
-                style={{ background: 'var(--cream-card)', border: `1px solid ${unlocked ? 'var(--gold-soft)' : 'var(--line)'}`, opacity: unlocked ? 1 : 0.55 }}>
-                <Package size={20} style={{ color: unlocked ? 'var(--gold)' : 'var(--ink-faint)' }} />
-                <span className="font-body text-[10px] leading-tight" style={{ color: 'var(--ink)' }}>{lang === 'fr' ? b.fr : b.en}</span>
-                {!unlocked && <span className="font-body text-[9px]" style={{ color: 'var(--ink-faint)' }}>{b.n} {lang === 'fr' ? 'prod.' : 'prod.'}</span>}
+              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
+                style={{
+                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
+                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
+                  opacity: unlocked ? 1 : 0.45
+                }}>
+                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
+                  {unlocked ? <Flame size={16} /> : <Lock size={16} />}
+                </div>
+                <div>
+                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
+                    {lang === 'fr' ? 'Rythme Solaire' : 'Solar Rhythm'}
+                  </p>
+                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
+                    {lang === 'fr' ? "3 jours d'affilée" : '3-day streak'}
+                  </p>
+                </div>
               </div>
             );
-          })}
+          })()}
+
+          {/* Badge 3 : Bouclier Cutané */}
+          {(() => {
+            const unlocked = entries.length >= 5;
+            return (
+              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
+                style={{
+                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
+                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
+                  opacity: unlocked ? 1 : 0.45
+                }}>
+                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
+                  {unlocked ? <ShieldCheck size={16} /> : <Lock size={16} />}
+                </div>
+                <div>
+                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
+                    {lang === 'fr' ? 'Bouclier Cutané' : 'Skin Shield'}
+                  </p>
+                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
+                    {lang === 'fr' ? '5 routines validées' : '5 routines done'}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Badge 4 : Constance d'Or */}
+          {(() => {
+            const unlocked = streak >= 7;
+            return (
+              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
+                style={{
+                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
+                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
+                  opacity: unlocked ? 1 : 0.45
+                }}>
+                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
+                  {unlocked ? <Award size={16} /> : <Lock size={16} />}
+                </div>
+                <div>
+                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
+                    {lang === 'fr' ? "Constance d'Or" : 'Golden Ritual'}
+                  </p>
+                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
+                    {lang === 'fr' ? '7 jours de streak' : '7-day streak'}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
