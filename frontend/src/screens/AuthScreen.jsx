@@ -32,12 +32,18 @@ const AuthScreen = () => {
   }, []);
 
   const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') setDeferredPrompt(null);
-    } else {
-      setShowGuide(true);
+    const promptEvent = window.deferredPrompt || deferredPrompt;
+    if (promptEvent) {
+      try {
+        promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
+        if (outcome === 'accepted') {
+          window.deferredPrompt = null;
+          setDeferredPrompt(null);
+        }
+      } catch (e) {
+        console.error("Install error:", e);
+      }
     }
   };
 
@@ -151,26 +157,6 @@ const AuthScreen = () => {
             >
               <Download size={13} />
               <span>{lang === 'fr' ? "Installer l'application sur mon écran" : "Add app to home screen"}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Petit guide iPhone si cliqué */}
-        {showGuide && (
-          <div className="mt-3 p-3 rounded-[12px] text-left text-[11px] font-body animate-fade-up flex items-start justify-between gap-2" style={{ background: '#FFF', border: '1px solid var(--line)' }}>
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 font-semibold" style={{ color: 'var(--ink)' }}>
-                <Share size={12} style={{ color: 'var(--gold)' }} />
-                <span>{lang === 'fr' ? "Comment installer sur iPhone :" : "How to install on iPhone:"}</span>
-              </div>
-              <p style={{ color: 'var(--ink-soft)' }}>
-                {lang === 'fr' 
-                  ? "Touche l'icône Partager en bas de Safari, puis sélectionne « Sur l'écran d'accueil »." 
-                  : "Tap Share at the bottom of Safari, then select 'Add to Home Screen'."}
-              </p>
-            </div>
-            <button onClick={() => setShowGuide(false)} className="text-stone-400 p-1">
-              <X size={14} />
             </button>
           </div>
         )}
