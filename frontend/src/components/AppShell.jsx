@@ -132,15 +132,12 @@ const go = (id, opts) => {
     sessionStorage.setItem('solaia_active_tab', id);
   };
 
-  const Current =
+   const Current =
     TABS.find((tb) => tb.id === active)?.screen ||
     EXTRA_SCREENS.find((s) => s.id === active)?.screen ||
     HomeScreen;
 
   return (
-    <div className="app-shell relative">
-
-        return (
     <div className="app-shell relative">
 
       {/* Toast doré de Bienvenue Illimité */}
@@ -386,7 +383,7 @@ const go = (id, opts) => {
                 </div>
               </button>
 
-              <button onClick={() => { setShowMenuModal(false); logout(); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] text-red-600" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+             <button onClick={() => { setShowMenuModal(false); logout(); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] text-red-600" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <LogOut size={18} />
                   <span className="font-display text-[14px] font-medium">{lang === 'fr' ? "Se déconnecter" : "Log out"}</span>
