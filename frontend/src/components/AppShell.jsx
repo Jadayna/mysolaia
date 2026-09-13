@@ -219,6 +219,36 @@ const AppShell = () => {
 
             {/* Options du Menu */}
             <div className="mt-6 space-y-2.5">
+               {(!window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone) && (
+                <button 
+                  onClick={() => {
+                    setShowMenuModal(false);
+                    if (!isIOS && deferredPrompt) {
+                      handleInstallClick();
+                    } else {
+                      setShowInstallBanner(true);
+                    }
+                  }} 
+                  className="w-full flex items-center justify-between p-3.5 rounded-[16px] shadow-sm transition-all active:scale-[0.98]" 
+                  style={{ background: 'rgba(182,130,53,0.12)', border: '1.5px solid var(--gold)' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <Download size={18} style={{ color: 'var(--gold)' }} />
+                    <div className="text-left">
+                      <p className="font-display text-[14px] font-semibold" style={{ color: 'var(--gold)' }}>
+                        {lang === 'fr' ? "Installer l'application" : "Install the App"}
+                      </p>
+                      <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+                        {lang === 'fr' ? "Ajouter MySolaia sur ton écran d'accueil" : "Add MySolaia to your home screen"}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-body text-[10px] uppercase tracking-caps font-semibold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--gold)' }}>
+                    {lang === 'fr' ? "1 clic" : "1 tap"}
+                  </span>
+                </button>
+              )}
+
               <button onClick={() => go('profil')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
                   <User size={18} style={{ color: '#A37B68' }} />
