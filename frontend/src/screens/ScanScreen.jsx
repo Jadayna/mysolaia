@@ -350,7 +350,7 @@ const ScanScreen = ({ go }) => {
         </button>
         <div>
           <h1 className="font-display text-[24px]" style={{ color: 'var(--ink)' }}>
-            {lang === 'fr' ? 'Mon Étagère & Produits' : 'My Shelf & Products'}
+            {lang === 'fr' ? 'Mon Étagère de Produits' : 'My Shelf & Products'}
           </h1>
           <p className="font-body text-[12px]" style={{ color: 'var(--ink-faint)' }}>
             {lang === 'fr' ? 'Prends une photo de l\'étiquette de ton produit' : 'Take a photo of your product label'}
