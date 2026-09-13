@@ -130,15 +130,12 @@ const AppShell = () => {
           />
         </div>
         
-        <div className="flex items-center gap-5">
-          <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5" style={{ color: 'var(--ink-soft)' }}>
-            <Globe size={18} strokeWidth={1.6} />
-            <span className="font-body text-[12px] uppercase tracking-caps font-medium">{lang}</span>
-          </button>
-          <button onClick={logout} style={{ color: 'var(--ink-soft)' }}>
+      <div className="flex items-center gap-4">
+          <button onClick={logout} title={lang === 'fr' ? "Déconnexion" : "Log out"} style={{ color: 'var(--ink-soft)' }}>
             <LogOut size={19} strokeWidth={1.6} />
           </button>
         </div>
+
       </div>
 
       {/* Écran actif */}
@@ -289,6 +286,34 @@ const AppShell = () => {
                   </div>
                 </div>
               </button>
+
+                            {/* Choix de la langue */}
+              <div className="flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+                <div className="flex items-center gap-3">
+                  <Globe size={18} style={{ color: '#A37B68' }} />
+                  <span className="font-display text-[14px] font-medium" style={{ color: '#A37B68' }}>
+                    {lang === 'fr' ? "Langue d'affichage" : "Display Language"}
+                  </span>
+                </div>
+                <div className="flex items-center bg-stone-200/60 p-1 rounded-[10px]">
+                  <button
+                    onClick={() => setLang('fr')}
+                    className={`px-2.5 py-1 rounded-[8px] font-body text-[11px] font-semibold uppercase tracking-caps transition-all ${
+                      lang === 'fr' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500'
+                    }`}
+                  >
+                    FR
+                  </button>
+                  <button
+                    onClick={() => setLang('en')}
+                    className={`px-2.5 py-1 rounded-[8px] font-body text-[11px] font-semibold uppercase tracking-caps transition-all ${
+                      lang === 'en' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500'
+                    }`}
+                  >
+                    EN
+                  </button>
+                </div>
+              </div>
 
               <button onClick={() => go('aide')} className="w-full flex items-center justify-between p-3.5 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-3">
