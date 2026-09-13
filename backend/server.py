@@ -429,11 +429,27 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
     return {"days": days, "stats": stats, "entries": [fmt(e) for e in ranged[:30]],
             "observation": _observation(entries, lang)}
 
+# NOUVEAU :
 def _observation(entries, lang="fr"):
+    # 1. Vérifier si un tiraillement récent a été signalé (note 1 ou 2)
+    recent_feelings = [e.get("note_peau") for e in entries[:3] if e.get("note_peau") is not None]
+    if any(note <= 2 for note in recent_feelings):
+        if lang == "en":
+            return "Your skin felt tight recently. Pause strong exfoliants and focus on rich hydration to comfort your skin barrier."
+        return "Ta peau a tiraillé récemment. Espace tes exfoliants et privilégie une hydratation riche pour réparer ta barrière cutanée."
+
+    # 2. Si la peau est éclatante (note 5)
+    if any(note == 5 for note in recent_feelings):
+        if lang == "en":
+            return "Your skin is glowing! Your current combination of products is working wonderfully."
+        return "Ta peau est rayonnante ! L'ordre et l'alternance de tes soins lui font le plus grand bien."
+
+    # 3. Observation selon la régularité
     if len(entries) < 3:
         if lang == "en":
             return "A few more days and I'll be able to tell you what I notice in your rhythm."
         return "Encore quelques jours et je pourrai te dire ce que je remarque dans ton rythme."
+
     if lang == "en":
         return "Your routines are nice and consistent, keep it up!"
     return "Tes routines sont bien régulières, continue comme ça !"
