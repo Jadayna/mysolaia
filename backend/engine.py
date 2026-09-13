@@ -223,19 +223,17 @@ def exfoliation_days(sensibilite):
 
 def _resolve_duplicates(pool, lang):
     """Une seule étape par catégorie et par séance (sauf yeux / traitement_cible / SPF).
-    Garde le produit le moins récemment utilisé n'est pas tracké, donc on garde
-    celui de plus faible rang (le plus fluide d'abord) et on reporte les autres."""
+    Garde le produit le plus fluide d'abord et reporte les autres."""
     txt = TEXTS[lang]
-    cats = CATEGORY_LABELS[lang]
     # Catégories autorisées en double (cibles différentes, usages multiples)
     EXEMPT = {"traitement_cible", "yeux", "spf", "levres", "cils_sourcils"}
     messages = []
 
-    cats_present = {p["categorie"] for p in pool}
+    cats_present = {p.get("categorie") for p in pool if p.get("categorie")}
     for cat in cats_present:
         if cat in EXEMPT:
             continue
-        prods = [p for p in pool if p["categorie"] == cat]
+        prods = [p for p in pool if p.get("categorie") == cat]
         if len(prods) <= 1:
             continue
         prods_sorted = sorted(prods, key=_rank)
@@ -243,9 +241,8 @@ def _resolve_duplicates(pool, lang):
         for extra in prods_sorted[1:]:
             pool = [p for p in pool if p is not extra]
         messages.append(txt["decision_duplicate"].format(
-            cat_fr=cat, cat_en=cat, nom=keep["nom"]))
+            cat_fr=cat, cat_en=cat, nom=keep.get("nom", "")))
     return pool, messages
-
 
 def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
     """products: list of product dicts (the user's active shelf).
