@@ -622,44 +622,65 @@ async def customer_portal(body: CheckoutIn, user=Depends(current_user)):
 @api_router.get("/payments/status/{session_id}")
 async def payment_status(session_id: str):
     record = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
-    if not record:
-        raise HTTPException(404, "Transaction introuvable")
+    
+    # 1. Vérification auprès de Stripe
+    customer_id = None
+    customer_email = None
+    is_valid = False
+    
+    try:
+        s = stripe.checkout.Session.retrieve(session_id)
+        if s.status == "complete" or s.payment_status in ("paid", "no_payment_required"):
+            is_valid = True
+            customer_id = s.get("customer")
+            customer_email = (s.get("customer_details") or {}).get("email")
+    except Exception as e:
+        logger.error(f"Erreur vérification Stripe session: {e}")
 
-    if record.get("payment_status") != "paid":
-        try:
-            s = stripe.checkout.Session.retrieve(session_id)
-            if s.status == "complete" or s.payment_status in ("paid", "no_payment_required"):
-                customer_id = s.get("customer")
-                subscription_id = s.get("subscription")
-                await db.payment_transactions.update_one(
-                    {"session_id": session_id},
-                    {"$set": {"status": "completed", "payment_status": s.payment_status, "customer_id": customer_id}}
-                )
-                user_id = record.get("user_id")
-                if user_id:
-                    await db.users.update_one(
-                        {"id": user_id},
-                        {"$set": {
-                            "statut_abonnement": "actif",
-                            "is_premium": True,
-                            "stripe_customer_id": customer_id,
-                            "stripe_subscription_id": subscription_id
-                        }}
-                    )
-                record["status"], record["payment_status"] = "completed", "paid"
-        except Exception as e:
-            logging.error(f"Stripe status error: {e}")
+    # 2. Si Stripe valide, on débloque l'utilisateur sans aucune restriction !
+    if is_valid:
+        # Trouver l'utilisateur par son ID ou par son email de paiement
+        user_id = record.get("user_id") if record else None
+        user_filter = None
+        if user_id:
+            user_filter = {"id": user_id}
+        elif customer_email:
+            user_filter = {"email": customer_email.strip().lower()}
 
-    fresh_user = None
-    if record.get("user_id"):
-        fresh_user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0, "password": 0})
+        if user_filter:
+            await db.users.update_one(
+                user_filter,
+                {"$set": {
+                    "statut_abonnement": "actif",
+                    "is_premium": True,
+                    "subscription_tier": "unlimited",
+                    "stripe_customer_id": customer_id
+                }}
+            )
+
+        if record:
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"status": "completed", "payment_status": "paid", "customer_id": customer_id}}
+            )
+
+        fresh_user = None
+        if user_filter:
+            fresh_user = await db.users.find_one(user_filter, {"_id": 0, "password": 0})
+
+        return {
+            "session_id": session_id,
+            "status": "complete",
+            "payment_status": "paid",
+            "unlocked": True,
+            "user": fresh_user
+        }
 
     return {
-        "session_id": record["session_id"],
-        "status": record["status"],
-        "payment_status": record["payment_status"],
-        "unlocked": True,
-        "user": fresh_user
+        "session_id": session_id,
+        "status": record.get("status") if record else "pending",
+        "payment_status": record.get("payment_status") if record else "unpaid",
+        "unlocked": False
     }
 
 @api_router.post("/stripe/webhook")
