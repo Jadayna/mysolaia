@@ -389,6 +389,29 @@ const go = (id, opts) => {
                   <span className="font-display text-[14px] font-medium">{lang === 'fr' ? "Se déconnecter" : "Log out"}</span>
                 </div>
               </button>
+            
+            {/* Version de l'application & Vérification des Mises à jour */}
+              <div className="pt-3 border-t border-stone-200/60 flex items-center justify-between px-1">
+                <span className="font-body text-[11px] text-stone-600">
+                  MySolaia · v1.0.2
+                </span>
+                <button
+                  onClick={async () => {
+                    // Vider les caches du navigateur / PWA
+                    if ('caches' in window) {
+                      const names = await caches.keys();
+                      await Promise.all(names.map(name => caches.delete(name)));
+                    }
+                    // Forcer le rechargement de la dernière version depuis le serveur
+                    window.location.reload(true);
+                  }}
+                  className="flex items-center gap-1.5 font-body text-[11px] font-medium transition-all active:scale-95 px-2.5 py-1 rounded-full bg-stone-200/70 text-stone-700 hover:bg-stone-300"
+                >
+                  <RotateCcw size={12} />
+                  <span>{lang === 'fr' ? 'Mettre à jour' : 'Update'}</span>
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
