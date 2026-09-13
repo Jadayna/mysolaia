@@ -36,6 +36,7 @@ const AppShell = () => {
   });  
   const [routinePhase, setRoutinePhase] = useState('soir');
   const [showMenuModal, setShowMenuModal] = useState(false);
+  const [stripeSuccessToast, setStripeSuccessToast] = useState(false);
 
   // --- Gestion Installation PWA (iOS & Android) ---
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -79,9 +80,8 @@ const AppShell = () => {
             if (refreshUser) {
               await refreshUser();
             }
-            alert(lang === 'fr' 
-              ? "✨ Félicitations ! Ton accès MySolaia Illimité est activé. Ton étagère est débloquée sans restriction !" 
-              : "✨ Congratulations! Your Unlimited MySolaia access is active. Your shelf is now unlimited!");
+               setStripeSuccessToast(true);
+            setTimeout(() => setStripeSuccessToast(false), 5000);
             window.history.replaceState({}, document.title, window.location.pathname);
           }
         })
@@ -139,6 +139,33 @@ const go = (id, opts) => {
 
   return (
     <div className="app-shell relative">
+
+        return (
+    <div className="app-shell relative">
+
+      {/* Toast doré de Bienvenue Illimité */}
+      {stripeSuccessToast && (
+        <div className="fixed top-5 left-4 right-4 z-50 p-4 rounded-[18px] shadow-2xl animate-fade-up flex items-center gap-3.5 backdrop-blur-md" 
+             style={{ background: '#FAF6F0', border: '1.5px solid var(--gold)', boxShadow: '0 12px 35px -10px rgba(182, 130, 53, 0.4)' }}>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(182, 130, 53, 0.15)' }}>
+            <Sparkles size={20} style={{ color: 'var(--gold)' }} />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-display text-[14px] font-semibold" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? "Accès Illimité Activé ✨" : "Unlimited Access Active ✨"}
+            </h4>
+            <p className="font-body text-[11.5px] mt-0.5 leading-snug" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr' 
+                ? "Ton étagère est débloquée sans restriction. Ajoute autant de soins que tu le souhaites !" 
+                : "Your shelf is now unlimited. Organize as many products as you want!"}
+            </p>
+          </div>
+          <button onClick={() => setStripeSuccessToast(false)} className="text-stone-400 hover:text-stone-600 p-1">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Header agrandi avec Soleil et Nom bien lisibles */}
       <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => go('accueil')}>
