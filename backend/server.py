@@ -469,16 +469,15 @@ async def scan(body: ScanIn, user=Depends(current_user)):
             image_bytes = base64.b64decode(raw_b64)
 
             sys_prompt = (
-                "Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
-                "de soin. Identifie la marque et le nom exact, puis les ingredients actifs presents. "
-                "Pour 'actifs', retourne UNIQUEMENT les codes de cette liste qui s'appliquent, dans un tableau : "
-                "retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine. "
-                "Correspondances : acide glycolique/lactique/mandelique = aha ; acide salicylique = bha ; "
-                "acide ascorbique = vitamine_c ; benzoyl peroxide = peroxyde_benzoyle ; hyaluronic acid = acide_hyaluronique. "
-                "Si aucun actif de la liste n'est present, retourne un tableau vide []. "
-                "Reponds UNIQUEMENT en JSON valide sans balises markdown:\n"
-                '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actifs":[],"texture_label":"","confiance":0.0}'
+                "Tu es l'expert produits cosmétiques de l'application MySolaia. On te montre l'image d'un produit de soin.\n"
+                "1. LIS ATTENTIVEMENT le texte écrit sur le flacon/l'étiquette (OCR). La marque (ex: 'The Ordinary', 'CeraVe', 'La Roche-Posay') et le nom complet exact du produit (ex: 'Niacinamide 10% + Zinc 1%'). Ne confonds pas avec une autre marque célèbre.\n"
+                "2. Détermine la catégorie parmi : nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible.\n"
+                "3. Détecte la durée PAO en mois (Period After Opening) : si le symbole de pot ouvert (ex: 3M, 6M, 12M, 24M) est visible, utilise ce chiffre (3, 6, 12 ou 24). Sinon, déduis la durée standard selon la formule (vitamine C = 3, sérums/yeux = 6, crèmes/nettoyants = 12, huiles/poudres = 24).\n"
+                "4. Identifie les actifs présents parmi cette liste stricte : retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine.\n"
+                "Réponds UNIQUEMENT en JSON valide sans balises markdown ni texte autour:\n"
+                '{"brand":"","nom":"","categorie":"serum","pao_mois":6,"actifs":[],"texture_label":"Fluide","confiance":0.95}'
             )
+
 
             # Cascade de modèles : si l'un est surchargé (503), on bascule sur le suivant
             import asyncio
@@ -529,10 +528,12 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     proposed = {
         "id": None, 
         "brand": brand or "Marque inconnue", 
-        "nom": nom or "Produit à confirmer",
+        "nom": nom or "Produit scanné",
         "categorie": cat,
         "category": cat.capitalize(),
         "actifs": [a for a in (data.get("actifs") or []) if a in {"retinol", "vitamine_c", "aha", "bha", "niacinamide", "peroxyde_benzoyle", "acide_hyaluronique", "peptides", "ceramides", "squalane", "panthenol", "acide_azelaique", "acide_mandelique", "vitamine_e", "centella", "zinc", "allantoine", "cafeine"}],
+        "pao_mois": int(data.get("pao_mois") or 6),
+        "date_ouverture": datetime.now(timezone.utc).date().isoformat(),
         "texture": 3,
         "texture_score": 3,
         "moment": "les_deux", 
