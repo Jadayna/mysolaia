@@ -312,63 +312,82 @@ const RoutineScreen = ({ go, routinePhase }) => {
         {t('routineDone')}
       </button>
 
-            {/* Modal Ressenti Peau */}
+                  {/* Modal de Sensation de la peau à 4 humeurs */}
       {showRatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="w-full max-w-sm rounded-[20px] p-6 space-y-4 animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-xs animate-fade-up">
+          <div className="w-full max-w-sm p-6 rounded-[24px] space-y-4 shadow-2xl text-center" style={{ background: '#FAF6F0', border: '1px solid var(--line)' }}>
             <div className="flex justify-between items-center">
-              <h3 className="font-display text-[18px]" style={{ color: 'var(--ink)' }}>
-                {lang === 'fr' ? 'Routine complétée !' : 'Routine complete!'}
+              <h3 className="font-display text-[19px]" style={{ color: 'var(--ink)' }}>
+                {lang === 'fr' ? "Comment se sent ta peau ?" : "How does your skin feel?"}
               </h3>
               <button onClick={() => setShowRatingModal(false)} className="p-1 rounded-full text-stone-400">
                 <X size={18} />
               </button>
             </div>
-
-            <p className="font-body text-[13px]" style={{ color: 'var(--ink-soft)' }}>
-              {lang === 'fr' 
-                ? 'Comment se sent ta peau après cette séance ?' 
-                : 'How does your skin feel after this session?'}
+            
+            <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? "Ton retour affine mes recommandations pour tes prochains soins."
+                : "Your feedback tunes my next routine recommendations."}
             </p>
 
-            {/* Choix du ressenti */}
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { score: 1, fr: 'Tiraillement', en: 'Tight', emoji: '😣' },
-                { score: 3, fr: 'Bien', en: 'Good', emoji: '✨' },
-                { score: 5, fr: 'Rayonnante', en: 'Glowing', emoji: '🌟' },
-              ].map((item) => (
-                <button
-                  key={item.score}
-                  type="button"
-                  onClick={() => setSkinRating(item.score)}
-                  className="p-3 rounded-[12px] flex flex-col items-center gap-1 transition-all"
-                  style={skinRating === item.score
-                    ? { background: 'rgba(182,130,53,0.15)', border: '1.5px solid var(--gold)', color: 'var(--gold)' }
-                    : { background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}
-                >
-                  <span className="text-2xl">{item.emoji}</span>
-                  <span className="font-body text-[11px] font-medium">{lang === 'fr' ? item.fr : item.en}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <button
+                onClick={() => submitJournal(5)}
+                disabled={isSubmitting}
+                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-amber-400 shadow-xs"
+              >
+                <span className="text-[24px]">✨</span>
+                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
+                  {lang === 'fr' ? "Éclatante" : "Glowing"}
+                </span>
+                <span className="font-body text-[10px] text-stone-400">Glowy & lumineuse</span>
+              </button>
+
+              <button
+                onClick={() => submitJournal(4)}
+                disabled={isSubmitting}
+                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-blue-400 shadow-xs"
+              >
+                <span className="text-[24px]">💧</span>
+                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
+                  {lang === 'fr' ? "Hydratée" : "Hydrated"}
+                </span>
+                <span className="font-body text-[10px] text-stone-400">Souple & rebondie</span>
+              </button>
+
+              <button
+                onClick={() => submitJournal(3)}
+                disabled={isSubmitting}
+                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-emerald-400 shadow-xs"
+              >
+                <span className="text-[24px]">🌿</span>
+                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
+                  {lang === 'fr' ? "Apaisée" : "Soothed"}
+                </span>
+                <span className="font-body text-[10px] text-stone-400">Calme & fraîche</span>
+              </button>
+
+              <button
+                onClick={() => submitJournal(1)}
+                disabled={isSubmitting}
+                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-rose-400 shadow-xs"
+              >
+                <span className="text-[24px]">😣</span>
+                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
+                  {lang === 'fr' ? "Tiraillements" : "Tight"}
+                </span>
+                <span className="font-body text-[10px] text-stone-400">Inconfort / sèche</span>
+              </button>
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => submitJournal(null)}
-                disabled={isSubmitting}
-                className="flex-1 py-2.5 rounded-[8px] font-body tracking-caps text-[10px] uppercase text-stone-500 bg-white border border-stone-200"
-              >
-                {lang === 'fr' ? 'Passer' : 'Skip'}
-              </button>
-              <button
-                onClick={() => submitJournal(skinRating)}
-                disabled={isSubmitting}
-                className="flex-1 py-2.5 rounded-[8px] font-body tracking-caps text-[10px] uppercase text-white gold-btn"
-              >
-                {isSubmitting ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer' : 'Save')}
-              </button>
-            </div>
+            <button
+              onClick={() => submitJournal(null)}
+              disabled={isSubmitting}
+              className="mt-2 text-stone-400 font-body text-[11px] underline uppercase tracking-caps"
+            >
+              {lang === 'fr' ? "Passer sans noter" : "Skip rating"}
+            </button>
           </div>
         </div>
       )}
