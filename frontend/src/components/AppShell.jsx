@@ -31,7 +31,9 @@ const EXTRA_SCREENS = [
 const AppShell = () => {
   const { t, lang, setLang } = useT();
   const { user, logout, refreshUser } = useAuth();
-  const [active, setActive] = useState('accueil');
+  const [active, setActive] = useState(() => {
+    return sessionStorage.getItem('solaia_active_tab') || 'accueil';
+  });  
   const [routinePhase, setRoutinePhase] = useState('soir');
   const [showMenuModal, setShowMenuModal] = useState(false);
 
@@ -116,7 +118,7 @@ const AppShell = () => {
     api.post('/user/timezone', { timezone: tz }).catch(() => {});
   }, []);
 
-  const go = (id, opts) => {
+const go = (id, opts) => {
     if (opts?.phase) setRoutinePhase(opts.phase);
 
     if (id === 'menu') {
@@ -126,6 +128,8 @@ const AppShell = () => {
 
     setShowMenuModal(false);
     setActive(id);
+    // Mémoriser l'écran actuel pour le rafraîchissement
+    sessionStorage.setItem('solaia_active_tab', id);
   };
 
   const Current =
