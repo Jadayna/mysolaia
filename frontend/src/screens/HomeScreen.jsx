@@ -222,43 +222,64 @@ const HomeScreen = ({ go }) => {
   const streak = computeStreak();
   const totalEntries = entries.length;
 
-  const insightText = (() => {
+    const insightText = (() => {
     const fr = lang === 'fr';
+
     if (totalEntries === 0) {
       return fr
-        ? "Je ne t'ai pas encore observée — fais ta première routine et je commencerai à noter ce qui fonctionne pour ta peau."
-        : "I haven't observed you yet — do your first routine and I'll start noting what works for your skin.";
+        ? "J'apprends encore à te connaître. Fais ta première routine et je commencerai à observer ton rythme naturel."
+        : "I'm still getting to know you. Do your first routine and I'll start observing your natural rhythm.";
     }
 
-    // 1. Détecter un tiraillement récent
+    // 1. Priorité absolue : écoute du ressenti de la peau
     const lastEntry = entries[0];
     if (lastEntry?.note_peau && lastEntry.note_peau <= 2) {
       return fr
-        ? "Ta peau a tiraillé lors de ta dernière routine. Ce soir, privilégie une hydratation réconfortante et laisse tes acides exfoliants de côté."
-        : "Your skin felt tight during your last routine. Tonight, focus on comforting hydration and give strong exfoliating acids a rest.";
+        ? "Ta peau a tiraillé récemment. Pour cette séance, privilégie une hydratation riche et laisse tes exfoliants de côté."
+        : "Your skin felt tight recently. For this session, focus on rich hydration and give exfoliating acids a rest.";
     }
-
-    // 2. Détecter une peau rayonnante
     if (lastEntry?.note_peau === 5) {
       return fr
-        ? "Ta peau est rayonnante ! L'ordre et l'alternance de tes soins lui font le plus grand bien."
-        : "Your skin is glowing! The balance and order of your current products work wonders.";
+        ? "Ta peau est rayonnante ! Ton rythme actuel et l'ordre de tes soins lui conviennent à merveille."
+        : "Your skin is glowing! Your current rhythm and product pairing work wonderfully.";
     }
 
-    // 3. Suivi du streak
+    // 2. Détection du rythme d'espacement (ex: tous les 2-3 jours)
+    if (totalEntries >= 4) {
+      // Calculer l'écart moyen en jours entre les routines
+      const timestamps = entries
+        .map((e) => new Date(e.date || e.created_at || e.horodatage).getTime())
+        .filter((t) => !isNaN(t))
+        .sort((a, b) => b - a);
+
+      if (timestamps.length >= 3) {
+        const diffsInDays = [];
+        for (let i = 0; i < Math.min(timestamps.length - 1, 5); i++) {
+          const diff = (timestamps[i] - timestamps[i + 1]) / (1000 * 60 * 60 * 24);
+          diffsInDays.push(diff);
+        }
+        const avgGap = diffsInDays.reduce((a, b) => a + b, 0) / diffsInDays.length;
+
+        // Si l'utilisatrice espace de 2 à 4 jours (rythme douche / intermittent)
+        if (avgGap >= 1.8 && avgGap <= 4.2) {
+          return fr
+            ? "Je remarque que tu prends soin de ta peau environ tous les 2 à 3 jours. C'est un excellent rythme ! J'optimise l'ordre de tes soins pour en tirer le maximum à chaque séance."
+            : "I notice you care for your skin every 2 to 3 days. It's a great rhythm! I tailor the order of your products to get the most out of every single session.";
+        }
+      }
+    }
+
+    // 3. Si très assidue (streak actif)
     if (streak >= 3) {
       return fr
-        ? `${streak} jours de suite ! Ta régularité est ta plus grande force — c'est ça qui fait la différence.`
-        : `${streak} days in a row! Consistency is your superpower — that's what makes the difference.`;
+        ? `${streak} jours consécutifs ! Ta régularité est remarquable, ta barrière cutanée te remercie.`
+        : `${streak} days in a row! Your consistency is remarkable, your skin barrier thanks you.`;
     }
 
+    // 4. Par défaut : encouragement bienveillant sans pression
     return fr
-      ? totalEntries === 1
-        ? "Première routine notée ! Chaque séance m'aide à mieux te connaître."
-        : `${totalEntries} routines notées jusqu'ici. Vise 3 jours de suite pour ancrer l'habitude.`
-      : totalEntries === 1
-        ? "First routine logged! Every session helps me know you better."
-        : `${totalEntries} routines logged so far. Aim for 3 days in a row to build the habit.`;
+      ? `${totalEntries} routines notées. Peu importe l'heure ou la fréquence, c'est ton moment à toi.`
+      : `${totalEntries} routines logged. No matter the time or frequency, this is your personal ritual.`;
   })();
 
   useEffect(() => {
@@ -359,8 +380,11 @@ const HomeScreen = ({ go }) => {
 
         <button
           onClick={() => go(safeProducts.length === 0 ? 'scan' : 'routine', { phase })}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98]"
-          style={{ background: '#A37B68' }}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all duration-200 active:scale-[0.98] hover:opacity-95"
+          style={{ 
+            background: 'var(--ink)', 
+            boxShadow: '0 8px 20px -6px rgba(163, 123, 104, 0.35)' 
+          }}
         >
           <span>
             {safeProducts.length === 0
@@ -402,20 +426,16 @@ const HomeScreen = ({ go }) => {
           ))}
         </div>
 
-                <button
-          onClick={() => go(safeProducts.length === 0 ? 'scan' : 'routine', { phase })}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all duration-200 active:scale-[0.98] hover:opacity-95"
+        <button 
+          onClick={() => go('scan')} 
+          className="w-full mt-3 py-3 rounded-[12px] font-body text-[10px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]" 
           style={{ 
-            background: 'var(--ink)', 
-            boxShadow: '0 8px 20px -6px rgba(163, 123, 104, 0.35)' 
+            background: 'var(--cream-card)', 
+            border: '1px solid var(--line-strong)', 
+            color: 'var(--ink-soft)' 
           }}
         >
-          <span>
-            {safeProducts.length === 0
-              ? (lang === 'fr' ? 'AJOUTER UN PRODUIT' : 'ADD A PRODUCT')
-              : (lang === 'fr' ? 'COMMENCER MA ROUTINE' : 'START MY ROUTINE')}
-          </span>
-          <ArrowRight size={14} />
+          {lang === 'fr' ? 'GÉRER MES PRODUITS' : 'MANAGE PRODUCTS'}
         </button>
       </div>
     </div>
