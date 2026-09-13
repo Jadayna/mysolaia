@@ -577,6 +577,42 @@ const [products, setProducts] = useState(() => {
           </button>
         </div>
       )}
+      
+      {/* Bulle pédagogique discrète pour le premier scan */}
+      {showFirstScanTip && products.length > 0 && (
+        <div className="p-4 rounded-[18px] shadow-sm animate-fade-up flex items-start gap-3 relative" style={{ background: 'rgba(182, 130, 53, 0.08)', border: '1px solid var(--gold-soft)' }}>
+          <span className="text-[18px] leading-none shrink-0">💡</span>
+          <div className="flex-1 pr-6">
+            <h4 className="font-display text-[14px] font-semibold" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? "Ton premier soin est classé !" : "Your first bottle is organized!"}
+            </h4>
+            <p className="font-body text-[12px] mt-1 leading-snug" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? "MySolaia a estimé sa fraîcheur (~6 mois). Touche ta bouteille pour voir sa fiche complète ou ajuster sa date d'ouverture !"
+                : "MySolaia estimated its freshness (~6 months). Tap your bottle to view its details or adjust when you opened it!"}
+            </p>
+            <button
+              onClick={() => {
+                setShowFirstScanTip(false);
+                localStorage.setItem('solaia_first_scan_tip_seen', 'true');
+              }}
+              className="mt-2.5 px-3 py-1 rounded-[8px] font-body text-[10.5px] uppercase tracking-caps font-semibold text-white transition-all active:scale-95"
+              style={{ background: 'var(--gold)' }}
+            >
+              {lang === 'fr' ? "Compris ✨" : "Got it ✨"}
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setShowFirstScanTip(false);
+              localStorage.setItem('solaia_first_scan_tip_seen', 'true');
+            }}
+            className="absolute top-3.5 right-3.5 text-stone-400 hover:text-stone-600"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
     {/* Liste des produits avec Barre de Recherche & Scroll dédié */}
       <div className="space-y-3 pt-2">
