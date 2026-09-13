@@ -30,7 +30,7 @@ const EXTRA_SCREENS = [
 
 const AppShell = () => {
   const { t, lang, setLang } = useT();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [active, setActive] = useState('accueil');
   const [routinePhase, setRoutinePhase] = useState('soir');
   const [showMenuModal, setShowMenuModal] = useState(false);
@@ -66,6 +66,26 @@ const AppShell = () => {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  // Interception universelle du retour Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get('session_id');
+    if (sid) {
+      api.get(`/payments/status/${sid}`)
+        .then(async (res) => {
+          if (res.data?.unlocked || res.data?.status === 'complete') {
+            if (refreshUser) {
+              await refreshUser();
+            }
+            alert(lang === 'fr' 
+              ? "✨ Félicitations ! Ton accès MySolaia Illimité est activé. Ton étagère est débloquée sans restriction !" 
+              : "✨ Congratulations! Your Unlimited MySolaia access is active. Your shelf is now unlimited!");
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        })
+        .catch((err) => console.error("Erreur validation Stripe:", err));
+    }
+  }, [refreshUser, lang]);
   const [showAndroidHelp, setShowAndroidHelp] = useState(false);
 
   const handleInstallClick = async () => {
