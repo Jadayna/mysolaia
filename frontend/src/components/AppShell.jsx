@@ -106,7 +106,7 @@ const AppShell = () => {
     HomeScreen;
 
   return (
-    <div className="app-shell relative min-h-screen pb-20">
+    <div className="app-shell relative">
       {/* Header agrandi avec Soleil et Nom bien lisibles */}
       <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => go('accueil')}>
