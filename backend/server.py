@@ -326,10 +326,8 @@ async def toggle_shelf(shelf_id: str, user=Depends(current_user)):
 
 @api_router.delete("/shelf/clear")
 async def clear_shelf(user=Depends(current_user)):
-    """Vide l'étagère de l'utilisateur tout en conservant son journal"""
     await db.user_products.delete_many({"user_id": user["id"]})
-    return {"ok": True}
-
+    return {"ok": True, "message": "Shelf cleared"}
 
 # ---------------- Routine & Home ----------------
 @api_router.get("/routine")
