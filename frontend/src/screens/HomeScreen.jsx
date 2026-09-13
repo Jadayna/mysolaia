@@ -169,7 +169,14 @@ function pickTip(temp, code, lang) {
   const band = tempBand(temp);
   const pool = [...(CONDITIONS[cond]?.[l] || []), ...(TIPS[band]?.[l] || [])];
   if (pool.length === 0) return '';
-  return pool[Math.floor(Math.random() * pool.length)];
+
+  // Stabilité : un conseil unique par tranche (matin/soir) de chaque jour
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+  const slot = now.getHours() < 13 ? 0 : 1;
+  const stableIndex = (dayOfYear * 2 + slot) % pool.length;
+
+  return pool[stableIndex];
 }
 
 const COND_ICONS = { sun: Sun, cloud: Cloud, fog: CloudFog, rain: CloudRain, snow: CloudSnow, storm: CloudLightning };
