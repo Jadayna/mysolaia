@@ -582,8 +582,8 @@ async def checkout(body: CheckoutIn, user=Depends(current_user)):
             line_items=[{"price": price.id, "quantity": 1}],
             mode="subscription",
             subscription_data={"trial_period_days": 7},
-            success_url=f"{body.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{body.origin_url}/payment/cancel",
+            success_url=f"{body.origin_url}/trial?paid=1&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{body.origin_url}/trial?canceled=1",
             metadata={"lookup_key": body.lookup_key, "user_id": user["id"]},
         )
         await db.payment_transactions.insert_one({
@@ -627,12 +627,12 @@ async def payment_status(session_id: str):
     if record.get("payment_status") != "paid":
         try:
             s = stripe.checkout.Session.retrieve(session_id)
-            if s.status == "complete" or s.payment_status == "paid":
+            if s.status == "complete" or s.payment_status in ("paid", "no_payment_required"):
                 customer_id = s.get("customer")
                 await db.payment_transactions.update_one(
-                    {"session_id": session_id, "payment_status": {"$ne": "paid"}},
-                    {"$set": {"status": "completed", "payment_status": "paid", "customer_id": customer_id}})
-                
+                    {"session_id": session_id},
+                    {"$set": {"status": "completed", "payment_status": s.payment_status, "customer_id": customer_id}}
+                )
                 user_id = record.get("user_id")
                 if user_id:
                     await db.users.update_one(

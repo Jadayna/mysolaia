@@ -238,10 +238,29 @@ const ScanScreen = ({ go }) => {
     } catch (err) {
       console.error(err);
       const detail = err.response?.data?.detail;
-      if (err.response?.status === 403 && detail) {
-        alert(detail);
+      if (err.response?.status === 403) {
+        setModalConfirm({
+          title: lang === 'fr' ? 'Étagère Complète ✨' : 'Shelf Full ✨',
+          text: lang === 'fr'
+            ? 'Tu as atteint la limite de 5 produits du plan gratuit. Débloque MySolaia Illimité pour ajouter tous tes soins sans restriction !'
+            : 'You have reached the 5-product limit on the free tier. Unlock MySolaia Unlimited to organize all your skincare without limits!',
+          confirmLabel: lang === 'fr' ? 'Débloquer l\'accès' : 'Unlock access',
+          cancelLabel: lang === 'fr' ? 'Plus tard' : 'Later',
+          onConfirm: () => {
+            setModalConfirm(null);
+            go('trial'); // Redirige directement vers l'écran d'abonnement !
+          },
+          onCancel: () => setModalConfirm(null),
+        });
       } else {
-        alert(lang === 'fr' ? 'Erreur lors du scan. Réessaie.' : 'Error during scan. Please try again.');
+        setModalConfirm({
+          title: lang === 'fr' ? 'Oups !' : 'Oops!',
+          text: lang === 'fr' ? 'Erreur lors du scan. Vérifie l\'éclairage et réessaie.' : 'Scan error. Check the lighting and try again.',
+          confirmLabel: 'OK',
+          cancelLabel: lang === 'fr' ? 'Fermer' : 'Close',
+          onConfirm: () => setModalConfirm(null),
+          onCancel: () => setModalConfirm(null),
+        });
       }
     } finally {
       setLoading(false);
@@ -311,9 +330,31 @@ const ScanScreen = ({ go }) => {
       setMPaoMonths(0);
       setMPhoto(null);
       setShowManual(false);
-    } catch (e) {
-      const detail = e?.response?.data?.detail;
-      alert(detail || (lang === 'fr' ? "Impossible d'ajouter le produit." : "Could not add the product."));
+   } catch (e) {
+      if (e?.response?.status === 403) {
+        setModalConfirm({
+          title: lang === 'fr' ? 'Étagère Complète ✨' : 'Shelf Full ✨',
+          text: lang === 'fr'
+            ? 'Tu as atteint la limite de 5 produits du plan gratuit. Débloque MySolaia Illimité pour ajouter tous tes soins sans restriction !'
+            : 'You have reached the 5-product limit on the free tier. Unlock MySolaia Unlimited to organize all your skincare without limits!',
+          confirmLabel: lang === 'fr' ? 'Débloquer l\'accès' : 'Unlock access',
+          cancelLabel: lang === 'fr' ? 'Plus tard' : 'Later',
+          onConfirm: () => {
+            setModalConfirm(null);
+            go('trial');
+          },
+          onCancel: () => setModalConfirm(null),
+        });
+      } else {
+        setModalConfirm({
+          title: lang === 'fr' ? 'Oups !' : 'Oops!',
+          text: lang === 'fr' ? "Impossible d'enregistrer le produit." : "Could not save the product.",
+          confirmLabel: 'OK',
+          cancelLabel: lang === 'fr' ? 'Fermer' : 'Close',
+          onConfirm: () => setModalConfirm(null),
+          onCancel: () => setModalConfirm(null),
+        });
+      }
     } finally {
       setSavingManual(false);
     }
