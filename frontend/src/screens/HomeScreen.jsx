@@ -236,7 +236,11 @@ const HomeScreen = ({ go }) => {
   const streak = computeStreak();
   const totalEntries = entries.length;
 
-    const insightText = (() => {
+  const [cachedInsight, setCachedInsight] = useState(() => {
+    return localStorage.getItem('solaia_last_insight') || '';
+  });
+
+  const computedInsight = (() => {
     const fr = lang === 'fr';
 
     if (totalEntries === 0) {
@@ -245,7 +249,6 @@ const HomeScreen = ({ go }) => {
         : "I'm still getting to know you. Do your first routine and I'll start observing your natural rhythm.";
     }
 
-    // 1. Priorité absolue : écoute du ressenti de la peau
     const lastEntry = entries[0];
     if (lastEntry?.note_peau && lastEntry.note_peau <= 2) {
       return fr
@@ -258,9 +261,7 @@ const HomeScreen = ({ go }) => {
         : "Your skin is glowing! Your current rhythm and product pairing work wonderfully.";
     }
 
-    // 2. Détection du rythme d'espacement (ex: tous les 2-3 jours)
     if (totalEntries >= 4) {
-      // Calculer l'écart moyen en jours entre les routines
       const timestamps = entries
         .map((e) => new Date(e.date || e.created_at || e.horodatage).getTime())
         .filter((t) => !isNaN(t))
@@ -274,7 +275,6 @@ const HomeScreen = ({ go }) => {
         }
         const avgGap = diffsInDays.reduce((a, b) => a + b, 0) / diffsInDays.length;
 
-        // Si l'utilisatrice espace de 2 à 4 jours (rythme douche / intermittent)
         if (avgGap >= 1.8 && avgGap <= 4.2) {
           return fr
             ? "Je remarque que tu prends soin de ta peau environ tous les 2 à 3 jours. C'est un excellent rythme ! J'optimise l'ordre de tes soins pour en tirer le maximum à chaque séance."
@@ -283,18 +283,27 @@ const HomeScreen = ({ go }) => {
       }
     }
 
-    // 3. Si très assidue (streak actif)
     if (streak >= 3) {
       return fr
         ? `${streak} jours consécutifs ! Ta régularité est remarquable, ta barrière cutanée te remercie.`
         : `${streak} days in a row! Your consistency is remarkable, your skin barrier thanks you.`;
     }
 
-    // 4. Par défaut : encouragement bienveillant sans pression
     return fr
       ? `${totalEntries} routines notées. Peu importe l'heure ou la fréquence, c'est ton moment à toi.`
       : `${totalEntries} routines logged. No matter the time or frequency, this is your personal ritual.`;
   })();
+
+  // Dès qu'une vraie phrase personnalisée est calculée, on la grave dans le marbre
+  useEffect(() => {
+    if (computedInsight && !computedInsight.includes("J'apprends") && !computedInsight.includes("still getting")) {
+      setCachedInsight(computedInsight);
+      localStorage.setItem('solaia_last_insight', computedInsight);
+    }
+  }, [computedInsight]);
+
+  // Si on a déjà une phrase en mémoire, on l'affiche SANS ATTENDRE pour éliminer tout saut visuel
+  const finalInsight = (totalEntries === 0 && cachedInsight) ? cachedInsight : (computedInsight || cachedInsight);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -417,7 +426,7 @@ const HomeScreen = ({ go }) => {
           {lang === 'fr' ? 'CE QUE JE REMARQUE' : 'WHAT I NOTICE'}
         </p>
         <p className="font-body italic text-[13.5px] mt-2 leading-relaxed" style={{ color: 'var(--ink)' }}>
-          "{insightText}"
+          "{finalInsight}"
         </p>
       </div>
 
