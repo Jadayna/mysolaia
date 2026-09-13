@@ -57,6 +57,8 @@ class ProfileIn(BaseModel):
     sensibilite: Optional[int] = None
     objectifs: Optional[List[str]] = None
     langue: Optional[str] = None
+    track_skin_feel: Optional[bool] = None
+    skin_photos: Optional[List[dict]] = None
 
 class SecurityUpdateIn(BaseModel):
     current_password: str
