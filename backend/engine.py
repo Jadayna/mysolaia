@@ -72,7 +72,7 @@ TEXTS = {
         "title_matin": "Matin",
         "title_soir_no_exfo": "Soir sans exfoliation",
         "title_soir_exfo": "Soir avec exfoliation",
-        "banner_rest": "Tu as exfolié récemment. On laisse la peau souffler — l'exfoliation revient vendredi.",
+        "banner_rest": "Pas d'exfoliation ce soir — on laisse la peau se régénérer. Ton prochain soin exfoliant est prévu pour {prochain_jour}.",
         "banner_retinol": "Ton rétinol reste au placard ce soir — {acid} occupe déjà le terrain. Je l'ai replacé à jeudi.",
         "banner_three": "Trois actifs forts, c'était beaucoup pour un soir. J'en ai gardé deux et reporté le reste.",
         "decision_one_exfo": "Un seul exfoliant ce soir — je garde {nom} et je replace l'autre plus tard dans la semaine.",
@@ -88,7 +88,7 @@ TEXTS = {
         "title_matin": "Morning",
         "title_soir_no_exfo": "Evening without exfoliation",
         "title_soir_exfo": "Evening with exfoliation",
-        "banner_rest": "You exfoliated recently. We let the skin breathe — exfoliation comes back Friday.",
+        "banner_rest": "No exfoliation tonight — giving your skin barrier time to rest. Your next exfoliating step is scheduled for {prochain_jour}.",
         "banner_retinol": "Your retinol stays in the cabinet tonight — {acid} already holds the ground. I moved it to Thursday.",
         "banner_three": "Three strong actives was a lot for one evening. I kept two and postponed the rest.",
         "decision_one_exfo": "Just one exfoliant tonight — I'm keeping {nom} and moving the other later this week.",
@@ -275,7 +275,11 @@ def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
             pool = [p for p in pool if p["categorie"] != "exfoliant"]
             title = T["title_soir_no_exfo"]
             if exfoliants:
-                banner = T["banner_rest"]
+                # Trouver le prochain jour d'exfoliation réel
+                target_days = sorted(list(exfoliation_days(sensibilite)))
+                next_day_num = next((d for d in target_days if d > weekday), target_days[0])
+                prochain_jour = weekdays[next_day_num]
+                banner = T["banner_rest"].format(prochain_jour=prochain_jour)
         else:
             title = T["title_soir_exfo"]
             # Keep only the strongest single exfoliant (lowest pH).
