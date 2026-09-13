@@ -72,7 +72,7 @@ const AuthScreen = () => {
         {/* Logo Officiel de l'application */}
         <div className="flex justify-center items-center">
           <img 
-            src="/icon-192.png" 
+            src="/mysolaia-nom-4096.png" 
             alt="MySolaia" 
             className="h-16 object-contain mx-auto" 
           />

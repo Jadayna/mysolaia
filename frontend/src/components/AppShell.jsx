@@ -126,7 +126,7 @@ const AppShell = () => {
           <img 
             src="/mysolaia-nom-4096.png" 
             alt="MySolaia" 
-            className="h-6 w-auto object-contain"
+            className="h-9 w-auto object-contain"
           />
         </div>
         
