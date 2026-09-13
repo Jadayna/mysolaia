@@ -253,111 +253,110 @@ const JournalScreen = ({ go }) => {
         ))}
       </div>
 
-            {/* ===== Mes Victoires de Soin ===== */}
-      <div className="space-y-2 pt-2">
-        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>
-          {lang === 'fr' ? 'Mes victoires de soin' : 'My skincare milestones'}
-        </span>
+          {/* ===== Salle des 8 Trophées Débloquables ===== */}
+      <div className="space-y-2.5 pt-2">
+        <div className="flex items-center justify-between">
+          <span className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+            {lang === 'fr' ? 'Mes Victoires de Soin' : 'Care Victories'}
+          </span>
+          <span className="font-body text-[11px] font-medium" style={{ color: 'var(--ink-soft)' }}>
+            {[
+              entries.length >= 1,
+              streak >= 3,
+              streak >= 7,
+              entries.filter(e => e.title?.toLowerCase().includes('matin') || e.title?.toLowerCase().includes('jour') || e.title?.toLowerCase().includes('day')).length >= 3,
+              entries.filter(e => e.title?.toLowerCase().includes('soir') || e.title?.toLowerCase().includes('evening')).length >= 5,
+              shelfCount >= 5,
+              skinPhotos.length >= 1,
+              entries.length >= 10,
+            ].filter(Boolean).length} / 8 {lang === 'fr' ? 'débloqués' : 'unlocked'}
+          </span>
+        </div>
+
         <div className="grid grid-cols-2 gap-2.5">
-          {/* Badge 1 : Première Lueur */}
-          {(() => {
-            const unlocked = entries.length >= 1;
-            return (
-              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
-                style={{
-                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
-                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
-                  opacity: unlocked ? 1 : 0.45
-                }}>
-                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
-                  {unlocked ? <Sparkles size={16} /> : <Lock size={16} />}
-                </div>
-                <div>
-                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
-                    {lang === 'fr' ? "Première Lueur" : 'First Glow'}
-                  </p>
-                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
-                    {lang === 'fr' ? '1ère routine faite' : '1st routine done'}
-                  </p>
-                </div>
+          {[
+            {
+              id: 'first',
+              icon: '🌱',
+              title: lang === 'fr' ? 'Première Lueur' : 'First Glow',
+              desc: lang === 'fr' ? '1ère routine validée' : '1st completed routine',
+              unlocked: entries.length >= 1,
+            },
+            {
+              id: 'streak3',
+              icon: '🔥',
+              title: lang === 'fr' ? 'Rythme Solaire' : 'Solar Rhythm',
+              desc: lang === 'fr' ? '3 jours consécutifs' : '3 days in a row',
+              unlocked: streak >= 3,
+            },
+            {
+              id: 'streak7',
+              icon: '👑',
+              title: lang === 'fr' ? 'Constance d\'Or' : 'Golden Habit',
+              desc: lang === 'fr' ? '7 jours consécutifs' : '7 days in a row',
+              unlocked: streak >= 7,
+            },
+            {
+              id: 'sun',
+              icon: '☀️',
+              title: lang === 'fr' ? 'Bouclier UV' : 'UV Shield',
+              desc: lang === 'fr' ? '3 routines du matin' : '3 morning routines',
+              unlocked: entries.filter(e => e.title?.toLowerCase().includes('matin') || e.title?.toLowerCase().includes('jour') || e.title?.toLowerCase().includes('day')).length >= 3,
+            },
+            {
+              id: 'moon',
+              icon: '🌙',
+              title: lang === 'fr' ? 'Reine de la Nuit' : 'Night Queen',
+              desc: lang === 'fr' ? '5 routines du soir' : '5 evening routines',
+              unlocked: entries.filter(e => e.title?.toLowerCase().includes('soir') || e.title?.toLowerCase().includes('evening')).length >= 5,
+            },
+            {
+              id: 'shelf',
+              icon: '🧴',
+              title: lang === 'fr' ? 'Armoire de Soins' : 'Skincare Shelf',
+              desc: lang === 'fr' ? '5 flacons ordonnés' : '5 products organized',
+              unlocked: shelfCount >= 5,
+            },
+            {
+              id: 'selfie',
+              icon: '📸',
+              title: lang === 'fr' ? 'Miroir du Temps' : 'Time Mirror',
+              desc: lang === 'fr' ? '1er selfie de peau' : '1st skin photo saved',
+              unlocked: skinPhotos.length >= 1,
+            },
+            {
+              id: 'master',
+              icon: '💎',
+              title: lang === 'fr' ? 'Sagesse Cutanée' : 'Skin Wisdom',
+              desc: lang === 'fr' ? '10 routines notées' : '10 routines logged',
+              unlocked: entries.length >= 10,
+            },
+          ].map((badge) => (
+            <div
+              key={badge.id}
+              className={`p-3 rounded-[16px] border flex items-center gap-2.5 transition-all ${
+                badge.unlocked
+                  ? 'bg-white shadow-xs border-amber-200'
+                  : 'bg-stone-100/50 border-stone-200 opacity-60'
+              }`}
+            >
+              <div
+                className={`w-10 h-10 rounded-[12px] flex items-center justify-center text-[18px] shrink-0 ${
+                  badge.unlocked ? 'bg-amber-50 shadow-xs' : 'bg-stone-200/60 grayscale'
+                }`}
+              >
+                {badge.icon}
               </div>
-            );
-          })()}
-
-          {/* Badge 2 : Rythme Solaire */}
-          {(() => {
-            const unlocked = streak >= 3;
-            return (
-              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
-                style={{
-                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
-                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
-                  opacity: unlocked ? 1 : 0.45
-                }}>
-                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
-                  {unlocked ? <Flame size={16} /> : <Lock size={16} />}
-                </div>
-                <div>
-                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
-                    {lang === 'fr' ? 'Rythme Solaire' : 'Solar Rhythm'}
-                  </p>
-                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
-                    {lang === 'fr' ? "3 jours d'affilée" : '3-day streak'}
-                  </p>
-                </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="font-display text-[12.5px] font-semibold truncate" style={{ color: badge.unlocked ? 'var(--ink)' : 'var(--ink-soft)' }}>
+                  {badge.title}
+                </p>
+                <p className="font-body text-[10px] text-stone-500 truncate">
+                  {badge.desc}
+                </p>
               </div>
-            );
-          })()}
-
-          {/* Badge 3 : Bouclier Cutané */}
-          {(() => {
-            const unlocked = entries.length >= 5;
-            return (
-              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
-                style={{
-                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
-                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
-                  opacity: unlocked ? 1 : 0.45
-                }}>
-                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
-                  {unlocked ? <ShieldCheck size={16} /> : <Lock size={16} />}
-                </div>
-                <div>
-                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
-                    {lang === 'fr' ? 'Bouclier Cutané' : 'Skin Shield'}
-                  </p>
-                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
-                    {lang === 'fr' ? '5 routines validées' : '5 routines done'}
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Badge 4 : Constance d'Or */}
-          {(() => {
-            const unlocked = streak >= 7;
-            return (
-              <div className="p-3 rounded-[14px] flex items-center gap-2.5"
-                style={{
-                  background: unlocked ? 'var(--cream-card)' : 'rgba(0,0,0,0.02)',
-                  border: unlocked ? '1px solid var(--gold-soft)' : '1px dashed var(--line)',
-                  opacity: unlocked ? 1 : 0.45
-                }}>
-                <div className="p-2 rounded-full shrink-0" style={{ background: unlocked ? 'rgba(182,130,53,0.15)' : '#eee', color: unlocked ? 'var(--gold)' : '#999' }}>
-                  {unlocked ? <Award size={16} /> : <Lock size={16} />}
-                </div>
-                <div>
-                  <p className="font-display text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
-                    {lang === 'fr' ? "Constance d'Or" : 'Golden Ritual'}
-                  </p>
-                  <p className="font-body text-[10px]" style={{ color: 'var(--ink-faint)' }}>
-                    {lang === 'fr' ? '7 jours de streak' : '7-day streak'}
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
+            </div>
+          ))}
         </div>
       </div>
 
