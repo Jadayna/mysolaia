@@ -101,7 +101,14 @@ const ACTIF_LABELS = {
 
 const ScanScreen = ({ go }) => {
   const { lang } = useT();
-  const [products, setProducts] = useState([]);
+const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('solaia_cached_shelf');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const filteredProducts = products.filter((p) => {
     if (!searchQuery.trim()) return true;
@@ -136,6 +143,7 @@ const ScanScreen = ({ go }) => {
       const res = await api.get('/shelf');
       const data = res?.data?.shelf || res?.data || [];
       setProducts(Array.isArray(data) ? data : []);
+  localStorage.setItem('solaia_cached_shelf', JSON.stringify(Array.isArray(data) ? data : []));      
     } catch (e) {
       console.error("Erreur chargement étagère :", e);
       setProducts([]);

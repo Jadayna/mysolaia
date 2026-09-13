@@ -179,9 +179,23 @@ const HomeScreen = ({ go }) => {
   const { lang } = useT();
 
   const [weather, setWeather] = useState({ temp: '--', tip: '', cond: null });
-  const [products, setProducts] = useState([]);
-  const [entries, setEntries] = useState([]);
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('solaia_cached_shelf');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
+  const [entries, setEntries] = useState(() => {
+    try {
+      const saved = localStorage.getItem('solaia_cached_journal');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const userName = user?.prenom || user?.first_name || user?.name || '';
 
   const currentHour = new Date().getHours();
@@ -308,20 +322,22 @@ const HomeScreen = ({ go }) => {
 
     api.get('/shelf')
       .then((res) => {
-        const data = res?.data;
-        if (Array.isArray(data)) setProducts(data);
-        else if (data && Array.isArray(data.shelf)) setProducts(data.shelf);
-        else if (data && Array.isArray(data.products)) setProducts(data.products);
-        else setProducts([]);
+        const raw = res?.data;
+        const list = Array.isArray(raw) 
+          ? raw 
+          : (raw?.shelf || raw?.products || []);
+        setProducts(list);
+        localStorage.setItem('solaia_cached_shelf', JSON.stringify(list));
       })
-      .catch(() => setProducts([]));
+      .catch(() => {});
 
     api.get('/journal')
       .then((res) => {
-        const data = res?.data;
-        setEntries(Array.isArray(data) ? data : (Array.isArray(data?.entries) ? data.entries : []));
+        const list = res?.data?.entries || [];
+        setEntries(list);
+        localStorage.setItem('solaia_cached_journal', JSON.stringify(list));
       })
-      .catch(() => setEntries([]));
+      .catch(() => {});
   }, [lang]);
 
 
