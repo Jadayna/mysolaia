@@ -41,28 +41,29 @@ const AppShell = () => {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Vérifier si l'app est déjà installée (mode autonome/standalone)
+    // 1. Si déjà installée en plein écran, ne rien afficher
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const dismissed = localStorage.getItem('solaia_pwa_dismissed');
-    if (isStandalone || dismissed) return;
+    if (isStandalone) return;
 
-    // Détection iOS Safari
+    // 2. Détection infaillible iOS (iPhone, iPad, iPod et iPadOS en mode Mac)
     const ua = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(ua);
+    const isIosDevice = /iphone|ipad|ipod/.test(ua) || (ua.includes('macintosh') && navigator.maxTouchPoints > 1);
     setIsIOS(isIosDevice);
 
     if (isIosDevice) {
+      // Afficher sur iOS Safari
       setShowInstallBanner(true);
-    } else {
-      // Android / Chrome : écouter l'événement système
-      const handleBeforeInstall = (e) => {
-        e.preventDefault();
-        setDeferredPrompt(e);
-        setShowInstallBanner(true);
-      };
-      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-      return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
     }
+
+    // 3. Android / Chrome / Edge : écouter l'événement système
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
   const handleInstallClick = async () => {
