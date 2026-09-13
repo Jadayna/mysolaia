@@ -35,6 +35,18 @@ const JournalScreen = ({ go }) => {
   });
   const [previewPhoto, setPreviewPhoto] = useState(null);
 
+  // Charger les photos depuis le compte utilisateur
+  useEffect(() => {
+    api.get('/auth/me').then((res) => {
+      const userPhotos = res?.data?.user?.skin_photos;
+      if (Array.isArray(userPhotos) && userPhotos.length > 0) {
+        setSkinPhotos(userPhotos);
+        try { localStorage.setItem('solaia_skin_photos', JSON.stringify(userPhotos)); } catch {}
+      }
+    }).catch(() => {});
+  }, []);
+
+
   // Compression photo côté client (max 800px)
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -60,9 +72,14 @@ const JournalScreen = ({ go }) => {
           url: dataUrl,
         };
 
-        const updated = [newPhoto, ...skinPhotos].slice(0, 10); // Garder les 10 dernières photos
+       const updated = [newPhoto, ...skinPhotos].slice(0, 10);
         setSkinPhotos(updated);
         try { localStorage.setItem('solaia_skin_photos', JSON.stringify(updated)); } catch {}
+        // Sauvegarde permanente dans le profil utilisateur
+        api.put('/auth/profile', { skin_photos: updated }).catch((err) => {
+          console.error("Erreur sauvegarde selfie cloud :", err);
+        });
+
       };
       img.src = ev.target.result;
     };
@@ -73,6 +90,7 @@ const JournalScreen = ({ go }) => {
     const updated = skinPhotos.filter((p) => p.id !== id);
     setSkinPhotos(updated);
     try { localStorage.setItem('solaia_skin_photos', JSON.stringify(updated)); } catch {}
+    api.put('/auth/profile', { skin_photos: updated }).catch(() => {});
     setPreviewPhoto(null);
   };
 
