@@ -515,14 +515,20 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     nom = (data.get("nom") or "").strip()
     matched = None
 
-    if nom:
-        matched = await db.products.find_one(
-            {"source": "catalogue", "nom": {"$regex": re.escape(nom[:12]), "$options": "i"}}, {"_id": 0})
+    # On ne fait de correspondance avec le catalogue QUE si la marque ET le nom matchent
+    if brand and nom:
+        matched = await db.products.find_one({
+            "source": "catalogue",
+            "brand": {"$regex": f"^{re.escape(brand)}$", "$options": "i"},
+            "nom": {"$regex": re.escape(nom[:10]), "$options": "i"}
+        }, {"_id": 0})
 
     if matched:
         matched["category"] = matched.get("category") or matched.get("categorie") or "Serum"
         matched["texture_score"] = matched.get("texture") or 3
-        return {"recognized": True, "product": matched, "note": "Produit reconnu et placé dans ton ordre."}
+        matched["pao_mois"] = int(data.get("pao_mois") or 6)
+        matched["date_ouverture"] = datetime.now(timezone.utc).date().isoformat()
+        return {"recognized": True, "product": matched, "note": "Produit certifié reconnu."}
 
     cat = data.get("categorie") or "serum"
     proposed = {
