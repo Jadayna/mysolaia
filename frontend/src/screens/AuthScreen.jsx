@@ -50,42 +50,42 @@ const AuthScreen = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col justify-between p-8 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
+    return (
+    <div className="h-[100dvh] overflow-hidden flex flex-col justify-between px-6 py-5 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
       {/* Sélecteur de langue */}
       <div className="flex justify-end">
         <button 
           onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-          className="font-body text-[11px] uppercase tracking-caps font-semibold" 
+          className="font-body text-[11px] uppercase tracking-caps font-semibold px-2 py-1" 
           style={{ color: 'var(--ink-soft)' }}
         >
           {lang === 'fr' ? 'EN' : 'FR'}
         </button>
       </div>
 
-      {/* En-tête / Logo */}
-      <div className="my-auto space-y-4">
-      <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
-        {lang === 'fr' ? "LA ROUTINE QUI SE CONSTRUIT D'ELLE-MÊME" : 'THE ROUTINE THAT BUILDS ITSELF'}
-      </p>
+      {/* En-tête / Logo / Formulaire */}
+      <div className="my-auto space-y-3 max-w-sm mx-auto w-full">
+        <p className="font-body text-[9.5px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+          {lang === 'fr' ? "LA ROUTINE QUI SE CONSTRUIT D'ELLE-MÊME" : 'THE ROUTINE THAT BUILDS ITSELF'}
+        </p>
 
-        {/* Logo Officiel de l'application */}
-        <div className="flex justify-center items-center">
+        {/* Logo Officiel */}
+        <div className="flex justify-center items-center py-1">
           <img 
             src="/mysolaia-nom-4096.png" 
             alt="MySolaia" 
-            className="h-16 object-contain mx-auto" 
+            className="h-12 object-contain mx-auto" 
           />
         </div>
 
         {/* Formulaire */}
-        <form onSubmit={handleSubmit} className="mt-8 space-y-3 max-w-sm mx-auto">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-2.5">
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
+            className="w-full px-4 py-3 rounded-[12px] font-body text-[13.5px] outline-none"
             style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
             required
           />
@@ -94,14 +94,14 @@ const AuthScreen = () => {
             placeholder={lang === 'fr' ? 'Mot de passe' : 'Password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
+            className="w-full px-4 py-3 rounded-[12px] font-body text-[13.5px] outline-none"
             style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
             required
           />
 
           <button
             type="submit"
-            className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm"
+            className="w-full py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-1 shadow-sm"
             style={{ background: '#A37B68' }}
           >
             {isLogin 
@@ -110,8 +110,8 @@ const AuthScreen = () => {
           </button>
         </form>
 
-        {/* Bascule entre Se Connecter / Créer un compte */}
-        <p className="font-body text-[12.5px] mt-4" style={{ color: 'var(--ink-soft)' }}>
+        {/* Bascule Connexion / Inscription */}
+        <p className="font-body text-[12px] pt-1" style={{ color: 'var(--ink-soft)' }}>
           {isLogin ? (
             <>
               {lang === 'fr' ? 'Pas encore de compte ? ' : "Don't have an account? "}
@@ -138,18 +138,17 @@ const AuthScreen = () => {
             </>
           )}
         </p>
-      </div>
 
-      {/* Bouton d'installation sur l'écran d'accueil */}
+        {/* Bouton d'installation sur l'écran d'accueil */}
         {!isStandalone && (
-          <div className="pt-4">
+          <div className="pt-2">
             <button
               type="button"
               onClick={handleInstall}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-body text-[11px] uppercase tracking-caps font-semibold shadow-sm transition-all active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-body text-[10px] uppercase tracking-caps font-semibold shadow-sm transition-all active:scale-[0.98]"
               style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }}
             >
-              <Download size={13} />
+              <Download size={12} />
               <span>{lang === 'fr' ? "Installer l'application sur mon écran" : "Add app to home screen"}</span>
             </button>
           </div>
@@ -157,26 +156,27 @@ const AuthScreen = () => {
 
         {/* Petit guide iPhone si cliqué */}
         {showGuide && (
-          <div className="mt-3 p-3 rounded-[12px] text-left text-[11px] font-body animate-fade-up flex items-start justify-between gap-2" style={{ background: '#FFF', border: '1px solid var(--line)' }}>
-            <div className="space-y-1">
+          <div className="mt-2 p-2.5 rounded-[12px] text-left text-[10.5px] font-body animate-fade-up flex items-start justify-between gap-2" style={{ background: '#FFF', border: '1px solid var(--line)' }}>
+            <div className="space-y-0.5">
               <div className="flex items-center gap-1.5 font-semibold" style={{ color: 'var(--ink)' }}>
                 <Share size={12} style={{ color: 'var(--gold)' }} />
                 <span>{lang === 'fr' ? "Comment installer sur iPhone :" : "How to install on iPhone:"}</span>
               </div>
               <p style={{ color: 'var(--ink-soft)' }}>
                 {lang === 'fr' 
-                  ? "Touche l'icône Partager en bas de Safari, puis sélectionne « Sur l'écran d'accueil »." 
-                  : "Tap Share at the bottom of Safari, then select 'Add to Home Screen'."}
+                  ? "Touche Partager en bas de Safari, puis « Sur l'écran d'accueil »." 
+                  : "Tap Share at the bottom of Safari, then 'Add to Home Screen'."}
               </p>
             </div>
             <button onClick={() => setShowGuide(false)} className="text-stone-400 p-1">
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
         )}
+      </div>
 
-      {/* Avertissement bas de page */}
-      <p className="font-body italic text-[11px] text-center" style={{ color: 'var(--ink-faint)' }}>
+      {/* Avertissement bas de page bien calé */}
+      <p className="font-body italic text-[10px] text-center pb-1" style={{ color: 'var(--ink-faint)' }}>
         {lang === 'fr' 
           ? "Aucun avis médical : l'application ordonne et prévient, elle ne pose pas de diagnostic."
           : "No medical advice: the app orders and warns, it does not diagnose."}
