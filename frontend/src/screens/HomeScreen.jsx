@@ -196,7 +196,7 @@ const HomeScreen = ({ go }) => {
       return [];
     }
   });
-  const userName = user?.prenom || user?.first_name || user?.name || '';
+  const userName = user?.nom || user?.prenom || user?.first_name || '';
 
   const currentHour = new Date().getHours();
   const isMorning = currentHour >= 5 && currentHour < 12;

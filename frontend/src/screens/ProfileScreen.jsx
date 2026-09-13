@@ -42,6 +42,7 @@ const ProfileScreen = ({ go }) => {
   const [msg, setMsg] = useState(null);
 
   // --- Infos perso ---
+  const [prenom, setPrenom] = useState(user?.nom || '');
   const [skinType, setSkinType] = useState(user?.type_de_peau || '');
   const [sensibilite, setSensibilite] = useState(user?.sensibilite ?? 1);
   const [objectifs, setObjectifs] = useState(Array.isArray(user?.objectifs) ? user.objectifs : []);
@@ -75,6 +76,7 @@ const ProfileScreen = ({ go }) => {
     setBusyProfile(true);
     try {
       await api.put('/auth/profile', {
+        nom: prenom, // <--- AJOUTER CETTE LIGNE ICI
         type_de_peau: skinType || null,
         sensibilite: sensibilite,
         objectifs: objectifs,
@@ -182,6 +184,21 @@ const ProfileScreen = ({ go }) => {
         <h2 className="font-display text-[16px]" style={{ color: 'var(--ink)' }}>
           {lang === 'fr' ? 'Ma peau' : 'My skin'}
         </h2>
+
+      {/* Champ Prénom */}
+        <div>
+          <span className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+            {lang === 'fr' ? 'Ton prénom' : 'First name'}
+          </span>
+          <input
+            type="text"
+            value={prenom}
+            onChange={(e) => setPrenom(e.target.value)}
+            placeholder={lang === 'fr' ? 'Ex: Kayna' : 'Ex: Sophia'}
+            className="w-full mt-1.5 p-3 rounded-[10px] font-body text-[14px] outline-none"
+            style={inputStyle}
+          />
+        </div>
 
         <div>
           <span className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>{lang === 'fr' ? 'Type de peau' : 'Skin type'}</span>
