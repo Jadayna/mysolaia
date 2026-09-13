@@ -4,7 +4,7 @@
   "description": "Calcule l'ordre d'application de tes produits skincare et prévient des combinaisons risquées.",
   "icons": [
     { 
-      "src": "icon-192.png", 
+      "src": "icon-512.png", 
       "type": "image/png", 
       "sizes": "192x192", 
       "purpose": "maskable any" 

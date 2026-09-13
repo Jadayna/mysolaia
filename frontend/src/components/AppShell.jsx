@@ -118,11 +118,16 @@ const AppShell = () => {
       {/* Header agrandi avec Soleil et Nom bien lisibles */}
       <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => go('accueil')}>
-        <img 
-          src="/icon-192.png" 
-          alt="Solaia Sun" 
-          className="h-9 w-9 object-contain"
-        />
+          <img 
+            src="/icon-512.png" 
+            alt="Solaia Sun" 
+            className="h-9 w-9 object-contain"
+          />
+          <img 
+            src="/mysolaia-nom-4096.png" 
+            alt="MySolaia" 
+            className="h-6 w-auto object-contain"
+          />
         </div>
         
       <div className="flex items-center gap-4">
@@ -147,7 +152,7 @@ const AppShell = () => {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-[14px] bg-white border border-stone-200 shadow-xs flex items-center justify-center p-1 shrink-0 overflow-hidden">
-          <img src="/icon-192.png" alt="MySolaia" className="w-full h-full object-contain" />
+          <img src="/icon-512.png" alt="MySolaia" className="w-full h-full object-contain" />
         </div>
               <div className="pr-1">
                 <h4 className="font-display text-[14px] font-semibold leading-tight" style={{ color: 'var(--ink)' }}>
