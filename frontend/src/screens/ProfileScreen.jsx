@@ -190,14 +190,13 @@ const ProfileScreen = ({ go }) => {
           <span className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
             {lang === 'fr' ? 'Ton prénom' : 'First name'}
           </span>
-          <input
-            type="text"
-            value={prenom}
-            onChange={(e) => setPrenom(e.target.value)}
-            placeholder={lang === 'fr' ? 'Ex: Kayna' : 'Ex: Sophia'}
-            className="w-full mt-1.5 p-3 rounded-[10px] font-body text-[14px] outline-none"
-            style={inputStyle}
-          />
+       <input
+          type="text"
+          value={prenom}
+          onChange={(e) => setPrenom(e.target.value)}
+          className="w-full mt-1.5 p-3 rounded-[10px] font-body text-[14px] outline-none"
+          style={inputStyle}
+        />
         </div>
 
         <div>
