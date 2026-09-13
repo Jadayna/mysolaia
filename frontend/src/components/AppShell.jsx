@@ -69,20 +69,19 @@ const AppShell = () => {
   const [showAndroidHelp, setShowAndroidHelp] = useState(false);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
+    const promptEvent = window.deferredPrompt || deferredPrompt;
+    if (promptEvent) {
       try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
         if (outcome === 'accepted') {
           setShowInstallBanner(false);
+          window.deferredPrompt = null;
           setDeferredPrompt(null);
         }
-      } catch {
-        setShowAndroidHelp(true);
+      } catch (err) {
+        console.error("Install prompt error:", err);
       }
-    } else {
-      // Si Chrome n'a pas déclenché l'événement automatique, guider l'utilisateur
-      setShowAndroidHelp(true);
     }
   };
 
@@ -150,7 +149,7 @@ const AppShell = () => {
       {/* Bandeau d'installation PWA parfaitement aligné & toujours actif */}
       {showInstallBanner && (
         <div 
-          className="fixed bottom-[74px] left-3.5 right-3.5 z-40 p-4 rounded-[20px] shadow-2xl animate-fade-up" 
+          className="fixed bottom-[96px] left-3.5 right-3.5 z-40 p-4 rounded-[20px] shadow-2xl animate-fade-up" 
           style={{ background: '#FAF6F0', border: '1.5px solid var(--gold)', boxShadow: '0 12px 35px -10px rgba(163, 123, 104, 0.45)' }}
         >
           <div className="flex items-center justify-between gap-3">
@@ -188,15 +187,6 @@ const AppShell = () => {
               <Download size={14} />
               <span>{lang === 'fr' ? "Ajouter à l'écran d'accueil" : "Add to Home Screen"}</span>
             </button>
-          )}
-
-          {/* Guide de secours Android si Chrome bloque le prompt automatique */}
-          {showAndroidHelp && !isIOS && (
-            <div className="mt-2.5 p-2 rounded-[10px] bg-white border border-stone-200 text-[11px] font-body text-stone-600 animate-fade-up">
-              {lang === 'fr'
-                ? "💡 Touche les 3 points ⋮ en haut à droite de Chrome, puis choisis « Installer l'application »."
-                : "💡 Tap the 3 dots ⋮ at the top right of Chrome, then select 'Install app'."}
-            </div>
           )}
 
           {/* Guide iPhone */}
