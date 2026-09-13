@@ -624,32 +624,32 @@ async def payment_status(session_id: str):
     record = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
     if not record:
         raise HTTPException(404, "Transaction introuvable")
+
     if record.get("payment_status") != "paid":
         try:
-                    s = stripe.checkout.Session.retrieve(session_id)
-        if s.status == "complete" or s.payment_status in ("paid", "no_payment_required"):
-            customer_id = s.get("customer")
-            subscription_id = s.get("subscription")
-            await db.payment_transactions.update_one(
-                {"session_id": session_id},
-                {"$set": {"status": "completed", "payment_status": s.payment_status, "customer_id": customer_id}}
-            )
-            user_id = record.get("user_id")
-            if user_id:
-                await db.users.update_one(
-                    {"id": user_id},
-                    {"$set": {
-                        "statut_abonnement": "actif",
-                        "is_premium": True,
-                        "stripe_customer_id": customer_id,
-                        "stripe_subscription_id": subscription_id
-                    }}
+            s = stripe.checkout.Session.retrieve(session_id)
+            if s.status == "complete" or s.payment_status in ("paid", "no_payment_required"):
+                customer_id = s.get("customer")
+                subscription_id = s.get("subscription")
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"status": "completed", "payment_status": s.payment_status, "customer_id": customer_id}}
                 )
-            record["status"], record["payment_status"] = "completed", "paid"
-    except Exception as e:
-        logging.error(f"Stripe status error: {e}")
+                user_id = record.get("user_id")
+                if user_id:
+                    await db.users.update_one(
+                        {"id": user_id},
+                        {"$set": {
+                            "statut_abonnement": "actif",
+                            "is_premium": True,
+                            "stripe_customer_id": customer_id,
+                            "stripe_subscription_id": subscription_id
+                        }}
+                    )
+                record["status"], record["payment_status"] = "completed", "paid"
+        except Exception as e:
+            logging.error(f"Stripe status error: {e}")
 
-    # Récupérer l'utilisateur frais mis à jour
     fresh_user = None
     if record.get("user_id"):
         fresh_user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0, "password": 0})
