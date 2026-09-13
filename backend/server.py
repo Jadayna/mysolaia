@@ -419,7 +419,7 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
         else:
             done = "complete" if complete else f"{e['etapes_completees']} of {e['nb_total_etapes']} steps"
             time_str = dt.strftime("%H:%M")
-        return {"title": e["routine_type"], "meta": f"{wd}. {dt.day} \u00b7 {done}", "time": time_str}
+        return {"title": e["routine_type"], "meta": f"{wd}. {dt.day} \u00b7 {done}", "time": time_str, "note_peau": e.get("note_peau")}
 
     stats = [{"n": str(streak), "label": "streak"},
              {"n": str(len(last30)), "label": "care30"},
