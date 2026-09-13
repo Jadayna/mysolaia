@@ -73,8 +73,18 @@ const RoutineScreen = ({ go, routinePhase }) => {
   const total = routine.steps?.length || 0;
   const doneCount = Object.values(done).filter(Boolean).length;
 
-    const finish = () => {
-    setShowRatingModal(true);
+      const finish = () => {
+    // Vérifie la préférence sauvegardée dans le Profil
+    const pref = localStorage.getItem('solaia_track_skin');
+    const trackFeel = pref !== null ? JSON.parse(pref) : true;
+
+    if (trackFeel) {
+      // Si activé : on ouvre la boîte de dialogue
+      setShowRatingModal(true);
+    } else {
+      // Si désactivé : on enregistre directement en 1 clic sans pop-up !
+      submitJournal(null);
+    }
   };
 
   const submitJournal = async (rating = null) => {
@@ -87,14 +97,14 @@ const RoutineScreen = ({ go, routinePhase }) => {
         note_peau: rating,
       });
       setShowRatingModal(false);
-      go('journal');
+      // Redirige vers le journal
+      if (go) go('journal');
     } catch (e) {
       console.error("Erreur enregistrement journal :", e);
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   return (
     <div className="px-6 pt-6 pb-12 animate-fade-up">

@@ -136,7 +136,8 @@ const ProfileScreen = ({ go }) => {
     try {
       await api.delete('/shelf/clear');
       setShowClearShelf(false);
-      alert(lang === 'fr' ? 'Ton étagère a été vidée.' : 'Your shelf has been cleared.');
+      // Redirection immédiate vers l'étagère fraîchement vidée
+      if (go) go('scan');
     } catch (e) {
       alert(lang === 'fr' ? "Impossible de vider l'étagère." : 'Could not clear your shelf.');
     } finally {
