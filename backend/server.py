@@ -677,6 +677,9 @@ async def stripe_webhook(request: Request):
             {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"), "customer_id": obj.get("customer")}})
     return {"status": "ok"}
 
+@api_router.get("/health")
+async def health():
+    return {"status": "ok"}
 
 @api_router.get("/")
 async def root():
