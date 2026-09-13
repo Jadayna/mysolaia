@@ -123,6 +123,9 @@ const [products, setProducts] = useState(() => {
   const [loadingMsg, setLoadingMsg] = useState(0);
   const [toastMsg, setToastMsg] = useState(null);
   const [modalConfirm, setModalConfirm] = useState(null);
+  const [showFirstScanTip, setShowFirstScanTip] = useState(() => {
+    return !localStorage.getItem('solaia_first_scan_tip_seen');
+  });
 
   // Formulaire d'édition / création manuelle
   const [showManual, setShowManual] = useState(false);
