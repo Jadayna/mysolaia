@@ -105,6 +105,7 @@ const ScanScreen = ({ go }) => {
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
   const [toastMsg, setToastMsg] = useState(null);
+  const [modalConfirm, setModalConfirm] = useState(null);
 
   // Formulaire d'édition / création manuelle
   const [showManual, setShowManual] = useState(false);
@@ -193,11 +194,19 @@ const ScanScreen = ({ go }) => {
         const nomClean = nom.toLowerCase().trim();
         const existing = products.find((p) => p.nom && p.nom.toLowerCase().trim() === nomClean);
         if (existing) {
-          const proceed = window.confirm(
-            lang === 'fr'
-              ? `"${nom}" semble déjà être sur ton étagère. Veux-tu l'ajouter quand même ?`
-              : `"${nom}" seems already on your shelf. Add anyway?`
-          );
+          const proceed = await new Promise((resolve) => {
+            setModalConfirm({
+              title: lang === 'fr' ? 'Produit déjà présent' : 'Product already exists',
+              text: lang === 'fr'
+                ? `"${nom}" est déjà sur ton étagère. Souhaites-tu vraiment l'ajouter en double ?`
+                : `"${nom}" is already on your shelf. Do you really want to add a duplicate?`,
+              confirmLabel: lang === 'fr' ? 'Ajouter quand même' : 'Add anyway',
+              cancelLabel: lang === 'fr' ? 'Annuler' : 'Cancel',
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false),
+            });
+          });
+          setModalConfirm(null);
           if (!proceed) {
             setLoading(false);
             return;
@@ -572,37 +581,43 @@ const ScanScreen = ({ go }) => {
 
                   {/* Vue détaillée dépliable */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 pt-2 border-t space-y-3 animate-fade-up" style={{ borderColor: 'var(--line)' }}>
-                      {p.photo_url && (
-                        <div className="w-full h-40 rounded-[12px] overflow-hidden bg-stone-100 flex items-center justify-center">
-                          <img src={p.photo_url} alt={p.nom} className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 gap-2 text-[11px] font-body">
-                        <div className="p-2.5 rounded-[10px] bg-white border border-stone-200">
-                          <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Moment' : 'When'}</span>
-                          <span className="font-medium text-stone-800 capitalize">{p.moment ? (lang === 'fr' ? p.moment.replace('_', ' ') : p.moment) : 'Tous les moments'}</span>
-                        </div>
-                        <div className="p-2.5 rounded-[10px] bg-white border border-stone-200">
-                          <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Catégorie' : 'Category'}</span>
-                          <span className="font-medium text-stone-800 capitalize">{p.categorie || p.category}</span>
+                    <div className="px-4 pb-4 pt-3 border-t space-y-3 animate-fade-up" style={{ borderColor: 'var(--line)' }}>
+                      <div className="flex gap-3">
+                        {/* Photo entière du flacon (format portrait vertical à gauche) */}
+                        {p.photo_url && (
+                          <div className="w-24 shrink-0 rounded-[12px] overflow-hidden bg-stone-100 border border-stone-200 shadow-sm flex items-center justify-center p-1" style={{ minHeight: '120px' }}>
+                            <img src={p.photo_url} alt={p.nom} className="w-full h-auto max-h-36 object-contain rounded-[8px]" />
+                          </div>
+                        )}
+
+                        {/* Informations alignées à droite */}
+                        <div className="flex-1 space-y-2">
+                          <div className="p-2 rounded-[10px] bg-white border border-stone-200">
+                            <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Moment' : 'When'}</span>
+                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.moment ? (lang === 'fr' ? p.moment.replace('_', ' ') : p.moment) : 'Tous les moments'}</span>
+                          </div>
+
+                          <div className="p-2 rounded-[10px] bg-white border border-stone-200">
+                            <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Catégorie' : 'Category'}</span>
+                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.categorie || p.category}</span>
+                          </div>
+
+                          {Array.isArray(p.actifs) && p.actifs.length > 0 && (
+                            <div>
+                              <span className="text-stone-400 block text-[9px] uppercase tracking-caps mb-1">{lang === 'fr' ? 'Actifs' : 'Actives'}</span>
+                              <div className="flex flex-wrap gap-1">
+                                {p.actifs.flatMap((a) => String(a).split(',')).map((a) => a.trim()).filter(Boolean).map((a, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 rounded-full font-body text-[9px] font-semibold" style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)' }}>
+                                    {(ACTIF_LABELS[lang === 'fr' ? 'fr' : 'en'][a]) || a}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {Array.isArray(p.actifs) && p.actifs.length > 0 && (
-                        <div>
-                          <span className="text-stone-400 block text-[9px] uppercase tracking-caps mb-1.5">{lang === 'fr' ? 'Actifs détectés' : 'Detected actives'}</span>
-                          <div className="flex flex-wrap gap-1">
-                            {p.actifs.flatMap((a) => String(a).split(',')).map((a) => a.trim()).filter(Boolean).map((a, idx) => (
-                              <span key={idx} className="px-2 py-0.5 rounded-full font-body text-[10px] font-semibold" style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)' }}>
-                                {(ACTIF_LABELS[lang === 'fr' ? 'fr' : 'en'][a]) || a}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Bouton Modifier dans la carte */}
+                      {/* Bouton Modifier sous les détails */}
                       <div className="pt-2 border-t border-stone-200 flex justify-end">
                         <button
                           onClick={() => handleEditProduct(p)}
@@ -621,6 +636,34 @@ const ScanScreen = ({ go }) => {
           </div>
         )}
       </div>
+            {/* Modale de Confirmation Chic MySolaia */}
+      {modalConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-6 animate-fade-in">
+          <div className="w-full max-w-sm rounded-[20px] p-5 space-y-4 shadow-xl animate-fade-up" style={{ background: '#FAF6F0', border: '1px solid var(--gold-soft)' }}>
+            <h3 className="font-display text-[17px] text-center" style={{ color: 'var(--ink)' }}>
+              {modalConfirm.title}
+            </h3>
+            <p className="font-body text-[12px] text-center" style={{ color: 'var(--ink-soft)' }}>
+              {modalConfirm.text}
+            </p>
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <button
+                onClick={modalConfirm.onCancel}
+                className="py-2.5 rounded-[10px] font-body text-[11px] uppercase tracking-caps font-medium border"
+                style={{ borderColor: 'var(--line)', background: '#fff', color: 'var(--ink-soft)' }}
+              >
+                {modalConfirm.cancelLabel}
+              </button>
+              <button
+                onClick={modalConfirm.onConfirm}
+                className="py-2.5 rounded-[10px] font-body text-[11px] uppercase tracking-caps font-semibold text-white gold-btn shadow-sm"
+              >
+                {modalConfirm.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
