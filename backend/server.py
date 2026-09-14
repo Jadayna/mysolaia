@@ -285,6 +285,18 @@ async def add_shelf(body: ShelfIn, user=Depends(current_user)):
     await db.user_products.insert_one(up)
     return {"ok": True, "shelf_id": up["id"]}
 
+@api_router.patch("/shelf/{prod_id}/favorite")
+async def toggle_favorite(prod_id: str, user=Depends(current_user)):
+    p = await db.user_products.find_one({"id": prod_id, "user_id": user["id"]})
+    if not p:
+        raise HTTPException(404, "Produit introuvable")
+    new_fav = not p.get("is_favorite", False)
+    await db.user_products.update_one(
+        {"id": prod_id, "user_id": user["id"]},
+        {"$set": {"is_favorite": new_fav}}
+    )
+    return {"id": prod_id, "is_favorite": new_fav}
+
 @api_router.post("/shelf/manual")
 async def add_manual(body: ManualProductIn, user=Depends(current_user)):
     if not user_has_full_access(user):

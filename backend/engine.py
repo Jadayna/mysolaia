@@ -258,6 +258,8 @@ def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
 
     # Filter by moment
     pool = [p for p in products if p["moment"] == phase or p["moment"] == "les_deux"]
+    # Prioritize favorite products in routine selection
+    pool.sort(key=lambda p: (1 if p.get("is_favorite") else 0), reverse=True)
 
     banner = None
     decisions = []

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp, Clock, Pencil, Check, Search } from 'lucide-react';
+import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp, Clock, Pencil, Check, Search, Star } from 'lucide-react';
 import { useT } from '../i18n';
 import api from '../lib/api';
 
@@ -397,6 +397,19 @@ const [products, setProducts] = useState(() => {
     window.open(`https://www.google.com/search?tbm=shop&q=${query}`, '_blank', 'noopener,noreferrer');
   };
 
+  const handleToggleFavorite = async (id, e) => {
+    e.stopPropagation();
+    try {
+      const res = await api.patch(`/shelf/${id}/favorite`);
+      const newFav = res.data.is_favorite;
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, is_favorite: newFav } : p))
+      );
+    } catch (err) {
+      console.error("Erreur favori:", err);
+    }
+  };
+
   const handleToggle = async (shelfId) => {
     try {
       const res = await api.post(`/shelf/${shelfId}/toggle`);
@@ -697,6 +710,18 @@ const [products, setProducts] = useState(() => {
                     </div>
 
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {/* Étoile Favori / Prioritaire */}
+                      <button
+                        onClick={(e) => handleToggleFavorite(pid, e)}
+                        className="p-1.5 rounded-full transition-all active:scale-90 hover:bg-stone-100"
+                        title={lang === 'fr' ? 'Définir comme favori / prioritaire' : 'Set as favorite / priority'}
+                      >
+                        <Star
+                          size={15}
+                          fill={p.is_favorite ? '#B68235' : 'transparent'}
+                          stroke={p.is_favorite ? '#B68235' : '#a8a29e'}
+                        />
+                      </button>                      
                       <button
                         onClick={() => handleToggle(pid)}
                         className="px-2.5 py-1 rounded-full font-body text-[9px] uppercase tracking-caps transition-all"
