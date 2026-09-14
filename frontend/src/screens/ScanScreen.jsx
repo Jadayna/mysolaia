@@ -390,6 +390,13 @@ const [products, setProducts] = useState(() => {
     }
   };
 
+  const handleShopProduct = (p) => {
+    const brand = p.brand || p.marque || '';
+    const nom = p.nom || '';
+    const query = encodeURIComponent(`${brand} ${nom}`.trim());
+    window.open(`https://www.google.com/search?tbm=shop&q=${query}`, '_blank', 'noopener,noreferrer');
+  };
+
   const handleToggle = async (shelfId) => {
     try {
       const res = await api.post(`/shelf/${shelfId}/toggle`);
@@ -745,6 +752,38 @@ const [products, setProducts] = useState(() => {
                           )}
                         </div>
                       </div>
+
+                    {/* Bouton Shopping / Rachat intelligent */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShopProduct(p);
+                      }}
+                      className="w-full py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
+                      style={{
+                        background: 'rgba(163, 123, 104, 0.1)',
+                        border: '1px solid var(--gold-soft)',
+                        color: 'var(--ink)'
+                      }}
+                    >
+                      <span>✨ {lang === 'fr' ? 'Trouver ou racheter ce soin' : 'Find or restock product'}</span>
+                    </button>
+                    
+                    {/* Bouton Shopping / Rachat intelligent */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShopProduct(p);
+                      }}
+                      className="w-full py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
+                      style={{
+                        background: 'rgba(163, 123, 104, 0.1)',
+                        border: '1px solid var(--gold-soft)',
+                        color: 'var(--ink)'
+                      }}
+                    >
+                      <span>✨ {lang === 'fr' ? 'Trouver ou racheter ce soin' : 'Find or restock product'}</span>
+                    </button>                      
 
                       {/* Bouton Modifier sous les détails */}
                       <div className="pt-2 border-t border-stone-200 flex justify-end">
