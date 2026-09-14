@@ -397,14 +397,22 @@ const [products, setProducts] = useState(() => {
     window.open(`https://www.google.com/search?tbm=shop&q=${query}`, '_blank', 'noopener,noreferrer');
   };
 
-  const handleToggleFavorite = async (id, e) => {
+  const handleToggleFavorite = async (p, e) => {
     e.stopPropagation();
+    const pid = p.shelf_id || p.id;
+    const nextFav = !p.is_favorite;
+
+    // 1. Changement visuel immédiat (l'étoile s'allume en doré en 0 seconde !)
+    setProducts((prev) =>
+      prev.map((item) => {
+        const itemId = item.shelf_id || item.id;
+        return itemId === pid ? { ...item, is_favorite: nextFav } : item;
+      })
+    );
+
+    // 2. Sauvegarde sur le serveur
     try {
-      const res = await api.patch(`/shelf/${id}/favorite`);
-      const newFav = res.data.is_favorite;
-      setProducts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, is_favorite: newFav } : p))
-      );
+      await api.patch(`/shelf/${pid}/favorite`);
     } catch (err) {
       console.error("Erreur favori:", err);
     }
@@ -777,22 +785,6 @@ const [products, setProducts] = useState(() => {
                           )}
                         </div>
                       </div>
-
-                    {/* Bouton Shopping / Rachat intelligent */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShopProduct(p);
-                      }}
-                      className="w-full py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
-                      style={{
-                        background: 'rgba(163, 123, 104, 0.1)',
-                        border: '1px solid var(--gold-soft)',
-                        color: 'var(--ink)'
-                      }}
-                    >
-                      <span>✨ {lang === 'fr' ? 'Trouver où racheter ce soin' : 'Find or restock product'}</span>
-                    </button>
 
                     {/* Bouton Shopping / Rachat intelligent */}
                     <button
