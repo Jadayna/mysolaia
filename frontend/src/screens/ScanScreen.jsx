@@ -720,7 +720,7 @@ const [products, setProducts] = useState(() => {
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       {/* Étoile Favori / Prioritaire */}
                       <button
-                        onClick={(e) => handleToggleFavorite(pid, e)}
+                        onClick={(e) => handleToggleFavorite(p, e)}
                         className="p-1.5 rounded-full transition-all active:scale-90 hover:bg-stone-100"
                         title={lang === 'fr' ? 'Définir comme favori / prioritaire' : 'Set as favorite / priority'}
                       >
