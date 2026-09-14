@@ -766,9 +766,9 @@ const [products, setProducts] = useState(() => {
                         color: 'var(--ink)'
                       }}
                     >
-                      <span>✨ {lang === 'fr' ? 'Trouver ou racheter ce soin' : 'Find or restock product'}</span>
+                      <span>✨ {lang === 'fr' ? 'Trouver où racheter ce soin' : 'Find or restock product'}</span>
                     </button>
-                    
+
                     {/* Bouton Shopping / Rachat intelligent */}
                     <button
                       onClick={(e) => {
