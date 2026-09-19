@@ -428,6 +428,27 @@ const [products, setProducts] = useState(() => {
     }
   };
 
+  // Étape 5 — « Utiliser dans ma routine ce soir » : force le produit dans la routine du soir
+  const handleUseTonight = async (p) => {
+    const pid = p.shelf_id || p.id;
+    try {
+      const res = await api.post(`/shelf/${pid}/use-tonight`);
+      const forceSoir = res?.data?.force_soir === true;
+      setProducts((prev) =>
+        prev.map((item) => {
+          const itemId = item.shelf_id || item.id;
+          return itemId === pid ? { ...item, force_soir: forceSoir } : item;
+        })
+      );
+      setToastMsg(forceSoir
+        ? (lang === 'fr' ? 'Ajouté à ta routine de ce soir ✨' : 'Added to your tonight\'s routine ✨')
+        : (lang === 'fr' ? 'Retiré de ta routine de ce soir' : 'Removed from your tonight\'s routine'));
+      setTimeout(() => setToastMsg(null), 3500);
+    } catch (err) {
+      console.error("Erreur use-tonight:", err);
+    }
+  };
+
   const handleToggle = async (shelfId) => {
     try {
       const res = await api.post(`/shelf/${shelfId}/toggle`);
@@ -820,6 +841,19 @@ const [products, setProducts] = useState(() => {
                         <span>✏️ {lang === 'fr' ? 'Modifier' : 'Edit'}</span>
                       </button>
                     </div>
+
+                    {/* Étape 5 — Forcer le produit dans la routine du soir */}
+                    <button
+                      onClick={() => handleUseTonight(p)}
+                      className="w-full mt-2 py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
+                      style={p.force_soir
+                        ? { background: 'rgba(182,130,53,0.18)', border: '1px solid var(--gold)', color: 'var(--gold)' }
+                        : { background: 'transparent', border: '1px dashed var(--gold-soft)', color: 'var(--ink-soft)' }}
+                    >
+                      <span>{p.force_soir ? '✨' : '🌙'} {p.force_soir
+                        ? (lang === 'fr' ? 'Dans ta routine de ce soir' : 'In your tonight\'s routine')
+                        : (lang === 'fr' ? 'Utiliser dans ma routine ce soir' : 'Use in my tonight\'s routine')}</span>
+                    </button>
                     </div>
                   )}
                 </div>

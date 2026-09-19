@@ -256,7 +256,8 @@ async def _shelf_products(uid: str, active_only=True):
         if prod:
             merged = {**prod, "shelf_id": up["id"], "photo_url": up.get("photo_url"),
                       "notes": up.get("notes", ""), "actif": up.get("actif", True),
-                      "date_ouverture": up.get("date_ouverture"), "pao_mois": up.get("pao_mois", 0)}
+                      "date_ouverture": up.get("date_ouverture"), "pao_mois": up.get("pao_mois", 0),
+                      "force_soir": up.get("force_soir", False)}
             result.append(merged)
     return result
 
@@ -296,6 +297,20 @@ async def toggle_favorite(prod_id: str, user=Depends(current_user)):
         {"$set": {"is_favorite": new_fav}}
     )
     return {"id": prod_id, "is_favorite": new_fav}
+
+@api_router.post("/shelf/{shelf_id}/use-tonight")
+async def use_tonight(shelf_id: str, user=Depends(current_user)):
+    """Étape 5 — force (ou non) l'ajout du produit à la routine du soir.
+    Le moteur recalcule ensuite la routine en appliquant ses règles de sécurité."""
+    up = await db.user_products.find_one({"id": shelf_id, "user_id": user["id"]})
+    if not up:
+        raise HTTPException(404, "Produit introuvable")
+    new_val = not up.get("force_soir", False)
+    await db.user_products.update_one(
+        {"id": shelf_id, "user_id": user["id"]},
+        {"$set": {"force_soir": new_val}}
+    )
+    return {"id": shelf_id, "force_soir": new_val}
 
 @api_router.post("/shelf/manual")
 async def add_manual(body: ManualProductIn, user=Depends(current_user)):

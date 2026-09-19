@@ -256,8 +256,10 @@ def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
     weekday = on.weekday()
     exfo_today = weekday in exfoliation_days(sensibilite)
 
-    # Filter by moment
-    pool = [p for p in products if p["moment"] == phase or p["moment"] == "les_deux"]
+    # Filter by moment (+ produits forcés pour la routine du soir — Étape 5)
+    pool = [p for p in products
+            if p["moment"] == phase or p["moment"] == "les_deux"
+            or (phase == "soir" and p.get("force_soir"))]
     # Prioritize favorite products in routine selection
     pool.sort(key=lambda p: (1 if p.get("is_favorite") else 0), reverse=True)
 
