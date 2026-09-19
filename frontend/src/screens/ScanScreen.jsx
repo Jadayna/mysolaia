@@ -795,33 +795,30 @@ const [products, setProducts] = useState(() => {
                         </div>
                       </div>
 
-                    {/* Bouton Shopping / Rachat intelligent */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShopProduct(p);
-                      }}
-                      className="w-full py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
-                      style={{
-                        background: 'rgba(163, 123, 104, 0.1)',
-                        border: '1px solid var(--gold-soft)',
-                        color: 'var(--ink)'
-                      }}
-                    >
-                      <span>✨ {lang === 'fr' ? 'Trouver ou racheter ce soin' : 'Find or restock product'}</span>
-                    </button>                      
-
-                      {/* Bouton Modifier sous les détails */}
-                      <div className="pt-2 border-t border-stone-200 flex justify-end">
-                        <button
-                          onClick={() => handleEditProduct(p)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] font-body text-[11px] font-medium uppercase tracking-caps shadow-sm"
-                          style={{ background: '#FAF6F0', border: '1px solid var(--line)', color: 'var(--ink)' }}
-                        >
-                          <Pencil size={12} style={{ color: 'var(--gold)' }} />
-                          <span>{lang === 'fr' ? 'Modifier ce produit' : 'Edit product'}</span>
-                        </button>
-                      </div>
+                    {/* Boutons Racheter / Modifier côte à côte — Étape 3 */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShopProduct(p);
+                        }}
+                        className="flex-1 py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
+                        style={{
+                          background: 'rgba(163, 123, 104, 0.1)',
+                          border: '1px solid var(--gold-soft)',
+                          color: 'var(--ink)'
+                        }}
+                      >
+                        <span>🛒 {lang === 'fr' ? 'Racheter' : 'Restock'}</span>
+                      </button>
+                      <button
+                        onClick={() => handleEditProduct(p)}
+                        className="flex-1 py-2.5 rounded-[10px] flex items-center justify-center gap-1.5 font-body text-[11px] uppercase tracking-caps font-medium transition-all active:scale-[0.98] shadow-sm"
+                        style={{ background: '#FAF6F0', border: '1px solid var(--line)', color: 'var(--ink)' }}
+                      >
+                        <span>✏️ {lang === 'fr' ? 'Modifier' : 'Edit'}</span>
+                      </button>
+                    </div>
                     </div>
                   )}
                 </div>
