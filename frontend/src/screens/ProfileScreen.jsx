@@ -3,6 +3,7 @@ import { ArrowLeft, Save, Trash2, AlertTriangle, RotateCcw, CreditCard, Layers }
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
+import { isTimerFeedbackEnabled, setTimerFeedbackEnabled } from '../lib/timerFeedback';
 
 const SKIN_TYPES = [
   { value: 'seche', fr: 'Sèche', en: 'Dry' },
@@ -51,6 +52,9 @@ const ProfileScreen = ({ go }) => {
   const [trackSkinFeel, setTrackSkinFeel] = useState(
     user?.track_skin_feel !== undefined ? user.track_skin_feel : true
   );
+
+  // Étape 7 — Sons & vibrations des minuteurs (activé par défaut)
+  const [timerFeedback, setTimerFeedback] = useState(isTimerFeedbackEnabled);
 
   // --- Réinitialiser ---
   const [showReset, setShowReset] = useState(false);
@@ -300,7 +304,7 @@ const ProfileScreen = ({ go }) => {
       {/* ===== Préférences du journal ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
-          {lang === 'fr' ? 'Préférences du journal' : 'Journal preferences'}
+          {lang === 'fr' ? 'Préférences' : 'Preferences'}
         </h2>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -326,6 +330,34 @@ const ProfileScreen = ({ go }) => {
             <div
               className={`w-5 h-5 rounded-full bg-white transition-transform ${
                 trackSkinFeel ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-body text-[13px] font-medium" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Sons & vibrations des minuteurs' : 'Timer sounds & vibrations'}
+            </p>
+            <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? 'Clochette douce et vibration à la fin de chaque minuteur.'
+                : 'Gentle chime and vibration when each timer ends.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !timerFeedback;
+              setTimerFeedback(next);
+              setTimerFeedbackEnabled(next);
+            }}
+            className="w-11 h-6 rounded-full transition-colors relative p-0.5 shrink-0"
+            style={{ background: timerFeedback ? 'var(--gold)' : 'var(--line)' }}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                timerFeedback ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>

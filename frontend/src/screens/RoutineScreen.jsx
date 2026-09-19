@@ -3,10 +3,17 @@ import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X, ChevronRight, Chevro
 import api from '../lib/api';
 import { useT } from '../i18n';
 
-const Timer = ({ seconds }) => {
-  const { t } = useT();
+import React, { useEffect, useState, useRef } from 'react';
+import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X, ChevronRight, ChevronLeft, Compass, List } from 'lucide-react';
+import api from '../lib/api';
+import { useT } from '../i18n';
+import { isTimerFeedbackEnabled, playSoftChime, vibrateTimerEnd } from '../lib/timerFeedback';
+
+const Timer = ({ seconds, onDone }) => {
+  const { t, lang } = useT();
   const [rem, setRem] = useState(seconds);
   const [run, setRun] = useState(false);
+  const [finished, setFinished] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -14,19 +21,40 @@ const Timer = ({ seconds }) => {
     return () => clearInterval(ref.current);
   }, [run, rem]);
 
-  useEffect(() => { if (rem === 0) setRun(false); }, [rem]);
+  // Nouveau minuteur (changement d'étape) : on réinitialise l'affichage
+  useEffect(() => {
+    setRem(seconds);
+    setRun(false);
+    setFinished(false);
+  }, [seconds]);
+
+  // Fin du minuteur : le feedback (son + vibration + message) ne se joue qu'une fois
+  useEffect(() => {
+    if (rem === 0 && !finished) {
+      setRun(false);
+      setFinished(true);
+      if (onDone) onDone();
+    }
+  }, [rem, finished, onDone]);
 
   const mm = String(Math.floor(rem / 60)).padStart(2, '0');
   const ss = String(rem % 60).padStart(2, '0');
 
   return (
-    <div className="flex items-center gap-3 mt-3">
-      <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{t('suggestedPause')}</span>
-      <span className="font-display text-[20px] tnum">{mm} : {ss}</span>
-      <button onClick={() => setRun((r) => !r)} className="gold-btn rounded-[6px] px-3 py-1.5 flex items-center gap-1.5 font-body tracking-caps text-[10px] uppercase">
-        {run ? <Pause size={12} strokeWidth={1.8} /> : <Play size={12} strokeWidth={1.8} />}
-        {run ? t('pause') : t('startTimer')}
-      </button>
+    <div className="mt-3">
+      <div className="flex items-center gap-3">
+        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{t('suggestedPause')}</span>
+        <span className="font-display text-[20px] tnum">{mm} : {ss}</span>
+        <button onClick={() => setRun((r) => !r)} className="gold-btn rounded-[6px] px-3 py-1.5 flex items-center gap-1.5 font-body tracking-caps text-[10px] uppercase">
+          {run ? <Pause size={12} strokeWidth={1.8} /> : <Play size={12} strokeWidth={1.8} />}
+          {run ? t('pause') : t('startTimer')}
+        </button>
+      </div>
+      {finished && (
+        <p className="font-body text-[12px] font-medium mt-2 animate-fade-up" style={{ color: 'var(--gold)' }}>
+          ⏰ {lang === 'fr' ? "Temps écoulé ! Passe à l'étape suivante ✨" : "Time's up! Move on to the next step ✨"}
+        </p>
+      )}
     </div>
   );
 };
@@ -49,6 +77,13 @@ const RoutineScreen = ({ go, routinePhase }) => {
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(40); // 40ms de vibration douce
     }
+  };
+
+  // Étape 7 — fin de minuteur : clochette douce + vibration (si activé dans le profil)
+  const handleTimerEnd = () => {
+    if (!isTimerFeedbackEnabled()) return;
+    playSoftChime();
+    vibrateTimerEnd();
   };
 
   // Réaligne la phase si la prop change
@@ -192,7 +227,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
                   <p className="font-body text-[13px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{step.why}</p>
                   {step.timer && (
                     <div className="mt-3 pt-3 border-t border-stone-200">
-                      <Timer seconds={step.timer.seconds} />
+                      <Timer seconds={step.timer.seconds} onDone={handleTimerEnd} />
                       <p className="font-body italic text-[11px] mt-1" style={{ color: 'var(--ink-faint)' }}>{step.timer.note}</p>
                     </div>
                   )}
@@ -287,7 +322,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
                     <p className="font-body text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{s.why}</p>
                     {s.timer && (
                       <>
-                        <Timer seconds={s.timer.seconds} />
+                        <Timer seconds={s.timer.seconds} onDone={handleTimerEnd} />
                         <p className="font-body italic text-[11.5px] leading-relaxed mt-2" style={{ color: 'var(--ink-faint)' }}>{s.timer.note}</p>
                       </>
                     )}
