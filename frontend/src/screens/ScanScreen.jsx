@@ -24,6 +24,15 @@ const MOMENTS = [
   { value: 'soir', fr: 'Soir', en: 'Evening' },
 ];
 
+// Libellés traduits pour l'affichage (moment & catégorie) — Étape 4
+const momentLabel = (value, lang) =>
+  (MOMENTS.find((m) => m.value === value)?.[lang === 'fr' ? 'fr' : 'en']) || value;
+
+const categoryLabel = (value, lang) => {
+  const v = String(value || '').toLowerCase();
+  return (CATEGORIES.find((c) => c.value === v)?.[lang === 'fr' ? 'fr' : 'en']) || value;
+};
+
 const PAO_OPTIONS = [
   { value: 0, fr: 'Non spécifié', en: 'Not specified' },
   { value: 3, fr: '3 mois (3M)', en: '3 months (3M)' },
@@ -697,7 +706,7 @@ const [products, setProducts] = useState(() => {
                   <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : pid)}>
                     <div className="flex-1 pr-2">
                       <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
-                        {p.categorie || p.category || 'SOIN'}
+                        {categoryLabel(p.categorie || p.category, lang) || (lang === 'fr' ? 'Soin' : 'Product')}
                       </span>
                       <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
                       <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
@@ -763,12 +772,12 @@ const [products, setProducts] = useState(() => {
                         <div className="flex-1 space-y-2">
                           <div className="p-2 rounded-[10px] bg-white border border-stone-200">
                             <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Moment' : 'When'}</span>
-                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.moment ? (lang === 'fr' ? p.moment.replace('_', ' ') : p.moment) : 'Tous les moments'}</span>
+                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.moment ? momentLabel(p.moment, lang) : (lang === 'fr' ? 'Tous les moments' : 'Anytime')}</span>
                           </div>
 
                           <div className="p-2 rounded-[10px] bg-white border border-stone-200">
                             <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Catégorie' : 'Category'}</span>
-                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.categorie || p.category}</span>
+                            <span className="font-medium text-[11px] text-stone-800 capitalize">{categoryLabel(p.categorie || p.category, lang)}</span>
                           </div>
 
                           {Array.isArray(p.actifs) && p.actifs.length > 0 && (
