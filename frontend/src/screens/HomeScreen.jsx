@@ -144,6 +144,29 @@ const TIPS = {
   },
 };
 
+// --- Conseils de NUIT (régénération) — affichés le soir à la place des conseils SPF/soleil ---
+const NIGHT_TIPS = {
+  fr: [
+    "Ce soir, ta peau se régénère pendant que tu dors — une bonne nuit, c'est le meilleur des sérums. 🌙",
+    "Rituel du soir : nettoie la journée en douceur, puis hydrate. Ta peau te dira merci demain matin.",
+    "Pas de soleil à l'horizon : le soir, c'est le bon moment pour les soins ciblés que tu réserves à la nuit.",
+    "Le soir, la peau absorbe mieux : prends ton temps et masse doucement ton hydratant.",
+    "Écrans éteints un peu plus tôt ce soir — ton sommeil et ta peau vont adorer. 😴",
+    "Une taie d'oreiller propre, ça change tout pour une peau tranquille pendant la nuit.",
+  ],
+  en: [
+    "Tonight your skin repairs itself while you sleep — good rest is the best serum. 🌙",
+    "Evening ritual: gently wash the day away, then moisturize. Your skin will thank you tomorrow.",
+    "No sun in sight: evening is the right time for the targeted treatments you save for nighttime.",
+    "Skin absorbs better in the evening — take your time and massage your moisturizer in slowly.",
+    "Screens off a little earlier tonight — your sleep and your skin will love it. 😴",
+    "A clean pillowcase makes all the difference for calm skin overnight.",
+  ],
+};
+
+// Motifs des conseils à ne JAMAIS montrer le soir (SPF / soleil / UV)
+const DAY_ONLY_RE = /\bspf\b|sunscreen|crème solaire|\buv\b/i;
+
 // Codes météo WMO (Open-Meteo) → condition
 function conditionFromCode(code) {
   if (code === 0 || code === 1) return 'sun';
@@ -163,11 +186,15 @@ function tempBand(temp) {
   return 'canicule';
 }
 
-function pickTip(temp, code, lang) {
+function pickTip(temp, code, lang, isNight = false) {
   const l = lang === 'fr' ? 'fr' : 'en';
   const cond = conditionFromCode(code);
   const band = tempBand(temp);
-  const pool = [...(CONDITIONS[cond]?.[l] || []), ...(TIPS[band]?.[l] || [])];
+  let pool = [...(CONDITIONS[cond]?.[l] || []), ...(TIPS[band]?.[l] || [])];
+  if (isNight) {
+    // Le soir : aucun conseil SPF/soleil — on bascule sur les conseils de nuit et de régénération
+    pool = [...NIGHT_TIPS[l], ...pool.filter((tip) => !DAY_ONLY_RE.test(tip))];
+  }
   if (pool.length === 0) return '';
 
   // Stabilité : un conseil unique par tranche (matin/soir) de chaque jour
@@ -325,7 +352,7 @@ const HomeScreen = ({ go }) => {
             if (cw && typeof cw.temperature === 'number') {
               const temp = Math.round(cw.temperature);
               const code = typeof cw.weathercode === 'number' ? cw.weathercode : 2;
-              setWeather({ temp: `${temp}°C`, tip: pickTip(temp, code, lang), cond: conditionFromCode(code) });
+              setWeather({ temp: `${temp}°C`, tip: pickTip(temp, code, lang, isNight), cond: conditionFromCode(code) });
             }
           } catch (e) {
             console.warn("Météo ignorée :", e.message);
