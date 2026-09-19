@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-import os, logging, uuid, json, re
+import os, logging, uuid, json, re, secrets, string
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -96,6 +96,9 @@ class JournalIn(BaseModel):
 class CheckoutIn(BaseModel):
     lookup_key: str
     origin_url: str
+
+class JoinCircleIn(BaseModel):
+    code: str
 
 
 # ---------------- Helpers ----------------
@@ -399,6 +402,11 @@ async def add_journal(body: JournalIn, user=Depends(current_user)):
              "etapes_completees": body.etapes_completees, "nb_total_etapes": body.nb_total_etapes,
              "note_peau": body.note_peau}
     await db.journal_entries.insert_one(entry)
+    # Étape 6 — un Wizz reçu auquel on répond par une routine complétée (12h pour répondre)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.wizzes.update_many(
+        {"to_id": user["id"], "responded_at": None, "expires_at": {"$gt": now_iso}},
+        {"$set": {"responded_at": now_iso}})
     return {"ok": True}
 
 @api_router.get("/journal")
@@ -482,6 +490,146 @@ def _observation(entries, lang="fr"):
     if lang == "en":
         return "Your routines are nice and consistent, keep it up!"
     return "Tes routines sont bien régulières, continue comme ça !"
+
+# ---------------- Mon Cercle (Étape 6) ----------------
+def _invite_code():
+    alphabet = string.ascii_uppercase + string.digits
+    return "SOLAIA-" + "".join(secrets.choice(alphabet) for _ in range(6))
+
+async def _ensure_circle_fields(uid: str):
+    """Garantit le code de parrainage unique + le compteur d'invitations (3 gratuites)."""
+    u = await db.users.find_one({"id": uid}, {"_id": 0})
+    updates = {}
+    if not u.get("invite_code"):
+        for _ in range(5):
+            code = _invite_code()
+            if not await db.users.find_one({"invite_code": code}):
+                break
+        updates["invite_code"] = code
+    if u.get("invites_remaining") is None:
+        updates["invites_remaining"] = 3
+    if updates:
+        await db.users.update_one({"id": uid}, {"$set": updates})
+        u.update(updates)
+    return u
+
+def _circle_streak(entries):
+    day_set = set()
+    for e in entries:
+        h = e.get("horodatage") or ""
+        if h:
+            day_set.add(h[:10])
+    streak = 0
+    cur = date.today()
+    if cur.isoformat() not in day_set:
+        cur = cur - timedelta(days=1)
+    while cur.isoformat() in day_set:
+        streak += 1
+        cur = cur - timedelta(days=1)
+    return streak
+
+def _friendship_query(uid: str, fid: str):
+    return {"$or": [{"user_a": uid, "user_b": fid}, {"user_a": fid, "user_b": uid}]}
+
+@api_router.get("/circle")
+async def get_circle(user=Depends(current_user)):
+    me = await _ensure_circle_fields(user["id"])
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    frs = await db.friendships.find(
+        {"$or": [{"user_a": user["id"]}, {"user_b": user["id"]}]}, {"_id": 0}).to_list(200)
+    friends = []
+    for f in frs:
+        fid = f["user_b"] if f["user_a"] == user["id"] else f["user_a"]
+        fu = await db.users.find_one({"id": fid}, {"_id": 0})
+        if not fu:
+            continue
+        entries = await db.journal_entries.find({"user_id": fid}, {"_id": 0}).to_list(1000)
+        day_set = {e.get("horodatage", "")[:10] for e in entries}
+        today = date.today()
+        week = [{"d": (today - timedelta(days=i)).isoformat(),
+                 "done": (today - timedelta(days=i)).isoformat() in day_set}
+                for i in range(6, -1, -1)]
+        recent_wizz = await db.wizzes.find_one({
+            "from_id": user["id"], "to_id": fid,
+            "created_at": {"$gte": (now - timedelta(hours=12)).isoformat()}})
+        pending = await db.wizzes.find_one({
+            "from_id": fid, "to_id": user["id"],
+            "responded_at": None, "expires_at": {"$gt": now_iso}})
+        friends.append({
+            "user_id": fid,
+            "nom": fu.get("nom") or (fu.get("email") or "?").split("@")[0],
+            "is_premium": bool(fu.get("is_premium") or fu.get("statut_abonnement") == "actif"),
+            "streak": _circle_streak(entries),
+            "done_today": today.isoformat() in day_set,
+            "week": week,
+            "wizz_cooldown": bool(recent_wizz),
+            "wizz_pending": bool(pending),
+        })
+    received_docs = await db.wizzes.find({"to_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(20)
+    received = []
+    for w in received_docs:
+        fu = await db.users.find_one({"id": w["from_id"]}, {"_id": 0}) or {}
+        expired = (not w.get("responded_at")) and w.get("expires_at", "") < now_iso
+        received.append({
+            "id": w["id"],
+            "from_nom": fu.get("nom") or "?",
+            "created_at": w.get("created_at"),
+            "expires_at": w.get("expires_at"),
+            "responded": bool(w.get("responded_at")),
+            "expired": expired,
+        })
+    return {
+        "invite_code": me.get("invite_code"),
+        "invites_remaining": me.get("invites_remaining", 3),
+        "friends": friends,
+        "wizz_received": received,
+    }
+
+@api_router.post("/circle/join")
+async def join_circle(body: JoinCircleIn, user=Depends(current_user)):
+    await _ensure_circle_fields(user["id"])
+    code = (body.code or "").strip().upper()
+    inviter = await db.users.find_one({"invite_code": code}, {"_id": 0})
+    if not inviter:
+        raise HTTPException(404, "Code d'invitation invalide")
+    if inviter["id"] == user["id"]:
+        raise HTTPException(400, "Tu ne peux pas utiliser ton propre code")
+    if await db.friendships.find_one(_friendship_query(user["id"], inviter["id"])):
+        raise HTTPException(400, "Vous êtes déjà amies")
+    inviter = await _ensure_circle_fields(inviter["id"])
+    if (inviter.get("invites_remaining") or 0) <= 0:
+        raise HTTPException(400, "Cette personne n'a plus d'invitations disponibles")
+    await db.friendships.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_a": inviter["id"], "user_b": user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.users.update_one({"id": inviter["id"]}, {"$inc": {"invites_remaining": -1}})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"referred_by": inviter["id"]}})
+    return {"ok": True, "friend_nom": inviter.get("nom")}
+
+@api_router.delete("/circle/friends/{friend_id}")
+async def remove_friend(friend_id: str, user=Depends(current_user)):
+    await db.friendships.delete_many(_friendship_query(user["id"], friend_id))
+    return {"ok": True}
+
+@api_router.post("/circle/wizz/{friend_id}")
+async def send_wizz(friend_id: str, user=Depends(current_user)):
+    if not await db.friendships.find_one(_friendship_query(user["id"], friend_id)):
+        raise HTTPException(404, "Amie introuvable dans ton cercle")
+    now = datetime.now(timezone.utc)
+    recent = await db.wizzes.find_one({
+        "from_id": user["id"], "to_id": friend_id,
+        "created_at": {"$gte": (now - timedelta(hours=12)).isoformat()}})
+    if recent:
+        raise HTTPException(429, "Un seul Wizz par amie toutes les 12h")
+    w = {"id": str(uuid.uuid4()), "from_id": user["id"], "to_id": friend_id,
+         "created_at": now.isoformat(),
+         "expires_at": (now + timedelta(hours=12)).isoformat(),
+         "responded_at": None}
+    await db.wizzes.insert_one(w)
+    return {"ok": True}
+
 
 # ---------------- Scan (AI vision Gemini) ----------------
 @api_router.post("/scan")
@@ -684,6 +832,16 @@ async def payment_status(session_id: str):
                     "stripe_customer_id": customer_id
                 }}
             )
+            # Étape 6 — parrainage : +1 invitation pour la marraine (une seule fois)
+            if user_filter:
+                new_sub = await db.users.find_one(user_filter, {"_id": 0})
+                if new_sub and new_sub.get("referred_by") and not new_sub.get("referral_rewarded"):
+                    await db.users.update_one(
+                        {"id": new_sub["referred_by"]},
+                        {"$inc": {"invites_remaining": 1}})
+                    await db.users.update_one(
+                        user_filter,
+                        {"$set": {"referral_rewarded": True}})
 
         if record:
             await db.payment_transactions.update_one(
