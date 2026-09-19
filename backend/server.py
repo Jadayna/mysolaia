@@ -380,28 +380,57 @@ async def get_routine(phase: str = "soir", lang: str = "fr", user=Depends(curren
     routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1), lang=lang)
     return routine
 
+GAPS_TEXTS = {
+    "fr": {
+        "title": "💡 Ce qui manque à ton étagère",
+        "spf": "Un SPF le matin — c'est la seule étape qui protège ce que les autres réparent.",
+        "nettoyant": "Un nettoyant doux — tout commence sur peau propre.",
+        "hydratant": "Un hydratant — pour sceller tous tes actifs.",
+    },
+    "en": {
+        "title": "💡 What's missing from your shelf",
+        "spf": "An SPF in the morning — it's the only step that protects what the others repair.",
+        "nettoyant": "A gentle cleanser — everything starts on clean skin.",
+        "hydratant": "A moisturizer — to seal in all your actives.",
+    },
+}
+
+
+def _detect_gaps(products, phase, lang):
+    """Le moteur ne se contente plus d'ordonner : il conseille ce qui manque."""
+    if not products:
+        return None
+    lang = "en" if lang == "en" else "fr"
+    t = GAPS_TEXTS[lang]
+    cats = {p["categorie"] for p in products}
+    missing = []
+    # Priorité : ce qui protège / nettoie / scelle, selon le moment de la journée
+    if phase == "matin" and "spf" not in cats:
+        missing.append(t["spf"])
+    if "nettoyant" not in cats:
+        missing.append(t["nettoyant"])
+    if "hydratant" not in cats:
+        missing.append(t["hydratant"])
+    if not missing:
+        return None
+    # Un seul conseil à la fois — doux, pas moralisateur
+    return {"title": t["title"], "text": missing[0]}
+
+
 @api_router.get("/home")
-async def home(lang: str = "fr", user=Depends(current_user)):
-    now = datetime.now(timezone.utc)
-    hour = now.hour
-    greeting_kind = "matin" if 4 <= hour < 17 else "soir"
-    phase = greeting_kind
+async def home(lang: str = "fr", phase: str = "matin", user=Depends(current_user)):
+    phase = "soir" if phase == "soir" else "matin"
     products = await _shelf_products(user["id"])
     demo = False
     routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1), lang=lang)
     shelf_preview = [{"categorie": p["categorie"], "nom": p["nom"], "brand": p["brand"]}
                      for p in products[:5]]
-    has_spf = any(p["categorie"] == "spf" for p in products)
-    suggestion = None
-    if products and not has_spf:
-        suggestion = {"title": "Il te manque un ecran solaire.",
-                      "text": "C'est la seule etape du matin qui protege ce que les autres reparent."}
     return {
-        "greeting_kind": greeting_kind,
+        "greeting_kind": phase,
         "routine": routine,
         "shelf_count": len(products),
         "shelf_preview": shelf_preview,
-        "suggestion": suggestion,
+        "suggestion": _detect_gaps(products, phase, lang),
         "demo": demo,
     }
 
@@ -476,7 +505,42 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
     ranged = [e for e in entries if e["horodatage"][:10] >= start]
 
     return {"days": days, "stats": stats, "entries": [fmt(e) for e in ranged[:30]],
-            "observation": _observation(entries, lang)}
+            "observation": _observation(entries, lang),
+            "tendance": _tendance_peau(entries, lang)}
+
+def _tendance_peau(entries, lang="fr"):
+    """Corrélation temporelle : la note moyenne de peau des 7 derniers jours
+    notés, comparée aux 7 jours notés précédents."""
+    notes = [(e["horodatage"][:10], e.get("note_peau")) for e in entries
+             if e.get("note_peau") is not None]
+    if len(notes) < 4:
+        return None
+    notes.sort(reverse=True)
+    recentes = [n for _, n in notes[:7]]
+    anciennes = [n for _, n in notes[7:14]]
+    if not recentes or not anciennes:
+        return None
+    moy_r = sum(recentes) / len(recentes)
+    moy_a = sum(anciennes) / len(anciennes)
+    diff = moy_r - moy_a
+    en = lang == "en"
+    if diff >= 0.5:
+        sens = "hausse"
+        msg = ("Your skin has been feeling better lately — whatever you changed, keep going! ✨"
+               if en else
+               "Ta peau se sent mieux ces derniers temps — ce que tu as changé fonctionne, continue comme ça ! ✨")
+    elif diff <= -0.5:
+        sens = "baisse"
+        msg = ("Your skin has felt a bit more uncomfortable lately. Simplify for a few days and watch how it reacts."
+               if en else
+               "Ta peau tiraille un peu plus ces derniers temps. Simplifie ta routine quelques jours et observe sa réaction.")
+    else:
+        sens = "stable"
+        msg = ("Your skin feels steady — consistency is paying off."
+               if en else
+               "Ta peau est stable — ta régularité paie.")
+    return {"sens": sens, "message": msg}
+
 
 # NOUVEAU :
 def _observation(entries, lang="fr"):
