@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, CalendarDays, Flame, Package, Camera, Trash2, Plus, X, Award, ShieldCheck, Lock, Sparkles } from 'lucide-react';
+import { Calendar, CalendarDays, Flame, Package, Camera, Trash2, Plus, X, Award, ShieldCheck, Lock, Sparkles, TrendingUp, TrendingDown, Minus, Share2, ArrowLeftRight } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
+import { useAuth } from '../context/AuthContext';
+import { shareVictory } from '../lib/shareCard';
 
 // Paliers de badges (calculés à la volée depuis les données existantes)
 const STREAK_BADGES = [
@@ -34,6 +36,10 @@ const JournalScreen = ({ go }) => {
     }
   });
   const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [comparing, setComparing] = useState(false);
+  const [splitPos, setSplitPos] = useState(50);
+  const [sharing, setSharing] = useState(false);
+  const { user } = useAuth();
 
   // Charger les photos depuis le compte utilisateur
   useEffect(() => {
@@ -84,6 +90,20 @@ const JournalScreen = ({ go }) => {
       img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleShare = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const userName = user?.nom || user?.prenom || user?.first_name || '';
+      const lastEntry = entries[0];
+      await shareVictory({ lang, streak, routineTitle: lastEntry?.title || '', userName });
+    } catch (e) {
+      console.warn('Partage impossible :', e.message);
+    } finally {
+      setSharing(false);
+    }
   };
 
   const deletePhoto = (id) => {
@@ -142,11 +162,25 @@ const JournalScreen = ({ go }) => {
               {lang === 'fr' ? 'Évolution de ma peau' : 'Skin Evolution'}
             </h3>
           </div>
-          <label className="cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-full font-body text-[10px] uppercase tracking-caps text-white gold-btn">
-            <Plus size={12} />
-            <span>{lang === 'fr' ? 'Ajouter' : 'Add'}</span>
-            <input type="file" accept="image/*" capture="user" onChange={handlePhotoUpload} className="hidden" />
-          </label>
+          <div className="flex items-center gap-2">
+            {skinPhotos.length >= 2 && (
+              <button
+                onClick={() => setComparing((c) => !c)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full font-body text-[10px] uppercase tracking-caps transition-all"
+                style={comparing
+                  ? { background: 'var(--gold)', color: '#fff' }
+                  : { background: 'var(--cream-card)', border: '1px solid var(--line-strong)', color: 'var(--ink-soft)' }}
+              >
+                <ArrowLeftRight size={12} />
+                <span>{lang === 'fr' ? 'Comparer' : 'Compare'}</span>
+              </button>
+            )}
+            <label className="cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-full font-body text-[10px] uppercase tracking-caps text-white gold-btn">
+              <Plus size={12} />
+              <span>{lang === 'fr' ? 'Ajouter' : 'Add'}</span>
+              <input type="file" accept="image/*" capture="user" onChange={handlePhotoUpload} className="hidden" />
+            </label>
+          </div>
         </div>
 
         {skinPhotos.length === 0 ? (
@@ -155,6 +189,36 @@ const JournalScreen = ({ go }) => {
               ? 'Prends un selfie chaque semaine pour observer l\'éclat de ta peau au fil du temps.' 
               : 'Take a selfie every week to track your skin glow over time.'}
           </p>
+        ) : comparing && skinPhotos.length >= 2 ? (
+          /* ===== Comparateur avant / après ===== */
+          <div className="animate-fade-up">
+            <div className="relative w-full rounded-[14px] overflow-hidden select-none" style={{ height: 300, border: '1.5px solid var(--gold-soft)' }}>
+              {/* Avant = la plus ancienne */}
+              <img src={skinPhotos[skinPhotos.length - 1].url} alt="Avant" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+              {/* Après = la plus récente, révélée au curseur */}
+              <img
+                src={skinPhotos[0].url}
+                alt="Après"
+                draggable={false}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ clipPath: `inset(0 ${100 - splitPos}% 0 0)` }}
+              />
+              {/* Ligne de séparation */}
+              <div className="absolute top-0 bottom-0 w-[2px]" style={{ left: `${splitPos}%`, background: '#fff', boxShadow: '0 0 8px rgba(0,0,0,0.4)' }} />
+              <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full font-body text-[10px] uppercase tracking-caps text-white" style={{ background: 'rgba(0,0,0,0.45)' }}>
+                {lang === 'fr' ? 'Avant' : 'Before'} · {skinPhotos[skinPhotos.length - 1].date}
+              </span>
+              <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full font-body text-[10px] uppercase tracking-caps text-white" style={{ background: 'rgba(182,130,53,0.85)' }}>
+                {lang === 'fr' ? 'Après' : 'After'} · {skinPhotos[0].date}
+              </span>
+            </div>
+            <input
+              type="range" min={2} max={98} value={splitPos}
+              onChange={(e) => setSplitPos(Number(e.target.value))}
+              className="w-full mt-3"
+              aria-label={lang === 'fr' ? 'Curseur de comparaison' : 'Comparison slider'}
+            />
+          </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1 pt-1">
             {skinPhotos.map((p) => (
@@ -192,6 +256,23 @@ const JournalScreen = ({ go }) => {
               <Trash2 size={13} />
               <span>{lang === 'fr' ? 'Supprimer cette photo' : 'Delete photo'}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tendance de la peau — corrélée à tes notes */}
+      {data.tendance && (
+        <div className="p-4 rounded-[16px] flex items-center gap-3 animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+          {data.tendance.sens === 'hausse' && <TrendingUp size={22} className="shrink-0" style={{ color: 'var(--gold)' }} />}
+          {data.tendance.sens === 'baisse' && <TrendingDown size={22} className="shrink-0" style={{ color: '#B0563A' }} />}
+          {data.tendance.sens === 'stable' && <Minus size={22} className="shrink-0" style={{ color: 'var(--ink-faint)' }} />}
+          <div>
+            <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+              {lang === 'fr' ? 'Tendance de ma peau' : 'My skin trend'}
+            </p>
+            <p className="font-body text-[12.5px] mt-1 leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              {data.tendance.message}
+            </p>
           </div>
         </div>
       )}
@@ -259,6 +340,14 @@ const JournalScreen = ({ go }) => {
           <span className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
             {lang === 'fr' ? 'Mes Victoires de Soin' : 'Care Victories'}
           </span>
+          <button
+            onClick={handleShare}
+            disabled={sharing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body text-[10px] uppercase tracking-caps text-white gold-btn disabled:opacity-50"
+          >
+            <Share2 size={12} />
+            <span>{sharing ? '…' : (lang === 'fr' ? 'Partager' : 'Share')}</span>
+          </button>
           <span className="font-body text-[11px] font-medium" style={{ color: 'var(--ink-soft)' }}>
             {[
               entries.length >= 1,
