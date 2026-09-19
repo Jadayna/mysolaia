@@ -12,6 +12,7 @@ import HelpScreen from '../screens/HelpScreen';
 import PrivacyScreen from '../screens/PrivacyScreen';
 import CircleScreen from '../screens/CircleScreen';
 import api from '../lib/api';
+import { scheduleReminders } from '../lib/reminders';
 
 const TABS = [
   { id: 'accueil', icon: Home, screen: HomeScreen },
@@ -44,6 +45,14 @@ const AppShell = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Rappels de routine : planifiés au démarrage, replanifiés à chaque retour dans l'app
+    scheduleReminders(lang);
+    const onVisible = () => { if (document.visibilityState === 'visible') scheduleReminders(lang); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [lang]);
 
   useEffect(() => {
     // 1. Si déjà installée en plein écran, ne rien afficher

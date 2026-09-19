@@ -3,6 +3,7 @@ import { Sun, Moon, Camera, ArrowRight, CloudSun, Cloud, CloudRain, CloudSnow, C
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 import api from '../lib/api';
+import { isRoutineDone } from '../lib/reminders';
 
 // --- Conseils par CONDITION météo (soleil, nuages, pluie, neige, brouillard, orage) ---
 const CONDITIONS = {
@@ -213,6 +214,7 @@ const HomeScreen = ({ go }) => {
   const { lang } = useT();
 
   const [weather, setWeather] = useState({ temp: '--', tip: '', cond: null });
+  const [suggestion, setSuggestion] = useState(null);
   const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem('solaia_cached_shelf');
@@ -352,7 +354,7 @@ const HomeScreen = ({ go }) => {
             if (cw && typeof cw.temperature === 'number') {
               const temp = Math.round(cw.temperature);
               const code = typeof cw.weathercode === 'number' ? cw.weathercode : 2;
-              setWeather({ temp: `${temp}°C`, tip: pickTip(temp, code, lang, isNight), cond: conditionFromCode(code) });
+              setWeather({ temp: `${temp}°C`, tempNum: temp, tip: pickTip(temp, code, lang, isNight), cond: conditionFromCode(code) });
             }
           } catch (e) {
             console.warn("Météo ignorée :", e.message);
@@ -381,12 +383,39 @@ const HomeScreen = ({ go }) => {
         localStorage.setItem('solaia_cached_journal', JSON.stringify(list));
       })
       .catch(() => {});
+
+    // Conseils du moteur : ce qui manque à l'étagère (phase locale, pas UTC serveur)
+    const apiPhase = isNight ? 'soir' : 'matin';
+    api.get('/home', { params: { lang, phase: apiPhase } })
+      .then((res) => setSuggestion(res?.data?.suggestion || null))
+      .catch(() => {});
   }, [lang]);
 
 
 
   const safeProducts = Array.isArray(products) ? products : [];
   const WeatherIcon = COND_ICONS[weather.cond] || CloudSun;
+
+  // Météo → conseil adaptatif concret (au-delà du simple tip)
+  const weatherAlert = () => {
+    const t = weather.tempNum;
+    if (typeof t !== 'number') return null;
+    if (t <= -5) return lang === 'fr'
+      ? '🥶 Grand froid dehors — ce soir, mise sur une texture riche et nourrissante.'
+      : '🥶 Freezing outside — tonight, go for a rich, nourishing texture.';
+    if (t >= 28) return lang === 'fr'
+      ? '🥵 Forte chaleur — allège les textures et bois beaucoup d’eau.'
+      : '🥵 Heat wave — keep textures light and drink plenty of water.';
+    if (weather.cond === 'sun' && !isNight) return lang === 'fr'
+      ? '☀️ Gros soleil — pense à renouveler ton SPF dans la journée.'
+      : '☀️ Strong sun — remember to reapply your SPF during the day.';
+    return null;
+  };
+  const alertMsg = weatherAlert();
+
+  // Streak en danger : le soir, routine non faite, streak à protéger
+  const streakAtRisk = isNight && streak > 0 && !isRoutineDone('soir');
+
 
   return (
     <div className="px-6 pt-6 pb-12 space-y-6">
@@ -409,6 +438,28 @@ const HomeScreen = ({ go }) => {
           <div>
             <span className="font-display text-[13px] font-semibold" style={{ color: 'var(--ink)' }}>{weather.temp}</span>
             <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>{weather.tip}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Alerte météo adaptative */}
+      {alertMsg && (
+        <div className="p-4 rounded-[16px] flex items-center gap-3 animate-fade-up" style={{ background: 'rgba(182,130,53,0.10)', border: '1px solid var(--gold-soft)' }}>
+          <p className="font-body text-[12.5px] leading-relaxed" style={{ color: 'var(--ink)' }}>{alertMsg}</p>
+        </div>
+      )}
+
+      {/* Streak en danger */}
+      {streakAtRisk && (
+        <div className="p-4 rounded-[16px] flex items-center gap-3 animate-fade-up" style={{ background: 'rgba(182,130,53,0.14)', border: '1.5px solid var(--gold-soft)' }}>
+          <span className="font-display text-[26px]">🔥</span>
+          <div>
+            <p className="font-display text-[14px] font-semibold" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? `Tes ${streak} jours sont en jeu ce soir !` : `Your ${streak}-day streak is at stake tonight!`}
+            </p>
+            <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr' ? 'Termine ta routine pour garder la flamme.' : 'Finish your routine to keep the flame alive.'}
+            </p>
           </div>
         </div>
       )}
@@ -463,6 +514,25 @@ const HomeScreen = ({ go }) => {
           "{finalInsight}"
         </p>
       </div>
+
+      {/* Conseil du moteur — ce qui manque */}
+      {suggestion && (
+        <div className="p-5 rounded-[18px] animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--gold-soft)' }}>
+          <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+            {suggestion.title}
+          </p>
+          <p className="font-body text-[13px] mt-2 leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+            {suggestion.text}
+          </p>
+          <button
+            onClick={() => go('scan')}
+            className="mt-3 font-body text-[11px] uppercase tracking-caps font-semibold"
+            style={{ color: 'var(--gold)' }}
+          >
+            {lang === 'fr' ? 'Scanner un produit →' : 'Scan a product →'}
+          </button>
+        </div>
+      )}
 
       {/* Étagère Rapide */}
       <div>
