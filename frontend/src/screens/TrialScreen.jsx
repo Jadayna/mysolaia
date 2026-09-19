@@ -5,10 +5,15 @@ import { useAuth } from '../context/AuthContext';
 
 const TrialScreen = () => {
   const { t, lang } = useT();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [plan, setPlan] = useState('monthly');
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
+
+  // Déjà abonnée ? → on n'affiche plus jamais l'essai (Étape : fix TrialScreen)
+  const isSubscribed = user?.is_premium === true || user?.statut_abonnement === 'actif';
+  // Après expiration (état positionné côté backend) → proposition de réactivation
+  const isExpired = user?.statut_abonnement === 'expire';
 
   const inSevenDays = new Date();
   inSevenDays.setDate(inSevenDays.getDate() + 7);
@@ -22,7 +27,11 @@ const TrialScreen = () => {
       api.get(`/payments/status/${sid}`).then((r) => {
         // En essai gratuit, Stripe renvoie 'no_payment_required' ou status 'complete'
         const isSuccessful = r.data.payment_status === 'paid' || r.data.payment_status === 'no_payment_required' || r.data.status === 'complete';
-        if (isSuccessful) setPaid(true);
+        if (isSuccessful) {
+          setPaid(true);
+          // Rafraîchit le profil pour basculer sur « Abonnement Illimité Actif »
+          api.get('/auth/me').then(({ data }) => { if (data?.user) setUser(data.user); }).catch(() => {});
+        }
       }).catch(() => {});
     }
   }, []);
@@ -57,6 +66,27 @@ const TrialScreen = () => {
     ['D7', `First charge (${plan === 'yearly' ? '$39.99' : '$4.99'}) only if you decide to keep it. Cancel in 1 tap.`],
   ];
 
+  // Vue « déjà abonnée » : on ne propose plus jamais l'essai
+  if (isSubscribed) {
+    return (
+      <div className="px-6 pt-6 animate-fade-up">
+        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{t('trialTitle')}</span>
+        <h2 className="font-display text-[28px] mt-1">✨ {lang === 'fr' ? 'Abonnement Illimité Actif' : 'Unlimited Subscription Active'}</h2>
+        <p className="font-body text-[13px] leading-relaxed mt-3" style={{ color: 'var(--ink-soft)' }}>
+          {lang === 'fr'
+            ? `Merci de rayonner avec nous ! Profite de MySolaia sans aucune limite : étagère illimitée, routines personnalisées, journal.`
+            : `Thanks for glowing with us! Enjoy MySolaia without limits: unlimited shelf, personalized routines, journal.`}
+        </p>
+
+        <button onClick={handleManageSubscription} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">
+          {lang === 'fr' ? 'Gérer mon abonnement' : 'Manage my subscription'}
+        </button>
+
+        <p className="font-body italic text-[11.5px] leading-relaxed mt-8 mb-4" style={{ color: 'var(--ink-faint)' }}>{t('legal')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-6 pt-6 animate-fade-up">
       <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{t('trialTitle')}</span>
@@ -84,7 +114,11 @@ const TrialScreen = () => {
         </button>
       </div>
 
-      <button onClick={startTrial} disabled={busy} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">{t('startTrial')}</button>
+      <button onClick={startTrial} disabled={busy} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">
+        {isExpired
+          ? (lang === 'fr' ? 'Réactiver mon abonnement' : 'Reactivate my subscription')
+          : t('startTrial')}
+      </button>
 
       <div className="mt-4 text-center">
         <button onClick={handleManageSubscription} className="font-body text-[11.5px] underline hover:opacity-80 transition" style={{ color: 'var(--ink-soft)' }}>
