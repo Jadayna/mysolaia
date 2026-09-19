@@ -13,6 +13,7 @@ import PrivacyScreen from '../screens/PrivacyScreen';
 import CircleScreen from '../screens/CircleScreen';
 import api from '../lib/api';
 import { scheduleReminders } from '../lib/reminders';
+import { initAnalytics, trackScreen } from '../lib/analytics';
 
 const TABS = [
   { id: 'accueil', icon: Home, screen: HomeScreen },
@@ -47,6 +48,8 @@ const AppShell = () => {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
+    // Analytics (Umami) : chargée une seule fois si VITE_UMAMI_WEBSITE_ID est défini
+    initAnalytics();
     // Rappels de routine : planifiés au démarrage, replanifiés à chaque retour dans l'app
     scheduleReminders(lang);
     const onVisible = () => { if (document.visibilityState === 'visible') scheduleReminders(lang); };
@@ -139,6 +142,7 @@ const go = (id, opts) => {
 
     setShowMenuModal(false);
     setActive(id);
+    trackScreen(id);
     // Mémoriser l'écran actuel pour le rafraîchissement
     sessionStorage.setItem('solaia_active_tab', id);
   };
