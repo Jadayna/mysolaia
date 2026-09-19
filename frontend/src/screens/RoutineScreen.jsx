@@ -3,6 +3,7 @@ import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X, ChevronRight, Chevro
 import api from '../lib/api';
 import { useT } from '../i18n';
 import { isTimerFeedbackEnabled, playSoftChime, vibrateTimerEnd } from '../lib/timerFeedback';
+import { markRoutineDone } from '../lib/reminders';
 
 const Timer = ({ seconds, onDone, label }) => {
   const { t, lang } = useT();
@@ -35,15 +36,38 @@ const Timer = ({ seconds, onDone, label }) => {
   const mm = String(Math.floor(rem / 60)).padStart(2, '0');
   const ss = String(rem % 60).padStart(2, '0');
 
+  const R = 32;
+  const CIRC = 2 * Math.PI * R;
+  const progress = seconds > 0 ? rem / seconds : 0;
+
   return (
     <div className="mt-3">
-      <div className="flex items-center gap-3">
-        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{label || t('suggestedPause')}</span>
-        <span className="font-display text-[20px] tnum">{mm} : {ss}</span>
-        <button onClick={() => setRun((r) => !r)} className="gold-btn rounded-[6px] px-3 py-1.5 flex items-center gap-1.5 font-body tracking-caps text-[10px] uppercase">
-          {run ? <Pause size={12} strokeWidth={1.8} /> : <Play size={12} strokeWidth={1.8} />}
-          {run ? t('pause') : t('startTimer')}
-        </button>
+      <div className="flex items-center gap-4">
+        {/* Anneau de progression */}
+        <div className="relative shrink-0" style={{ width: 80, height: 80 }}>
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r={R} fill="none" stroke="var(--line)" strokeWidth="6" />
+            <circle
+              cx="40" cy="40" r={R} fill="none" stroke="var(--gold)" strokeWidth="6"
+              strokeLinecap="round" strokeDasharray={CIRC}
+              strokeDashoffset={CIRC * (1 - progress)}
+              transform="rotate(-90 40 40)"
+              style={{ transition: 'stroke-dashoffset 1s linear' }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-display text-[16px] tnum" style={{ color: finished ? 'var(--gold)' : 'var(--ink)' }}>{mm}:{ss}</span>
+          </div>
+        </div>
+        <div className="flex-1">
+          <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{label || t('suggestedPause')}</span>
+          <div>
+            <button onClick={() => setRun((r) => !r)} className="gold-btn rounded-[6px] px-3 py-1.5 mt-1.5 flex items-center gap-1.5 font-body tracking-caps text-[10px] uppercase">
+              {run ? <Pause size={12} strokeWidth={1.8} /> : <Play size={12} strokeWidth={1.8} />}
+              {run ? t('pause') : t('startTimer')}
+            </button>
+          </div>
+        </div>
       </div>
       {finished && (
         <p className="font-body text-[12px] font-medium mt-2 animate-fade-up" style={{ color: 'var(--gold)' }}>
@@ -66,6 +90,8 @@ const RoutineScreen = ({ go, routinePhase }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guideMode, setGuideMode] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationStreak, setCelebrationStreak] = useState(0);
 
   // Fonction de retour haptique doux pour mobile
   const triggerHaptic = () => {
@@ -127,13 +153,33 @@ const RoutineScreen = ({ go, routinePhase }) => {
         note_peau: rating,
       });
       setShowRatingModal(false);
-      // Redirige vers le journal
-      if (go) go('journal');
+      // Marque la routine comme faite (rappels + streak en danger)
+      markRoutineDone(phase === 'soir' ? 'soir' : 'matin');
+      // Récupère le streak pour la célébration
+      try {
+        const r = await api.get('/journal', { params: { periode: 'week', lang } });
+        setCelebrationStreak(parseInt(r?.data?.stats?.[0]?.n || '0', 10) || 0);
+      } catch {}
+      setShowCelebration(true);
     } catch (e) {
       console.error("Erreur enregistrement journal :", e);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const celebrationMessage = () => {
+    if (celebrationStreak >= 7)
+      return lang === 'fr'
+        ? 'Une semaine complète — ta barrière cutanée te remercie.'
+        : 'A full week — your skin barrier thanks you.';
+    if (celebrationStreak >= 3)
+      return lang === 'fr'
+        ? `${celebrationStreak} jours de suite ! Ta régularité est remarquable.`
+        : `${celebrationStreak} days in a row! Your consistency is remarkable.`;
+    return lang === 'fr'
+      ? 'Chaque routine compte — à demain pour continuer sur ta lancée.'
+      : 'Every routine counts — see you tomorrow to keep it going.';
   };
 
   return (
@@ -232,7 +278,12 @@ const RoutineScreen = ({ go, routinePhase }) => {
                 <button
                   onClick={() => {
                     triggerHaptic();
+                    const willBeDone = !done[step.n];
                     setDone((d) => ({ ...d, [step.n]: !d[step.n] }));
+                    // Avance toute seule vers l'étape suivante
+                    if (willBeDone && currentStepIndex < total - 1) {
+                      setTimeout(() => setCurrentStepIndex((i) => Math.min(total - 1, i + 1)), 650);
+                    }
                   }}
                   className="w-full py-3 rounded-[12px] font-body text-[12px] font-medium uppercase tracking-caps flex items-center justify-center gap-2 transition-all"
                   style={isStepDone 
@@ -341,6 +392,35 @@ const RoutineScreen = ({ go, routinePhase }) => {
       <button onClick={finish} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">
         {t('routineDone')}
       </button>
+
+      {/* ===== Célébration de fin de rituel ===== */}
+      {showCelebration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in" style={{ background: 'rgba(43,33,24,0.55)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-sm p-8 rounded-[28px] text-center relative overflow-hidden animate-fade-up" style={{ background: '#FBF7F1', border: '1.5px solid var(--gold-soft)', boxShadow: '0 24px 60px -12px rgba(0,0,0,0.35)' }}>
+            {['✨', '⭐', '✨', '💫', '⭐', '✨'].map((s, i) => (
+              <span key={i} className="celebrate-star" style={{ left: `${6 + i * 15}%`, animationDelay: `${i * 0.28}s` }}>{s}</span>
+            ))}
+            <p className="font-display text-[52px] leading-none">🔥</p>
+            <h3 className="font-display text-[26px] mt-3" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Routine terminée !' : 'Routine complete!'}
+            </h3>
+            {celebrationStreak > 0 && (
+              <p className="font-display text-[15px] font-semibold mt-2" style={{ color: 'var(--gold)' }}>
+                {celebrationStreak} {lang === 'fr' ? (celebrationStreak > 1 ? 'jours de suite' : 'jour de suite') : (celebrationStreak > 1 ? 'day streak' : 'day streak')}
+              </p>
+            )}
+            <p className="font-body italic text-[13px] mt-2 leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              {celebrationMessage()}
+            </p>
+            <button
+              onClick={() => { setShowCelebration(false); if (go) go('journal'); }}
+              className="gold-btn w-full rounded-[12px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase"
+            >
+              {lang === 'fr' ? 'Voir mon journal' : 'View my journal'}
+            </button>
+          </div>
+        </div>
+      )}
 
                   {/* Modal de Sensation de la peau à 4 humeurs */}
       {showRatingModal && (
