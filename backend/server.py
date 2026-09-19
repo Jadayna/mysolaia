@@ -657,7 +657,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     img = body.image_base64.split(",")[-1]
     sys = ("Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
            "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON: "
-           '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}')
+           '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible|patch","actif_cle":"","texture_label":"","confiance":0.0}')
     data = {}
     gemini_key = os.environ.get("GEMINI_API_KEY")
     
@@ -681,7 +681,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
             sys_prompt = (
                 "Tu es l'expert produits cosmétiques de l'application MySolaia. On te montre l'image d'un produit de soin.\n"
                 "1. LIS ATTENTIVEMENT le texte écrit sur le flacon/l'étiquette (OCR). La marque (ex: 'The Ordinary', 'CeraVe', 'La Roche-Posay') et le nom complet exact du produit (ex: 'Niacinamide 10% + Zinc 1%'). Ne confonds pas avec une autre marque célèbre.\n"
-                "2. Détermine la catégorie parmi : nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible.\n"
+                "2. Détermine la catégorie parmi : nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible, patch (patchs à boutons hydrocolloïdes).\n"
                 "3. Détecte la durée PAO en mois (Period After Opening) : si le symbole de pot ouvert (ex: 3M, 6M, 12M, 24M) est visible, utilise ce chiffre (3, 6, 12 ou 24). Sinon, déduis la durée standard selon la formule (vitamine C = 3, sérums/yeux = 6, crèmes/nettoyants = 12, huiles/poudres = 24).\n"
                 "4. Identifie les actifs présents parmi cette liste stricte : retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine.\n"
                 "Réponds UNIQUEMENT en JSON valide sans balises markdown ni texte autour:\n"

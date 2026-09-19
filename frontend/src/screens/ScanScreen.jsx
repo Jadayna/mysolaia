@@ -16,6 +16,7 @@ const CATEGORIES = [
   { value: 'spf', fr: 'Protection solaire (SPF)', en: 'Sunscreen (SPF)' },
   { value: 'levres', fr: 'Lèvres', en: 'Lips' },
   { value: 'cils_sourcils', fr: 'Cils & sourcils', en: 'Lashes & brows' },
+  { value: 'patch', fr: 'Patch (boutons)', en: 'Pimple patch' },
 ];
 
 const MOMENTS = [

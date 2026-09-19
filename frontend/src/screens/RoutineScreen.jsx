@@ -2,14 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X, ChevronRight, ChevronLeft, Compass, List } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
-
-import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, Play, Pause, Sun, Moon, CheckCircle2, X, ChevronRight, ChevronLeft, Compass, List } from 'lucide-react';
-import api from '../lib/api';
-import { useT } from '../i18n';
 import { isTimerFeedbackEnabled, playSoftChime, vibrateTimerEnd } from '../lib/timerFeedback';
 
-const Timer = ({ seconds, onDone }) => {
+const Timer = ({ seconds, onDone, label }) => {
   const { t, lang } = useT();
   const [rem, setRem] = useState(seconds);
   const [run, setRun] = useState(false);
@@ -43,7 +38,7 @@ const Timer = ({ seconds, onDone }) => {
   return (
     <div className="mt-3">
       <div className="flex items-center gap-3">
-        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{t('suggestedPause')}</span>
+        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{label || t('suggestedPause')}</span>
         <span className="font-display text-[20px] tnum">{mm} : {ss}</span>
         <button onClick={() => setRun((r) => !r)} className="gold-btn rounded-[6px] px-3 py-1.5 flex items-center gap-1.5 font-body tracking-caps text-[10px] uppercase">
           {run ? <Pause size={12} strokeWidth={1.8} /> : <Play size={12} strokeWidth={1.8} />}
@@ -227,7 +222,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
                   <p className="font-body text-[13px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{step.why}</p>
                   {step.timer && (
                     <div className="mt-3 pt-3 border-t border-stone-200">
-                      <Timer seconds={step.timer.seconds} onDone={handleTimerEnd} />
+                      <Timer seconds={step.timer.seconds} onDone={handleTimerEnd} label={step.timer.label} />
                       <p className="font-body italic text-[11px] mt-1" style={{ color: 'var(--ink-faint)' }}>{step.timer.note}</p>
                     </div>
                   )}
@@ -265,7 +260,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
                         key={idx}
                         className="w-2 h-2 rounded-full transition-all"
                         style={{
-                          background: idx === currentStepIndex ? 'var(--gold)' : done[idx + 1] ? 'var(--gold-soft)' : 'var(--line)',
+                          background: idx === currentStepIndex ? 'var(--gold)' : done[routine.steps[idx].n] ? 'var(--gold-soft)' : 'var(--line)',
                           transform: idx === currentStepIndex ? 'scale(1.3)' : 'scale(1)'
                         }}
                       />
@@ -322,7 +317,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
                     <p className="font-body text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{s.why}</p>
                     {s.timer && (
                       <>
-                        <Timer seconds={s.timer.seconds} onDone={handleTimerEnd} />
+                        <Timer seconds={s.timer.seconds} onDone={handleTimerEnd} label={s.timer.label} />
                         <p className="font-body italic text-[11.5px] leading-relaxed mt-2" style={{ color: 'var(--ink-faint)' }}>{s.timer.note}</p>
                       </>
                     )}

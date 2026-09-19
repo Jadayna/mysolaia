@@ -11,8 +11,11 @@ from datetime import date
 CATEGORY_RANK = {
     "nettoyant": 0, "masque": 5, "exfoliant": 10, "toner": 20, "essence": 25,
     "serum": 30, "traitement_cible": 45, "yeux": 50, "hydratant": 60,
-    "huile": 70, "spf": 90, "levres": 95, "cils_sourcils": 97,
+    "huile": 70, "patch": 85, "spf": 90, "levres": 95, "cils_sourcils": 97,
 }
+
+# Durée du massage du nettoyant — la règle des 60 secondes
+TEMPS_NETTOYAGE_SEC = 60
 
 STRONG_ACTIVES = {"retinol", "aha", "bha", "vitamine_c"}
 
@@ -48,6 +51,7 @@ WHY = {
         "spf": "Le SPF ferme la marche du matin, sans exception — il protège ce que les autres réparent.",
         "levres": "Les lèvres à la toute fin, pour ne rien transférer ailleurs.",
         "cils_sourcils": "Sur cils et sourcils propres, une fois le visage terminé.",
+        "patch": "On le pose en dernier pour sceller le traitement — la nuit, il travaille pendant que tu dors.",
         "default": "Sa texture le place naturellement ici dans l'ordre.",
     },
     "en": {
@@ -63,6 +67,7 @@ WHY = {
         "spf": "SPF closes the morning, no exception — it protects what the others repair.",
         "levres": "Lips at the very end, so nothing transfers elsewhere.",
         "cils_sourcils": "On clean lashes and brows, once the face is done.",
+        "patch": "We place it last to seal the treatment — overnight, it works while you sleep.",
         "default": "Its texture places it naturally here in the order.",
     },
 }
@@ -79,6 +84,9 @@ TEXTS = {
         "wait": "attendre {wait} min",
         "timer_note": ("Il a besoin d'environ {wait} minutes avant la suite. Pars le compte "
                        "quand tu es prête — c'est la seule attente de ce soir."),
+        "cleanse_timer_note": ("Masse ton visage en mouvements circulaires pendant 60 secondes, "
+                        "puis rince à l'eau tiède. ⏱️"),
+        "cleanse_timer_label": "Massage 60 secondes",
         "default_acid": "l'acide",
         "decision_duplicate": ("Tu as plusieurs {cat_fr} sur ton étagère. J'ai gardé {nom} pour cette séance — "
                         "l'autre revient à la prochaine, pour finir les deux flacons."),
@@ -95,6 +103,9 @@ TEXTS = {
         "wait": "wait {wait} min",
         "timer_note": ("It needs about {wait} minutes before the next step. Start the timer "
                        "when you're ready — it's the only wait tonight."),
+        "cleanse_timer_note": ("Massage your face in circular motions for 60 seconds, "
+                        "then rinse with lukewarm water. ⏱️"),
+        "cleanse_timer_label": "60-second massage",
         "default_acid": "the acid",
         "decision_duplicate": ("You have several {cat_en} on your shelf. I kept {nom} for this session — "
                         "the other comes back next time, so you finish both bottles."),
@@ -174,6 +185,8 @@ def _why(prod, phase, lang="fr"):
         return w["levres"]
     if cat == "cils_sourcils":
         return w["cils_sourcils"]
+    if cat == "patch":
+        return w["patch"]
     return w["default"]
 
 
@@ -338,6 +351,15 @@ def compute_routine(products, phase="soir", on=None, sensibilite=1, lang="fr"):
             step["timer"] = {
                 "seconds": wait * 60,
                 "note": T["timer_note"].format(wait=wait),
+                "mode": "apres",
+            }
+        if prod.get("categorie") == "nettoyant":
+            # Minuteur « pendant » : 60 secondes de massage, pas une attente après
+            step["timer"] = {
+                "seconds": TEMPS_NETTOYAGE_SEC,
+                "note": T["cleanse_timer_note"],
+                "label": T["cleanse_timer_label"],
+                "mode": "pendant",
             }
         steps.append(step)
 
