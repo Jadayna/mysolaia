@@ -714,9 +714,32 @@ async def get_tricky_guide(lang: str = "fr"):
     return {"familles": tricky_guide(lang)}
 
 
+# ---------------- Quota anti-abus du scan IA ----------------
+SCAN_DAILY_LIMIT_FREE = int(os.environ.get("SCAN_DAILY_LIMIT_FREE", "15"))
+SCAN_DAILY_LIMIT_PREMIUM = int(os.environ.get("SCAN_DAILY_LIMIT_PREMIUM", "100"))
+
+async def check_scan_quota(user):
+    """Incrémente et vérifie le quota journalier de scans IA (chaque scan = un appel Gemini payant).
+    Lève 429 si le quota est dépassé."""
+    today = datetime.now(timezone.utc).date().isoformat()
+    limit = SCAN_DAILY_LIMIT_PREMIUM if user_has_full_access(user) else SCAN_DAILY_LIMIT_FREE
+    await db.scan_usage.update_one(
+        {"user_id": user["id"], "date": today},
+        {"$inc": {"count": 1}},
+        upsert=True,
+    )
+    doc = await db.scan_usage.find_one({"user_id": user["id"], "date": today}, {"_id": 0})
+    if (doc.get("count", 1) if doc else 1) > limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Limite de scans IA atteinte ({limit}/jour). Réessaie demain ✨",
+        )
+
+
 # ---------------- Scan (AI vision Gemini) ----------------
 @api_router.post("/scan")
 async def scan(body: ScanIn, user=Depends(current_user)):
+    await check_scan_quota(user)
     key = os.environ.get("EMERGENT_LLM_KEY")
     img = body.image_base64.split(",")[-1]
     sys = ("Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
