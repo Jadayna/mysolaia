@@ -138,6 +138,7 @@ const [products, setProducts] = useState(() => {
 
   // Formulaire d'édition / création manuelle
   const [showManual, setShowManual] = useState(false);
+  const [showAddOptions, setShowAddOptions] = useState(false); // Étape 2 : panneau des 3 options d'ajout
   const [editingShelfId, setEditingShelfId] = useState(null);
   const [savingManual, setSavingManual] = useState(false);
   const [mNom, setMNom] = useState('');
@@ -466,47 +467,47 @@ const [products, setProducts] = useState(() => {
         </div>
       </div>
 
-      {/* Zone d'ajout : Caméra + Galerie */}
-      <div className="w-full p-5 rounded-[20px] border-2 border-dashed flex flex-col items-center gap-4" style={{ borderColor: '#D4A373', background: 'var(--cream-card)' }}>
-        <div className="p-3.5 rounded-full text-white" style={{ background: '#A37B68' }}>
-          {loading ? <Loader2 size={24} className="animate-spin" /> : <Camera size={24} />}
-        </div>
+      {/* Zone d'ajout compacte — Étape 2 : un seul bouton, 3 options */}
+      <div className="w-full">
+        <button
+          onClick={() => setShowAddOptions((v) => !v)}
+          disabled={loading}
+          className="w-full py-3.5 rounded-[16px] flex items-center justify-center gap-2 font-body text-[12px] uppercase tracking-caps font-semibold text-white active:scale-[0.98] transition-all shadow-sm"
+          style={{ background: '#A37B68' }}
+        >
+          {loading ? <Loader2 size={18} className="animate-spin" /> : (showAddOptions ? <ChevronUp size={18} /> : <Plus size={18} />)}
+          {loading
+            ? LOADING_STEPS[lang === 'fr' ? 'fr' : 'en'][loadingMsg]
+            : (lang === 'fr' ? 'Ajouter un soin à mon étagère' : 'Add a product to my shelf')}
+        </button>
 
-        {loading ? (
-          <p className="font-display text-[15px] font-medium text-center transition-all" style={{ color: 'var(--ink)' }}>
-            {LOADING_STEPS[lang === 'fr' ? 'fr' : 'en'][loadingMsg]}
-          </p>
-        ) : (
-          <>
-            <p className="font-display text-[15px] font-medium text-center" style={{ color: 'var(--ink)' }}>
-              {lang === 'fr' ? 'Ajouter un produit' : 'Add a product'}
-            </p>
-            <div className="w-full flex flex-col gap-2.5">
-              <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold text-white active:scale-[0.98] transition-all" style={{ background: '#A37B68' }}>
-                <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" disabled={loading} />
-                {lang === 'fr' ? 'Prendre une photo' : 'Take a photo'}
-              </label>
-
-              <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold active:scale-[0.98] transition-all" style={{ background: 'transparent', border: '1px solid #A37B68', color: '#A37B68' }}>
-                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={loading} />
-                {lang === 'fr' ? 'Importer de la galerie' : 'Import from gallery'}
-              </label>
-
-              <button 
-                onClick={() => {
-                  setEditingShelfId(null);
-                  setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
-                  setMPhoto(null); setMOpenedAt(''); setMPaoMonths(0);
-                  setShowManual((v) => !v);
-                }} 
-                className="w-full py-2 flex items-center justify-center gap-1.5 font-body text-[11px] uppercase tracking-caps" 
-                style={{ color: 'var(--ink-soft)' }}
-              >
-                <Plus size={14} />
-                {lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}
-              </button>
-            </div>
-          </>
+        {showAddOptions && !loading && (
+          <div className="mt-2 p-2 rounded-[16px] border animate-fade-up space-y-1" style={{ background: 'var(--cream-card)', borderColor: 'var(--line)' }}>
+            <label className="w-full px-4 py-3 rounded-[12px] flex items-center gap-3 cursor-pointer font-body text-[13px] font-medium active:scale-[0.99] transition-all hover:bg-white" style={{ color: 'var(--ink)' }}>
+              <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" disabled={loading} />
+              <span className="text-[18px]">📸</span>
+              <span>{lang === 'fr' ? 'Prendre une photo' : 'Take a photo'}</span>
+            </label>
+            <label className="w-full px-4 py-3 rounded-[12px] flex items-center gap-3 cursor-pointer font-body text-[13px] font-medium active:scale-[0.99] transition-all hover:bg-white" style={{ color: 'var(--ink)' }}>
+              <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={loading} />
+              <span className="text-[18px]">🖼️</span>
+              <span>{lang === 'fr' ? 'Choisir dans la galerie' : 'Pick from gallery'}</span>
+            </label>
+            <button
+              onClick={() => {
+                setShowAddOptions(false);
+                setEditingShelfId(null);
+                setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
+                setMPhoto(null); setMOpenedAt(''); setMPaoMonths(0);
+                setShowManual(true);
+              }}
+              className="w-full px-4 py-3 rounded-[12px] flex items-center gap-3 font-body text-[13px] font-medium active:scale-[0.99] transition-all hover:bg-white text-left"
+              style={{ color: 'var(--ink)' }}
+            >
+              <span className="text-[18px]">✍️</span>
+              <span>{lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}</span>
+            </button>
+          </div>
         )}
       </div>
 
