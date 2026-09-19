@@ -21,6 +21,12 @@ const TrialScreen = () => {
 
 
   useEffect(() => {
+    // Vérifie auprès de Stripe si l'abonnement est toujours actif ;
+    // si annulé/expiré → le backend applique « 5 Actifs / Reste en Pause »
+    api.post('/subscription/refresh')
+      .then(() => api.get('/auth/me'))
+      .then(({ data }) => { if (data?.user) setUser(data.user); })
+      .catch(() => {});
     const params = new URLSearchParams(window.location.search);
     const sid = params.get('session_id');
     if (sid) {

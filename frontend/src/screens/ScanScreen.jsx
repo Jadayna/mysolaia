@@ -150,6 +150,7 @@ const [products, setProducts] = useState(() => {
   const [mPaoMonths, setMPaoMonths] = useState(0);
   const [mPhoto, setMPhoto] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [trickyGuide, setTrickyGuide] = useState([]);
 
   const fetchProducts = async () => {
     try {
@@ -174,7 +175,11 @@ const [products, setProducts] = useState(() => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+    // Étape 8 — base de connaissances des produits capricieux
+    api.get(`/knowledge/tricky?lang=${lang}`).then(({ data }) => {
+      setTrickyGuide(data?.familles || []);
+    }).catch(() => {});
+  }, [lang]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -450,6 +455,14 @@ const [products, setProducts] = useState(() => {
   };
 
   const handleToggle = async (shelfId) => {
+    const prod = products.find((x) => x.shelf_id === shelfId || x.id === shelfId);
+    if (prod?.locked_by_downgrade) {
+      setToastMsg(lang === 'fr'
+        ? '🔴 Soin verrouillé — réabonne-toi à MySolaia Illimité pour le réactiver.'
+        : '🔴 Locked product — resubscribe to MySolaia Unlimited to reactivate it.');
+      setTimeout(() => setToastMsg(null), 4000);
+      return;
+    }
     try {
       const res = await api.post(`/shelf/${shelfId}/toggle`);
       const actif = res?.data?.actif;
@@ -764,11 +777,16 @@ const [products, setProducts] = useState(() => {
                       <button
                         onClick={() => handleToggle(pid)}
                         className="px-2.5 py-1 rounded-full font-body text-[9px] uppercase tracking-caps transition-all"
-                        style={actif
-                          ? { background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }
-                          : { background: 'transparent', color: 'var(--ink-faint)', border: '1px solid var(--line)' }}
+                        title={p.locked_by_downgrade ? (lang === 'fr' ? 'Verrouillé — réabonne-toi pour réactiver' : 'Locked — resubscribe to reactivate') : undefined}
+                        style={p.locked_by_downgrade
+                          ? { background: 'rgba(192,57,43,0.1)', color: '#c0392b', border: '1px solid rgba(192,57,43,0.35)' }
+                          : actif
+                            ? { background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }
+                            : { background: 'transparent', color: 'var(--ink-faint)', border: '1px solid var(--line)' }}
                       >
-                        {actif ? (lang === 'fr' ? 'Actif' : 'On') : (lang === 'fr' ? 'Inactif' : 'Off')}
+                        {p.locked_by_downgrade
+                          ? (lang === 'fr' ? '🔴 Verrouillé' : '🔴 Locked')
+                          : actif ? (lang === 'fr' ? 'Actif' : 'On') : (lang === 'fr' ? 'Inactif' : 'Off')}
                       </button>
                       <button onClick={() => handleDelete(pid)} className="p-2 text-red-500 hover:bg-red-50 rounded-full">
                         <Trash2 size={16} />
@@ -816,6 +834,35 @@ const [products, setProducts] = useState(() => {
                           )}
                         </div>
                       </div>
+
+                    {/* Étape 8 — Produit capricieux : mode d'emploi */}
+                    {Array.isArray(p.tricky) && p.tricky.length > 0 && (
+                      <div className="p-3 rounded-[12px] space-y-2.5" style={{ background: 'rgba(182,130,53,0.08)', border: '1px solid var(--gold-soft)' }}>
+                        <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+                          ⚠️ {lang === 'fr' ? 'Produit capricieux — mode d\u2019emploi' : 'Tricky product — how to use'}
+                        </p>
+                        {p.tricky.map((key) => {
+                          const fam = trickyGuide.find((f) => f.key === key);
+                          if (!fam) return null;
+                          return (
+                            <div key={key}>
+                              <p className="font-display text-[13px] font-medium" style={{ color: 'var(--ink)' }}>{fam.emoji} {fam.titre}</p>
+                              <ul className="mt-1 space-y-1">
+                                {fam.conseils.slice(0, 3).map((c, i) => (
+                                  <li key={i} className="font-body text-[11.5px] leading-snug" style={{ color: 'var(--ink-soft)' }}>• {c}</li>
+                                ))}
+                              </ul>
+                              {fam.a_eviter.slice(0, 1).map((w, i) => (
+                                <p key={`w-${i}`} className="font-body text-[11.5px] mt-1" style={{ color: '#c0392b' }}>🚫 {w}</p>
+                              ))}
+                            </div>
+                          );
+                        })}
+                        <button onClick={() => go('aide')} className="font-body text-[11px] underline" style={{ color: 'var(--gold)' }}>
+                          {lang === 'fr' ? 'Voir le guide complet' : 'See the full guide'}
+                        </button>
+                      </div>
+                    )}
 
                     {/* Boutons Racheter / Modifier côte à côte — Étape 3 */}
                     <div className="flex gap-2">

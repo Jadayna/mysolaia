@@ -234,8 +234,8 @@ const HomeScreen = ({ go }) => {
 
   const currentHour = new Date().getHours();
   const isMorning = currentHour >= 5 && currentHour < 12;
-  const isAfternoon = currentHour >= 12 && currentHour < 18;
-  const isNight = currentHour >= 18 || currentHour < 5;
+  const isAfternoon = currentHour >= 12 && currentHour < 19;
+  const isNight = currentHour >= 19 || currentHour < 5;
   const phase = isNight ? 'soir' : 'jour';
 
   const getGreeting = () => {

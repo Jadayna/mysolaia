@@ -12,6 +12,7 @@ import jwt
 import bcrypt
 
 from seed_products import SEED_PRODUCTS
+from tricky_guide import tricky_keys_for_actifs, tricky_guide
 from engine import compute_routine, exfoliation_days, WEEKDAYS_FR, WEEKDAYS_EN
 
 load_dotenv()
@@ -260,7 +261,9 @@ async def _shelf_products(uid: str, active_only=True):
             merged = {**prod, "shelf_id": up["id"], "photo_url": up.get("photo_url"),
                       "notes": up.get("notes", ""), "actif": up.get("actif", True),
                       "date_ouverture": up.get("date_ouverture"), "pao_mois": up.get("pao_mois", 0),
-                      "force_soir": up.get("force_soir", False)}
+                      "force_soir": up.get("force_soir", False),
+                      "locked_by_downgrade": up.get("locked_by_downgrade", False),
+                      "tricky": tricky_keys_for_actifs(prod.get("actifs", []))}
             result.append(merged)
     return result
 
@@ -350,6 +353,15 @@ async def toggle_shelf(shelf_id: str, user=Depends(current_user)):
     if not up:
         raise HTTPException(404, "Produit introuvable")
     nouveau = not up.get("actif", True)
+    if up.get("locked_by_downgrade") and nouveau:
+        # Produit verrouillé 🔴 : réactivation réservée aux abonnées
+        if not user_has_full_access(user):
+            raise HTTPException(
+                403, "Ce soin est verrouillé 🔴 — réabonne-toi à MySolaia Illimité pour le réactiver.")
+        await db.user_products.update_one(
+            {"id": shelf_id, "user_id": user["id"]},
+            {"$set": {"actif": True, "locked_by_downgrade": False}})
+        return {"ok": True, "actif": True}
     await db.user_products.update_one(
         {"id": shelf_id, "user_id": user["id"]},
         {"$set": {"actif": nouveau}}
@@ -631,6 +643,13 @@ async def send_wizz(friend_id: str, user=Depends(current_user)):
     return {"ok": True}
 
 
+# ---------------- Étape 8 : base de connaissances produits capricieux ----------------
+@api_router.get("/knowledge/tricky")
+async def get_tricky_guide(lang: str = "fr"):
+    """Guide complet des actifs « capricieux » (rétinoïdes, vitamine C, AHA/BHA...)."""
+    return {"familles": tricky_guide(lang)}
+
+
 # ---------------- Scan (AI vision Gemini) ----------------
 @api_router.post("/scan")
 async def scan(body: ScanIn, user=Depends(current_user)):
@@ -741,6 +760,39 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     return {"recognized": bool(brand or nom), "product": proposed, "note": "À confirmer."}
 
 
+# ---------------- Modèle « 5 Actifs / Reste en Pause » ----------------
+async def apply_free_downgrade(user_id: str):
+    """Après annulation/expiration : 5 produits restent actifs (favoris d'abord,
+    puis les plus récents), les autres sont verrouillés 🔴 jusqu'au réabonnement."""
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"statut_abonnement": "expire", "is_premium": False}})
+    ups = await db.user_products.find(
+        {"user_id": user_id, "actif": True}, {"_id": 0}).to_list(500)
+    favs = [u for u in ups if u.get("is_favorite")]
+    others = [u for u in ups if not u.get("is_favorite")]
+    favs.sort(key=lambda u: u.get("date_ajout", ""), reverse=True)
+    others.sort(key=lambda u: u.get("date_ajout", ""), reverse=True)
+    ordered = favs + others
+    keep_ids = {u["id"] for u in ordered[:MAX_FREE_PRODUCTS]}
+    for u in ordered:
+        if u["id"] in keep_ids:
+            await db.user_products.update_one(
+                {"id": u["id"]},
+                {"$set": {"locked_by_downgrade": False}})
+        else:
+            await db.user_products.update_one(
+                {"id": u["id"]},
+                {"$set": {"actif": False, "locked_by_downgrade": True}})
+
+
+async def restore_after_resubscribe(user_id: str):
+    """Au réabonnement : déverrouille tout ce qui avait été mis en pause."""
+    await db.user_products.update_many(
+        {"user_id": user_id, "locked_by_downgrade": True},
+        {"$set": {"actif": True, "locked_by_downgrade": False}})
+
+
 # ---------------- Stripe & Billing Portal ----------------
 import stripe
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_placeholder"
@@ -832,6 +884,14 @@ async def payment_status(session_id: str):
                     "stripe_customer_id": customer_id
                 }}
             )
+            # Modèle « 5 Actifs / Reste en Pause » : réabonnement → tout déverrouillé
+            if user_filter:
+                try:
+                    uid = (await db.users.find_one(user_filter, {"_id": 0, "id": 1})) or {}
+                    if uid.get("id"):
+                        await restore_after_resubscribe(uid["id"])
+                except Exception as e:
+                    logger.warning(f"restore_after_resubscribe: {e}")
             # Étape 6 — parrainage : +1 invitation pour la marraine (une seule fois)
             if user_filter:
                 new_sub = await db.users.find_one(user_filter, {"_id": 0})
@@ -881,7 +941,43 @@ async def stripe_webhook(request: Request):
         await db.payment_transactions.update_one(
             {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
             {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"), "customer_id": obj.get("customer")}})
+    if t == "customer.subscription.deleted":
+        customer_id = obj.get("customer")
+        if customer_id:
+            u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0})
+            if u:
+                await apply_free_downgrade(u["id"])
+                logger.info(f"Downgrade après annulation Stripe pour {u['id']}")
     return {"status": "ok"}
+
+@api_router.post("/subscription/refresh")
+async def refresh_subscription(user=Depends(current_user)):
+    """Vérifie auprès de Stripe si un abonnement actif existe encore.
+    Si non → applique le modèle « 5 Actifs / Reste en Pause ».
+    Ne dégrade jamais si l'appel Stripe échoue (principe de prudence)."""
+    customer_id = user.get("stripe_customer_id")
+    active = False
+    stripe_ok = False
+    if customer_id:
+        try:
+            for status in ("active", "trialing"):
+                subs = stripe.Subscription.list(customer=customer_id, status=status, limit=1)
+                if subs.data:
+                    active = True
+                    break
+            stripe_ok = True
+        except Exception as e:
+            logger.warning(f"Stripe refresh failed: {e}")
+    if active:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"statut_abonnement": "actif", "is_premium": True}})
+        await restore_after_resubscribe(user["id"])
+        return {"statut": "actif"}
+    if stripe_ok and customer_id and (user.get("statut_abonnement") == "actif" or user.get("is_premium")):
+        await apply_free_downgrade(user["id"])
+        return {"statut": "expire"}
+    return {"statut": user.get("statut_abonnement") or "gratuit"}
 
 @api_router.api_route("/health", methods=["GET", "HEAD"])
 async def health():
