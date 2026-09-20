@@ -173,39 +173,11 @@ const JournalScreen = ({ go }) => {
   const stats = Array.isArray(data.stats) ? data.stats : [];
   const streak = parseInt(data?.stats?.[0]?.n || '0', 10) || 0;
 
-<<<<<<< HEAD
-  // ===== Victoires de soin : 16 badges permanents (court + long terme) =====
-  const _tl = (e) => (e.title || '').toLowerCase();
-  const morningCount = entries.filter((e) => { const t = _tl(e); return t.includes('matin') || t.includes('jour') || t.includes('day'); }).length;
-  const eveningCount = entries.filter((e) => { const t = _tl(e); return t.includes('soir') || t.includes('evening'); }).length;
-  const soins30 = stats[1]?.n || '0';
-  const exfo30 = stats[2]?.n || '0';
-  const badges = [
-    { id: 'first', icon: '🌱', title: lang === 'fr' ? 'Première Lueur' : 'First Glow', desc: lang === 'fr' ? '1ère routine validée' : '1st completed routine', unlocked: entries.length >= 1 },
-    { id: 'streak3', icon: '🔥', title: lang === 'fr' ? 'Rythme Solaire' : 'Solar Rhythm', desc: lang === 'fr' ? '3 jours consécutifs' : '3 days in a row', unlocked: streak >= 3 },
-    { id: 'streak7', icon: '👑', title: lang === 'fr' ? 'Constance d\'Or' : 'Golden Habit', desc: lang === 'fr' ? '7 jours consécutifs' : '7 days in a row', unlocked: streak >= 7 },
-    { id: 'streak14', icon: '🌟', title: lang === 'fr' ? 'Étoile Filante' : 'Shooting Star', desc: lang === 'fr' ? '14 jours consécutifs' : '14 days in a row', unlocked: streak >= 14 },
-    { id: 'streak30', icon: '🏆', title: lang === 'fr' ? 'Légende Solaire' : 'Solar Legend', desc: lang === 'fr' ? '30 jours consécutifs' : '30 days in a row', unlocked: streak >= 30 },
-    { id: 'sun', icon: '☀️', title: lang === 'fr' ? 'Bouclier UV' : 'UV Shield', desc: lang === 'fr' ? '3 routines du matin' : '3 morning routines', unlocked: morningCount >= 3 },
-    { id: 'dawn', icon: '🌅', title: lang === 'fr' ? 'Aube Éclatante' : 'Radiant Dawn', desc: lang === 'fr' ? '10 routines du matin' : '10 morning routines', unlocked: morningCount >= 10 },
-    { id: 'moon', icon: '🌙', title: lang === 'fr' ? 'Reine de la Nuit' : 'Night Queen', desc: lang === 'fr' ? '5 routines du soir' : '5 evening routines', unlocked: eveningCount >= 5 },
-    { id: 'night', icon: '🌌', title: lang === 'fr' ? 'Veillée d\'Or' : 'Golden Night', desc: lang === 'fr' ? '15 routines du soir' : '15 evening routines', unlocked: eveningCount >= 15 },
-    { id: 'shelf', icon: '🧴', title: lang === 'fr' ? 'Armoire de Soins' : 'Skincare Shelf', desc: lang === 'fr' ? '5 flacons ordonnés' : '5 products organized', unlocked: shelfCount >= 5 },
-    { id: 'collector', icon: '💄', title: lang === 'fr' ? 'Collectionneuse' : 'Collector', desc: lang === 'fr' ? '10 flacons ordonnés' : '10 products organized', unlocked: shelfCount >= 10 },
-    { id: 'selfie', icon: '📸', title: lang === 'fr' ? 'Miroir du Temps' : 'Time Mirror', desc: lang === 'fr' ? '1er selfie de peau' : '1st skin selfie', unlocked: skinPhotos.length >= 1 },
-    { id: 'gallery', icon: '🖼️', title: lang === 'fr' ? 'Galerie du Temps' : 'Time Gallery', desc: lang === 'fr' ? '5 selfies de peau' : '5 skin selfies', unlocked: skinPhotos.length >= 5 },
-    { id: 'master', icon: '💎', title: lang === 'fr' ? 'Sagesse Cutanée' : 'Skin Wisdom', desc: lang === 'fr' ? '10 routines notées' : '10 routines logged', unlocked: entries.length >= 10 },
-    { id: 'devotee', icon: '📓', title: lang === 'fr' ? 'Rituel Ancré' : 'Anchored Ritual', desc: lang === 'fr' ? '25 routines notées' : '25 routines logged', unlocked: entries.length >= 25 },
-    { id: 'legend', icon: '💫', title: lang === 'fr' ? 'Icône de Constance' : 'Consistency Icon', desc: lang === 'fr' ? '50 routines notées' : '50 routines logged', unlocked: entries.length >= 50 },
-  ];
-  const unlockedBadges = badges.filter((b) => b.unlocked);
-=======
   // Badges : 3 plus prestigieux débloqués en vedette (≈ les plus récents)
   const badges = buildBadges({ entries, streak, shelfCount, skinPhotos, lang });
   const unlockedBadges = badges.filter((b) => b.unlocked);
   const lockedBadges = badges.filter((b) => !b.unlocked);
   const featuredBadges = [...unlockedBadges].sort((a, b) => b.rank - a.rank).slice(0, 3);
->>>>>>> feuille-de-route
 
   return (
     <div className="px-6 pt-6 pb-28 max-h-screen overflow-y-auto animate-fade-up space-y-6">
@@ -446,17 +418,6 @@ const JournalScreen = ({ go }) => {
           <span>{sharing ? '…' : (lang === 'fr' ? 'Partager ma victoire' : 'Share my victory')}</span>
         </button>
 
-<<<<<<< HEAD
-        <div className="grid grid-cols-2 gap-2.5">
-          {badges.map((badge) => (
-            <div
-              key={badge.id}
-              className={`p-3 rounded-[16px] border flex items-center gap-2.5 transition-all ${
-                badge.unlocked
-                  ? 'bg-white shadow-xs border-amber-200'
-                  : 'bg-stone-100/50 border-stone-200 opacity-60'
-              }`}
-=======
         {/* Vedettes : les 3 badges les plus prestigieux débloqués */}
         {featuredBadges.length > 0 ? (
           <div className="grid grid-cols-3 gap-2.5">
@@ -479,7 +440,6 @@ const JournalScreen = ({ go }) => {
               onClick={() => setBadgeView('all')}
               className="font-body text-[11px] font-semibold underline underline-offset-4"
               style={{ color: 'var(--gold)' }}
->>>>>>> feuille-de-route
             >
               {lang === 'fr' ? 'Voir mes badges' : 'See my badges'} →
             </button>
