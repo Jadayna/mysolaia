@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, ChevronUp, Clock, Pencil, Check, Search, Star } from 'lucide-react';
 import { useT } from '../i18n';
+import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 
 // Catégories offertes à l'entrée manuelle
@@ -111,6 +112,7 @@ const ACTIF_LABELS = {
 
 const ScanScreen = ({ go }) => {
   const { lang } = useT();
+  const { user, setUser } = useAuth();
 const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem('solaia_cached_shelf');
@@ -136,6 +138,26 @@ const [products, setProducts] = useState(() => {
   const [showFirstScanTip, setShowFirstScanTip] = useState(() => {
     return !localStorage.getItem('solaia_first_scan_tip_seen');
   });
+
+  // L'astuce "premier scan" est mémorisée côté compte : elle suit l'utilisatrice
+  // sur tous ses appareils et navigateurs (le drapeau local reste comme cache immédiat).
+  useEffect(() => {
+    if (user?.first_scan_tip_seen) {
+      setShowFirstScanTip(false);
+      try { localStorage.setItem('solaia_first_scan_tip_seen', 'true'); } catch {}
+    }
+  }, [user]);
+
+  const dismissFirstScanTip = async () => {
+    setShowFirstScanTip(false);
+    try { localStorage.setItem('solaia_first_scan_tip_seen', 'true'); } catch {}
+    try {
+      await api.post('/auth/tip-seen', {});
+      if (user) setUser({ ...user, first_scan_tip_seen: true });
+    } catch {
+      // Pas grave : le drapeau local suffit pour cette session
+    }
+  };
 
   // Formulaire d'édition / création manuelle
   const [showManual, setShowManual] = useState(false);
@@ -665,10 +687,7 @@ const [products, setProducts] = useState(() => {
                 : "MySolaia estimated its freshness (~6 months). Tap your bottle to view its details or adjust when you opened it!"}
             </p>
             <button
-              onClick={() => {
-                setShowFirstScanTip(false);
-                localStorage.setItem('solaia_first_scan_tip_seen', 'true');
-              }}
+              onClick={dismissFirstScanTip}
               className="mt-2.5 px-3 py-1 rounded-[8px] font-body text-[10.5px] uppercase tracking-caps font-semibold text-white transition-all active:scale-95"
               style={{ background: 'var(--gold)' }}
             >
@@ -676,10 +695,7 @@ const [products, setProducts] = useState(() => {
             </button>
           </div>
           <button
-            onClick={() => {
-              setShowFirstScanTip(false);
-              localStorage.setItem('solaia_first_scan_tip_seen', 'true');
-            }}
+            onClick={dismissFirstScanTip}
             className="absolute top-3.5 right-3.5 text-stone-400 hover:text-stone-600"
           >
             <X size={15} />
