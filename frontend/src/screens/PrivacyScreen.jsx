@@ -12,8 +12,8 @@ const PrivacyScreen = ({ go }) => {
     ["Ton consentement", "En créant ton compte, tu consens à cette collecte. Tu peux retirer ton consentement en tout temps en supprimant ton compte (Profil → Supprimer mon compte) : tout est alors effacé."],
     ["Où vont tes données", "Tes données sont hébergées aux États-Unis (serveurs Render, base MongoDB Atlas) et transitent par Stripe (paiements — nous ne voyons ni ne stockons ton numéro de carte) et Google (analyse des photos scannées). En utilisant l'app, tu consens à ce transfert hors du Québec."],
     ["Combien de temps nous les gardons", "Tant que ton compte est actif. Compte supprimé = données effacées. Les photos scannées ne sont pas conservées après l'analyse."],
-    ["Tes droits (Loi 25)", "Tu as le droit d'accéder à tes renseignements, de les rectifier et de les faire supprimer. Écris à [ton courriel] — réponse sous 30 jours."],
-    ["Sécurité", "Connexions chiffrées (HTTPS), mots de passe chiffrés, accès limité aux données. Aucun système n'est infaillible : en cas d'incident présentant un risque de préjudice sérieux, nous t'aviserons ainsi que la Commission d'accès à l'information, comme l'exige la Loi 25."],
+    ["Tes droits", "Au Québec, la Loi 25 te donne le droit d'accéder à tes renseignements, de les rectifier et de les faire supprimer ; la loi fédérale sur la protection des renseignements personnels (LPRPDE) accorde des droits semblables ailleurs au Canada. Écris à [ton courriel] — réponse sous 30 jours."],
+    ["Sécurité", "Connexions chiffrées (HTTPS), mots de passe chiffrés, accès limité aux données. Aucun système n'est infaillible : en cas d'incident présentant un risque de préjudice sérieux, nous t'aviserons ainsi que la Commission d'accès à l'information et le Commissariat à la protection de la vie privée du Canada, comme l'exigent la Loi 25 et la loi fédérale."],
     ["Mineurs", "L'application s'adresse aux personnes de 14 ans et plus. En deçà de 14 ans, le consentement d'un parent ou tuteur est requis."],
     ["Modifications", "Si cette politique change de façon importante, nous t'en informerons dans l'application. Dernière mise à jour : 19 septembre 2026."],
   ] : [
@@ -23,8 +23,8 @@ const PrivacyScreen = ({ go }) => {
     ["Your consent", "By creating your account, you consent to this collection. You may withdraw consent at any time by deleting your account (Profile → Delete my account): everything is then erased."],
     ["Where your data goes", "Your data is hosted in the United States (Render servers, MongoDB Atlas database) and goes through Stripe (payments — we never see or store your card number) and Google (scanned-photo analysis). By using the app, you consent to this transfer outside Quebec."],
     ["How long we keep it", "As long as your account is active. Deleted account = erased data. Scanned photos are not kept after analysis."],
-    ["Your rights (Law 25)", "You have the right to access, correct and delete your information. Write to [your email] — reply within 30 days."],
-    ["Security", "Encrypted connections (HTTPS), encrypted passwords, limited data access. No system is infallible: if an incident poses a serious risk of harm, we will notify you and the Commission d'accès à l'information, as required by Law 25."],
+    ["Your rights", "In Quebec, Law 25 gives you the right to access, correct and delete your information; the federal Personal Information Protection Act (PIPEDA) grants similar rights elsewhere in Canada. Write to [your email] — reply within 30 days."],
+    ["Security", "Encrypted connections (HTTPS), encrypted passwords, limited data access. No system is infallible: if an incident poses a serious risk of harm, we will notify you, the Commission d'accès à l'information and the Office of the Privacy Commissioner of Canada, as required by Law 25 and federal law."],
     ["Minors", "The app is for users aged 14 and over. Under 14, a parent or guardian's consent is required."],
     ["Changes", "If this policy changes materially, we will inform you in the app. Last updated: September 19, 2026."],
   ];
