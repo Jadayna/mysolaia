@@ -48,8 +48,8 @@ const PrivacyScreen = ({ go }) => {
       <div className="p-3 rounded-[12px]" style={{ background: 'rgba(163,123,104,0.08)', border: '1px dashed var(--line)' }}>
         <p className="font-body text-[11.5px] leading-relaxed" style={{ color: 'var(--ink-faint)' }}>
           {lang === 'fr'
-            ? "⚠️ Brouillon conforme à la Loi 25 — remplace [Ton nom] et [ton courriel], puis fais réviser par un juriste avant le lancement."
-            : "⚠️ Draft aligned with Law 25 — replace [Your name] and [your email], then have it reviewed by a lawyer before launch."}
+            ? "⚠️ Brouillon conforme à la Loi 25 — remplace [Ton nom] et [ton courriel] avant le lancement. Une révision par un juriste est recommandée quand l'app générera des revenus."
+            : "⚠️ Draft aligned with Law 25 — replace [Your name] and [your email] before launch. A lawyer review is recommended once the app generates revenue."}
         </p>
       </div>
 
