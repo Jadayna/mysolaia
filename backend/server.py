@@ -3,7 +3,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-import os, logging, uuid, json, re, secrets, string
+import os, logging, uuid, json, re, secrets, string, asyncio
+import requests
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -51,6 +52,14 @@ class RegisterIn(BaseModel):
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
+
+class ForgotIn(BaseModel):
+    email: EmailStr
+    origin_url: str = ""
+
+class ResetIn(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6, max_length=128)
 
 class ProfileIn(BaseModel):
     nom: Optional[str] = None
@@ -166,6 +175,80 @@ async def login(body: LoginIn):
     if not user or not verify_password(body.password, user["password"]):
         raise HTTPException(401, "Courriel ou mot de passe incorrect")
     return {"token": make_token(user["id"]), "user": public_user(user)}
+
+def _send_reset_email(to_email: str, reset_link: str, lang: str = "fr") -> bool:
+    """Envoie le courriel de réinitialisation via Resend (si configuré)."""
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    if not api_key:
+        logging.warning("RESEND_API_KEY non configuré — courriel de réinitialisation non envoyé à %s", to_email)
+        return False
+    from_email = os.environ.get("RESET_FROM_EMAIL", "MySolaia <noreply@mysolaia.app>")
+    if lang == "fr":
+        subject = "Réinitialise ton mot de passe MySolaia"
+        html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
+<h2 style="color:#A37B68;">MySolaia</h2>
+<p style="color:#4a4a4a;">Tu as demandé à réinitialiser ton mot de passe. Clique sur le bouton ci-dessous (lien valide 1 heure) :</p>
+<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="background:#A37B68;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;">Choisir un nouveau mot de passe</a></p>
+<p style="color:#8a8a8a;font-size:13px;">Si ce n'était pas toi, ignore simplement ce courriel — ton mot de passe reste inchangé.</p></div>"""
+    else:
+        subject = "Reset your MySolaia password"
+        html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
+<h2 style="color:#A37B68;">MySolaia</h2>
+<p style="color:#4a4a4a;">You asked to reset your password. Click the button below (link valid for 1 hour):</p>
+<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="background:#A37B68;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;">Choose a new password</a></p>
+<p style="color:#8a8a8a;font-size:13px;">If this wasn't you, just ignore this email — your password stays unchanged.</p></div>"""
+    try:
+        r = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"from": from_email, "to": [to_email], "subject": subject, "html": html},
+            timeout=15,
+        )
+        if r.status_code not in (200, 201):
+            logging.error("Resend: échec envoi (%s): %s", r.status_code, r.text[:200])
+            return False
+        return True
+    except Exception as e:
+        logging.error("Resend: exception: %s", str(e)[:200])
+        return False
+
+
+@api_router.post("/auth/forgot")
+async def forgot_password(body: ForgotIn):
+    # Toujours répondre OK pour ne pas révéler si le courriel existe ou non
+    user = await db.users.find_one({"email": body.email.lower()})
+    if user:
+        token = secrets.token_urlsafe(32)
+        now = datetime.now(timezone.utc)
+        await db.password_resets.insert_one({
+            "token": token,
+            "user_id": user["id"],
+            "email": user["email"],
+            "expires_at": (now + timedelta(hours=1)).isoformat(),
+            "used": False,
+            "created_at": now.isoformat(),
+        })
+        origin = (body.origin_url or "").rstrip("/") or "https://mysolaia.vercel.app"
+        link = f"{origin}/?reset_token={token}"
+        await asyncio.to_thread(_send_reset_email, user["email"], link, user.get("langue", "fr"))
+    return {"ok": True}
+
+
+@api_router.post("/auth/reset")
+async def reset_password(body: ResetIn):
+    rec = await db.password_resets.find_one({"token": body.token, "used": False})
+    if not rec:
+        raise HTTPException(400, "Lien invalide ou déjà utilisé")
+    try:
+        exp = datetime.fromisoformat(rec["expires_at"])
+    except Exception:
+        raise HTTPException(400, "Lien invalide")
+    if datetime.now(timezone.utc) > exp:
+        raise HTTPException(400, "Lien expiré — demande un nouveau lien")
+    await db.users.update_one({"id": rec["user_id"]}, {"$set": {"password": hash_password(body.new_password)}})
+    await db.password_resets.update_many({"user_id": rec["user_id"]}, {"$set": {"used": True}})
+    return {"ok": True}
+
 
 @api_router.get("/auth/me")
 async def me(user=Depends(current_user)):
