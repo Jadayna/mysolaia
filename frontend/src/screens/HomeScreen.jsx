@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Camera, ArrowRight, Bulb, ChevronDown } from 'lucide-react';
+import { Sun, Moon, Camera, ArrowRight, Lightbulb, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 import api from '../lib/api';
@@ -512,7 +512,7 @@ const HomeScreen = ({ go }) => {
             className="w-full flex items-center justify-between px-4 py-3.5"
           >
             <span className="flex items-center gap-2 font-body text-[11px] uppercase tracking-caps font-bold" style={{ color: 'var(--gold)' }}>
-              <Bulb size={15} />
+              <Lightbulb size={15} />
               {lang === 'fr' ? 'Conseil' : 'Tip'}
             </span>
             <ChevronDown size={16} style={{ color: 'var(--ink-faint)', transform: conseilOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
