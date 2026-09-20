@@ -3,22 +3,7 @@ import { Camera, Trash2, ArrowLeft, Loader2, Package, Plus, X, ChevronDown, Chev
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
-
-// Catégories offertes à l'entrée manuelle
-const CATEGORIES = [
-  { value: 'nettoyant', fr: 'Nettoyant', en: 'Cleanser' },
-  { value: 'exfoliant', fr: 'Exfoliant', en: 'Exfoliant' },
-  { value: 'toner', fr: 'Tonique', en: 'Toner' },
-  { value: 'serum', fr: 'Sérum', en: 'Serum' },
-  { value: 'traitement_cible', fr: 'Traitement ciblé', en: 'Targeted treatment' },
-  { value: 'yeux', fr: 'Contour des yeux', en: 'Eye care' },
-  { value: 'hydratant', fr: 'Hydratant', en: 'Moisturizer' },
-  { value: 'huile', fr: 'Huile', en: 'Oil' },
-  { value: 'spf', fr: 'Protection solaire (SPF)', en: 'Sunscreen (SPF)' },
-  { value: 'levres', fr: 'Lèvres', en: 'Lips' },
-  { value: 'cils_sourcils', fr: 'Cils & sourcils', en: 'Lashes & brows' },
-  { value: 'patch', fr: 'Patch (boutons)', en: 'Pimple patch' },
-];
+import { CATEGORIES, categoryLabel } from '../lib/categories';
 
 const MOMENTS = [
   { value: 'les_deux', fr: 'Les deux', en: 'Both' },
@@ -29,11 +14,6 @@ const MOMENTS = [
 // Libellés traduits pour l'affichage (moment & catégorie) — Étape 4
 const momentLabel = (value, lang) =>
   (MOMENTS.find((m) => m.value === value)?.[lang === 'fr' ? 'fr' : 'en']) || value;
-
-const categoryLabel = (value, lang) => {
-  const v = String(value || '').toLowerCase();
-  return (CATEGORIES.find((c) => c.value === v)?.[lang === 'fr' ? 'fr' : 'en']) || value;
-};
 
 const PAO_OPTIONS = [
   { value: 0, fr: 'Non spécifié', en: 'Not specified' },

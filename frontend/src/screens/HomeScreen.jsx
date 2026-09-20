@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 import api from '../lib/api';
 import { isRoutineDone } from '../lib/reminders';
+import { categoryLabel } from '../lib/categories';
 
 // --- Conseils par CONDITION météo (soleil, nuages, pluie, neige, brouillard, orage) ---
 const CONDITIONS = {
@@ -559,7 +560,7 @@ const HomeScreen = ({ go }) => {
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
           {safeProducts.map((p) => (
             <div key={p.id || p.nom} className="shrink-0 w-[150px] snap-start p-4 rounded-[16px] space-y-1" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-              <p className="font-body text-[9px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>{p.categorie || 'SOIN'}</p>
+              <p className="font-body text-[9px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>{categoryLabel(p.categorie, lang) || (lang === 'fr' ? 'Soin' : 'Product')}</p>
               <p className="font-display text-[13px] line-clamp-1" style={{ color: 'var(--ink)' }}>{p.nom}</p>
               <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.marque}</p>
             </div>
@@ -567,6 +568,33 @@ const HomeScreen = ({ go }) => {
         </div>
 
       </div>
+
+      {/* Cette semaine — progression */}
+      <button
+        onClick={() => go('journal')}
+        className="w-full text-left p-4 rounded-[16px] space-y-2.5 transition-all active:scale-[0.99] animate-fade-up"
+        style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}
+      >
+        <div className="flex items-center justify-between">
+          <span className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+            {lang === 'fr' ? 'Cette semaine' : 'This week'}
+          </span>
+          <span className="font-body text-[11px] tnum font-semibold" style={{ color: 'var(--ink-soft)' }}>
+            {entries.length} / 14
+          </span>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${Math.min(100, (entries.length / 14) * 100)}%`, background: 'var(--gold)' }}
+          />
+        </div>
+        <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>
+          {entries.length >= 14
+            ? (lang === 'fr' ? 'Semaine complète — magnifique constance ! ✨' : 'Full week — beautiful consistency! ✨')
+            : (lang === 'fr' ? 'Chaque routine compte. Touche pour voir ton rythme →' : 'Every routine counts. Tap to see your rhythm →')}
+        </p>
+      </button>
     </div>
   );
 };
