@@ -197,11 +197,26 @@ def _send_reset_email(to_email: str, reset_link: str, lang: str = "fr") -> bool:
 <p style="color:#4a4a4a;">You asked to reset your password. Click the button below (link valid for 1 hour):</p>
 <p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="display:inline-block;background:#A37B68;color:#ffffff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;white-space:nowrap;">Choose a new password</a></p>
 <p style="color:#8a8a8a;font-size:13px;">If this wasn't you, just ignore this email — your password stays unchanged.</p></div>"""
+    # Version texte brut : améliore la délivrabilité (les courriels 100 % HTML sont plus suspects)
+    if lang == "fr":
+        text = (
+            "MySolaia — réinitialisation du mot de passe\n\n"
+            "Tu as demandé à réinitialiser ton mot de passe. Ouvre ce lien (valide 1 heure) :\n"
+            f"{reset_link}\n\n"
+            "Si ce n'était pas toi, ignore simplement ce courriel — ton mot de passe reste inchangé."
+        )
+    else:
+        text = (
+            "MySolaia — password reset\n\n"
+            "You asked to reset your password. Open this link (valid 1 hour):\n"
+            f"{reset_link}\n\n"
+            "If this wasn't you, just ignore this email — your password stays unchanged."
+        )
     try:
         r = requests.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"from": from_email, "to": [to_email], "subject": subject, "html": html},
+            json={"from": from_email, "to": [to_email], "subject": subject, "html": html, "text": text},
             timeout=15,
         )
         if r.status_code not in (200, 201):
