@@ -3,6 +3,7 @@ import './App.css';
 import { LanguageProvider, useT } from './i18n';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthScreen from './screens/AuthScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import AppShell from './components/AppShell';
 
@@ -18,6 +19,9 @@ const Splash = () => (
 
 const Gate = () => {
   const { user, loading } = useAuth();
+  // Lien de réinitialisation du mot de passe (?reset_token=...) : prioritaire
+  const [resetToken] = React.useState(() => new URLSearchParams(window.location.search).get('reset_token'));
+  if (resetToken) return <ResetPasswordScreen token={resetToken} />;
   if (loading) return <Splash />;
   if (!user) return <AuthScreen />;
   if (!user.onboarded) return <OnboardingScreen />;

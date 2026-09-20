@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle, Share, Download, RotateCcw, ChevronRight } from 'lucide-react';
+import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle, Share, Download, RotateCcw, ChevronRight, Users } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import HomeScreen from '../screens/HomeScreen';
@@ -10,7 +10,10 @@ import TrialScreen from '../screens/TrialScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import HelpScreen from '../screens/HelpScreen';
 import PrivacyScreen from '../screens/PrivacyScreen';
+import CircleScreen from '../screens/CircleScreen';
 import api from '../lib/api';
+import { scheduleReminders } from '../lib/reminders';
+import { initAnalytics, trackScreen } from '../lib/analytics';
 
 const TABS = [
   { id: 'accueil', icon: Home, screen: HomeScreen },
@@ -26,6 +29,7 @@ const EXTRA_SCREENS = [
   { id: 'profil', screen: ProfileScreen },
   { id: 'aide', screen: HelpScreen },
   { id: 'confidentialite', screen: PrivacyScreen },
+  { id: 'cercle', screen: CircleScreen },
 ];
 
 const AppShell = () => {
@@ -42,6 +46,16 @@ const AppShell = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Analytics (Umami) : chargée une seule fois si VITE_UMAMI_WEBSITE_ID est défini
+    initAnalytics();
+    // Rappels de routine : planifiés au démarrage, replanifiés à chaque retour dans l'app
+    scheduleReminders(lang);
+    const onVisible = () => { if (document.visibilityState === 'visible') scheduleReminders(lang); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [lang]);
 
   useEffect(() => {
     // 1. Si déjà installée en plein écran, ne rien afficher
@@ -128,6 +142,7 @@ const go = (id, opts) => {
 
     setShowMenuModal(false);
     setActive(id);
+    trackScreen(id);
     // Mémoriser l'écran actuel pour le rafraîchissement
     sessionStorage.setItem('solaia_active_tab', id);
   };
@@ -332,6 +347,22 @@ const go = (id, opts) => {
                 </span>
               </button>
             </div>
+
+              {/* Mon Cercle */}
+              <button onClick={() => { setShowMenuModal(false); go('cercle'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] bg-white border border-stone-200/80 shadow-xs hover:border-amber-300 transition-all">
+                <div className="flex items-center gap-3">
+                  <Users size={18} style={{ color: '#A37B68' }} />
+                  <div className="text-left">
+                    <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+                      {lang === 'fr' ? "Mon Cercle" : "My Circle"}
+                    </p>
+                    <p className="font-body text-[11px] text-stone-400">
+                      {lang === 'fr' ? "Amies, streaks & Wizz 💫" : "Friends, streaks & Wizz 💫"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-stone-400" />
+              </button>
 
             {/* SECTION 2 : Préférences & Application */}
             <div className="space-y-2">

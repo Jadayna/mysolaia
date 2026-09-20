@@ -3,7 +3,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-import os, logging, uuid, json, re
+import os, logging, uuid, json, re, secrets, string, asyncio
+import requests
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -12,6 +13,7 @@ import jwt
 import bcrypt
 
 from seed_products import SEED_PRODUCTS
+from tricky_guide import tricky_keys_for_actifs, tricky_guide
 from engine import compute_routine, exfoliation_days, WEEKDAYS_FR, WEEKDAYS_EN
 
 load_dotenv()
@@ -50,6 +52,14 @@ class RegisterIn(BaseModel):
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
+
+class ForgotIn(BaseModel):
+    email: EmailStr
+    origin_url: str = ""
+
+class ResetIn(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6, max_length=128)
 
 class ProfileIn(BaseModel):
     nom: Optional[str] = None
@@ -96,6 +106,9 @@ class JournalIn(BaseModel):
 class CheckoutIn(BaseModel):
     lookup_key: str
     origin_url: str
+
+class JoinCircleIn(BaseModel):
+    code: str
 
 
 # ---------------- Helpers ----------------
@@ -162,6 +175,80 @@ async def login(body: LoginIn):
     if not user or not verify_password(body.password, user["password"]):
         raise HTTPException(401, "Courriel ou mot de passe incorrect")
     return {"token": make_token(user["id"]), "user": public_user(user)}
+
+def _send_reset_email(to_email: str, reset_link: str, lang: str = "fr") -> bool:
+    """Envoie le courriel de réinitialisation via Resend (si configuré)."""
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    if not api_key:
+        logging.warning("RESEND_API_KEY non configuré — courriel de réinitialisation non envoyé à %s", to_email)
+        return False
+    from_email = os.environ.get("RESET_FROM_EMAIL", "MySolaia <noreply@mysolaia.app>")
+    if lang == "fr":
+        subject = "Réinitialise ton mot de passe MySolaia"
+        html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
+<h2 style="color:#A37B68;">MySolaia</h2>
+<p style="color:#4a4a4a;">Tu as demandé à réinitialiser ton mot de passe. Clique sur le bouton ci-dessous (lien valide 1 heure) :</p>
+<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="background:#A37B68;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;">Choisir un nouveau mot de passe</a></p>
+<p style="color:#8a8a8a;font-size:13px;">Si ce n'était pas toi, ignore simplement ce courriel — ton mot de passe reste inchangé.</p></div>"""
+    else:
+        subject = "Reset your MySolaia password"
+        html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
+<h2 style="color:#A37B68;">MySolaia</h2>
+<p style="color:#4a4a4a;">You asked to reset your password. Click the button below (link valid for 1 hour):</p>
+<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="background:#A37B68;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;">Choose a new password</a></p>
+<p style="color:#8a8a8a;font-size:13px;">If this wasn't you, just ignore this email — your password stays unchanged.</p></div>"""
+    try:
+        r = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"from": from_email, "to": [to_email], "subject": subject, "html": html},
+            timeout=15,
+        )
+        if r.status_code not in (200, 201):
+            logging.error("Resend: échec envoi (%s): %s", r.status_code, r.text[:200])
+            return False
+        return True
+    except Exception as e:
+        logging.error("Resend: exception: %s", str(e)[:200])
+        return False
+
+
+@api_router.post("/auth/forgot")
+async def forgot_password(body: ForgotIn):
+    # Toujours répondre OK pour ne pas révéler si le courriel existe ou non
+    user = await db.users.find_one({"email": body.email.lower()})
+    if user:
+        token = secrets.token_urlsafe(32)
+        now = datetime.now(timezone.utc)
+        await db.password_resets.insert_one({
+            "token": token,
+            "user_id": user["id"],
+            "email": user["email"],
+            "expires_at": (now + timedelta(hours=1)).isoformat(),
+            "used": False,
+            "created_at": now.isoformat(),
+        })
+        origin = (body.origin_url or "").rstrip("/") or "https://mysolaia.vercel.app"
+        link = f"{origin}/?reset_token={token}"
+        await asyncio.to_thread(_send_reset_email, user["email"], link, user.get("langue", "fr"))
+    return {"ok": True}
+
+
+@api_router.post("/auth/reset")
+async def reset_password(body: ResetIn):
+    rec = await db.password_resets.find_one({"token": body.token, "used": False})
+    if not rec:
+        raise HTTPException(400, "Lien invalide ou déjà utilisé")
+    try:
+        exp = datetime.fromisoformat(rec["expires_at"])
+    except Exception:
+        raise HTTPException(400, "Lien invalide")
+    if datetime.now(timezone.utc) > exp:
+        raise HTTPException(400, "Lien expiré — demande un nouveau lien")
+    await db.users.update_one({"id": rec["user_id"]}, {"$set": {"password": hash_password(body.new_password)}})
+    await db.password_resets.update_many({"user_id": rec["user_id"]}, {"$set": {"used": True}})
+    return {"ok": True}
+
 
 @api_router.get("/auth/me")
 async def me(user=Depends(current_user)):
@@ -256,7 +343,10 @@ async def _shelf_products(uid: str, active_only=True):
         if prod:
             merged = {**prod, "shelf_id": up["id"], "photo_url": up.get("photo_url"),
                       "notes": up.get("notes", ""), "actif": up.get("actif", True),
-                      "date_ouverture": up.get("date_ouverture"), "pao_mois": up.get("pao_mois", 0)}
+                      "date_ouverture": up.get("date_ouverture"), "pao_mois": up.get("pao_mois", 0),
+                      "force_soir": up.get("force_soir", False),
+                      "locked_by_downgrade": up.get("locked_by_downgrade", False),
+                      "tricky": tricky_keys_for_actifs(prod.get("actifs", []))}
             result.append(merged)
     return result
 
@@ -297,6 +387,20 @@ async def toggle_favorite(prod_id: str, user=Depends(current_user)):
     )
     return {"id": prod_id, "is_favorite": new_fav}
 
+@api_router.post("/shelf/{shelf_id}/use-tonight")
+async def use_tonight(shelf_id: str, user=Depends(current_user)):
+    """Étape 5 — force (ou non) l'ajout du produit à la routine du soir.
+    Le moteur recalcule ensuite la routine en appliquant ses règles de sécurité."""
+    up = await db.user_products.find_one({"id": shelf_id, "user_id": user["id"]})
+    if not up:
+        raise HTTPException(404, "Produit introuvable")
+    new_val = not up.get("force_soir", False)
+    await db.user_products.update_one(
+        {"id": shelf_id, "user_id": user["id"]},
+        {"$set": {"force_soir": new_val}}
+    )
+    return {"id": shelf_id, "force_soir": new_val}
+
 @api_router.post("/shelf/manual")
 async def add_manual(body: ManualProductIn, user=Depends(current_user)):
     if not user_has_full_access(user):
@@ -332,6 +436,15 @@ async def toggle_shelf(shelf_id: str, user=Depends(current_user)):
     if not up:
         raise HTTPException(404, "Produit introuvable")
     nouveau = not up.get("actif", True)
+    if up.get("locked_by_downgrade") and nouveau:
+        # Produit verrouillé 🔴 : réactivation réservée aux abonnées
+        if not user_has_full_access(user):
+            raise HTTPException(
+                403, "Ce soin est verrouillé 🔴 — réabonne-toi à MySolaia Illimité pour le réactiver.")
+        await db.user_products.update_one(
+            {"id": shelf_id, "user_id": user["id"]},
+            {"$set": {"actif": True, "locked_by_downgrade": False}})
+        return {"ok": True, "actif": True}
     await db.user_products.update_one(
         {"id": shelf_id, "user_id": user["id"]},
         {"$set": {"actif": nouveau}}
@@ -350,28 +463,57 @@ async def get_routine(phase: str = "soir", lang: str = "fr", user=Depends(curren
     routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1), lang=lang)
     return routine
 
+GAPS_TEXTS = {
+    "fr": {
+        "title": "💡 Ce qui manque à ton étagère",
+        "spf": "Un SPF le matin — c'est la seule étape qui protège ce que les autres réparent.",
+        "nettoyant": "Un nettoyant doux — tout commence sur peau propre.",
+        "hydratant": "Un hydratant — pour sceller tous tes actifs.",
+    },
+    "en": {
+        "title": "💡 What's missing from your shelf",
+        "spf": "An SPF in the morning — it's the only step that protects what the others repair.",
+        "nettoyant": "A gentle cleanser — everything starts on clean skin.",
+        "hydratant": "A moisturizer — to seal in all your actives.",
+    },
+}
+
+
+def _detect_gaps(products, phase, lang):
+    """Le moteur ne se contente plus d'ordonner : il conseille ce qui manque."""
+    if not products:
+        return None
+    lang = "en" if lang == "en" else "fr"
+    t = GAPS_TEXTS[lang]
+    cats = {p["categorie"] for p in products}
+    missing = []
+    # Priorité : ce qui protège / nettoie / scelle, selon le moment de la journée
+    if phase == "matin" and "spf" not in cats:
+        missing.append(t["spf"])
+    if "nettoyant" not in cats:
+        missing.append(t["nettoyant"])
+    if "hydratant" not in cats:
+        missing.append(t["hydratant"])
+    if not missing:
+        return None
+    # Un seul conseil à la fois — doux, pas moralisateur
+    return {"title": t["title"], "text": missing[0]}
+
+
 @api_router.get("/home")
-async def home(lang: str = "fr", user=Depends(current_user)):
-    now = datetime.now(timezone.utc)
-    hour = now.hour
-    greeting_kind = "matin" if 4 <= hour < 17 else "soir"
-    phase = greeting_kind
+async def home(lang: str = "fr", phase: str = "matin", user=Depends(current_user)):
+    phase = "soir" if phase == "soir" else "matin"
     products = await _shelf_products(user["id"])
     demo = False
     routine = compute_routine(products, phase=phase, sensibilite=user.get("sensibilite", 1), lang=lang)
     shelf_preview = [{"categorie": p["categorie"], "nom": p["nom"], "brand": p["brand"]}
                      for p in products[:5]]
-    has_spf = any(p["categorie"] == "spf" for p in products)
-    suggestion = None
-    if products and not has_spf:
-        suggestion = {"title": "Il te manque un ecran solaire.",
-                      "text": "C'est la seule etape du matin qui protege ce que les autres reparent."}
     return {
-        "greeting_kind": greeting_kind,
+        "greeting_kind": phase,
         "routine": routine,
         "shelf_count": len(products),
         "shelf_preview": shelf_preview,
-        "suggestion": suggestion,
+        "suggestion": _detect_gaps(products, phase, lang),
         "demo": demo,
     }
 
@@ -384,6 +526,11 @@ async def add_journal(body: JournalIn, user=Depends(current_user)):
              "etapes_completees": body.etapes_completees, "nb_total_etapes": body.nb_total_etapes,
              "note_peau": body.note_peau}
     await db.journal_entries.insert_one(entry)
+    # Étape 6 — un Wizz reçu auquel on répond par une routine complétée (12h pour répondre)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.wizzes.update_many(
+        {"to_id": user["id"], "responded_at": None, "expires_at": {"$gt": now_iso}},
+        {"$set": {"responded_at": now_iso}})
     return {"ok": True}
 
 @api_router.get("/journal")
@@ -441,7 +588,42 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
     ranged = [e for e in entries if e["horodatage"][:10] >= start]
 
     return {"days": days, "stats": stats, "entries": [fmt(e) for e in ranged[:30]],
-            "observation": _observation(entries, lang)}
+            "observation": _observation(entries, lang),
+            "tendance": _tendance_peau(entries, lang)}
+
+def _tendance_peau(entries, lang="fr"):
+    """Corrélation temporelle : la note moyenne de peau des 7 derniers jours
+    notés, comparée aux 7 jours notés précédents."""
+    notes = [(e["horodatage"][:10], e.get("note_peau")) for e in entries
+             if e.get("note_peau") is not None]
+    if len(notes) < 4:
+        return None
+    notes.sort(reverse=True)
+    recentes = [n for _, n in notes[:7]]
+    anciennes = [n for _, n in notes[7:14]]
+    if not recentes or not anciennes:
+        return None
+    moy_r = sum(recentes) / len(recentes)
+    moy_a = sum(anciennes) / len(anciennes)
+    diff = moy_r - moy_a
+    en = lang == "en"
+    if diff >= 0.5:
+        sens = "hausse"
+        msg = ("Your skin has been feeling better lately — whatever you changed, keep going! ✨"
+               if en else
+               "Ta peau se sent mieux ces derniers temps — ce que tu as changé fonctionne, continue comme ça ! ✨")
+    elif diff <= -0.5:
+        sens = "baisse"
+        msg = ("Your skin has felt a bit more uncomfortable lately. Simplify for a few days and watch how it reacts."
+               if en else
+               "Ta peau tiraille un peu plus ces derniers temps. Simplifie ta routine quelques jours et observe sa réaction.")
+    else:
+        sens = "stable"
+        msg = ("Your skin feels steady — consistency is paying off."
+               if en else
+               "Ta peau est stable — ta régularité paie.")
+    return {"sens": sens, "message": msg}
+
 
 # NOUVEAU :
 def _observation(entries, lang="fr"):
@@ -468,14 +650,184 @@ def _observation(entries, lang="fr"):
         return "Your routines are nice and consistent, keep it up!"
     return "Tes routines sont bien régulières, continue comme ça !"
 
+# ---------------- Mon Cercle (Étape 6) ----------------
+def _invite_code():
+    alphabet = string.ascii_uppercase + string.digits
+    return "SOLAIA-" + "".join(secrets.choice(alphabet) for _ in range(6))
+
+async def _ensure_circle_fields(uid: str):
+    """Garantit le code de parrainage unique + le compteur d'invitations (3 gratuites)."""
+    u = await db.users.find_one({"id": uid}, {"_id": 0})
+    updates = {}
+    if not u.get("invite_code"):
+        for _ in range(5):
+            code = _invite_code()
+            if not await db.users.find_one({"invite_code": code}):
+                break
+        updates["invite_code"] = code
+    if u.get("invites_remaining") is None:
+        updates["invites_remaining"] = 3
+    if updates:
+        await db.users.update_one({"id": uid}, {"$set": updates})
+        u.update(updates)
+    return u
+
+def _circle_streak(entries):
+    day_set = set()
+    for e in entries:
+        h = e.get("horodatage") or ""
+        if h:
+            day_set.add(h[:10])
+    streak = 0
+    cur = date.today()
+    if cur.isoformat() not in day_set:
+        cur = cur - timedelta(days=1)
+    while cur.isoformat() in day_set:
+        streak += 1
+        cur = cur - timedelta(days=1)
+    return streak
+
+def _friendship_query(uid: str, fid: str):
+    return {"$or": [{"user_a": uid, "user_b": fid}, {"user_a": fid, "user_b": uid}]}
+
+@api_router.get("/circle")
+async def get_circle(user=Depends(current_user)):
+    me = await _ensure_circle_fields(user["id"])
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    frs = await db.friendships.find(
+        {"$or": [{"user_a": user["id"]}, {"user_b": user["id"]}]}, {"_id": 0}).to_list(200)
+    friends = []
+    for f in frs:
+        fid = f["user_b"] if f["user_a"] == user["id"] else f["user_a"]
+        fu = await db.users.find_one({"id": fid}, {"_id": 0})
+        if not fu:
+            continue
+        entries = await db.journal_entries.find({"user_id": fid}, {"_id": 0}).to_list(1000)
+        day_set = {e.get("horodatage", "")[:10] for e in entries}
+        today = date.today()
+        week = [{"d": (today - timedelta(days=i)).isoformat(),
+                 "done": (today - timedelta(days=i)).isoformat() in day_set}
+                for i in range(6, -1, -1)]
+        recent_wizz = await db.wizzes.find_one({
+            "from_id": user["id"], "to_id": fid,
+            "created_at": {"$gte": (now - timedelta(hours=12)).isoformat()}})
+        pending = await db.wizzes.find_one({
+            "from_id": fid, "to_id": user["id"],
+            "responded_at": None, "expires_at": {"$gt": now_iso}})
+        friends.append({
+            "user_id": fid,
+            "nom": fu.get("nom") or (fu.get("email") or "?").split("@")[0],
+            "is_premium": bool(fu.get("is_premium") or fu.get("statut_abonnement") == "actif"),
+            "streak": _circle_streak(entries),
+            "done_today": today.isoformat() in day_set,
+            "week": week,
+            "wizz_cooldown": bool(recent_wizz),
+            "wizz_pending": bool(pending),
+        })
+    received_docs = await db.wizzes.find({"to_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(20)
+    received = []
+    for w in received_docs:
+        fu = await db.users.find_one({"id": w["from_id"]}, {"_id": 0}) or {}
+        expired = (not w.get("responded_at")) and w.get("expires_at", "") < now_iso
+        received.append({
+            "id": w["id"],
+            "from_nom": fu.get("nom") or "?",
+            "created_at": w.get("created_at"),
+            "expires_at": w.get("expires_at"),
+            "responded": bool(w.get("responded_at")),
+            "expired": expired,
+        })
+    return {
+        "invite_code": me.get("invite_code"),
+        "invites_remaining": me.get("invites_remaining", 3),
+        "friends": friends,
+        "wizz_received": received,
+    }
+
+@api_router.post("/circle/join")
+async def join_circle(body: JoinCircleIn, user=Depends(current_user)):
+    await _ensure_circle_fields(user["id"])
+    code = (body.code or "").strip().upper()
+    inviter = await db.users.find_one({"invite_code": code}, {"_id": 0})
+    if not inviter:
+        raise HTTPException(404, "Code d'invitation invalide")
+    if inviter["id"] == user["id"]:
+        raise HTTPException(400, "Tu ne peux pas utiliser ton propre code")
+    if await db.friendships.find_one(_friendship_query(user["id"], inviter["id"])):
+        raise HTTPException(400, "Vous êtes déjà amies")
+    inviter = await _ensure_circle_fields(inviter["id"])
+    if (inviter.get("invites_remaining") or 0) <= 0:
+        raise HTTPException(400, "Cette personne n'a plus d'invitations disponibles")
+    await db.friendships.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_a": inviter["id"], "user_b": user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.users.update_one({"id": inviter["id"]}, {"$inc": {"invites_remaining": -1}})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"referred_by": inviter["id"]}})
+    return {"ok": True, "friend_nom": inviter.get("nom")}
+
+@api_router.delete("/circle/friends/{friend_id}")
+async def remove_friend(friend_id: str, user=Depends(current_user)):
+    await db.friendships.delete_many(_friendship_query(user["id"], friend_id))
+    return {"ok": True}
+
+@api_router.post("/circle/wizz/{friend_id}")
+async def send_wizz(friend_id: str, user=Depends(current_user)):
+    if not await db.friendships.find_one(_friendship_query(user["id"], friend_id)):
+        raise HTTPException(404, "Amie introuvable dans ton cercle")
+    now = datetime.now(timezone.utc)
+    recent = await db.wizzes.find_one({
+        "from_id": user["id"], "to_id": friend_id,
+        "created_at": {"$gte": (now - timedelta(hours=12)).isoformat()}})
+    if recent:
+        raise HTTPException(429, "Un seul Wizz par amie toutes les 12h")
+    w = {"id": str(uuid.uuid4()), "from_id": user["id"], "to_id": friend_id,
+         "created_at": now.isoformat(),
+         "expires_at": (now + timedelta(hours=12)).isoformat(),
+         "responded_at": None}
+    await db.wizzes.insert_one(w)
+    return {"ok": True}
+
+
+# ---------------- Étape 8 : base de connaissances produits capricieux ----------------
+@api_router.get("/knowledge/tricky")
+async def get_tricky_guide(lang: str = "fr"):
+    """Guide complet des actifs « capricieux » (rétinoïdes, vitamine C, AHA/BHA...)."""
+    return {"familles": tricky_guide(lang)}
+
+
+# ---------------- Quota anti-abus du scan IA ----------------
+SCAN_DAILY_LIMIT_FREE = int(os.environ.get("SCAN_DAILY_LIMIT_FREE", "15"))
+SCAN_DAILY_LIMIT_PREMIUM = int(os.environ.get("SCAN_DAILY_LIMIT_PREMIUM", "100"))
+
+async def check_scan_quota(user):
+    """Incrémente et vérifie le quota journalier de scans IA (chaque scan = un appel Gemini payant).
+    Lève 429 si le quota est dépassé."""
+    today = datetime.now(timezone.utc).date().isoformat()
+    limit = SCAN_DAILY_LIMIT_PREMIUM if user_has_full_access(user) else SCAN_DAILY_LIMIT_FREE
+    await db.scan_usage.update_one(
+        {"user_id": user["id"], "date": today},
+        {"$inc": {"count": 1}},
+        upsert=True,
+    )
+    doc = await db.scan_usage.find_one({"user_id": user["id"], "date": today}, {"_id": 0})
+    if (doc.get("count", 1) if doc else 1) > limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Limite de scans IA atteinte ({limit}/jour). Réessaie demain ✨",
+        )
+
+
 # ---------------- Scan (AI vision Gemini) ----------------
 @api_router.post("/scan")
 async def scan(body: ScanIn, user=Depends(current_user)):
+    await check_scan_quota(user)
     key = os.environ.get("EMERGENT_LLM_KEY")
     img = body.image_base64.split(",")[-1]
     sys = ("Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
            "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON: "
-           '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible","actif_cle":"","texture_label":"","confiance":0.0}')
+           '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible|patch","actif_cle":"","texture_label":"","confiance":0.0}')
     data = {}
     gemini_key = os.environ.get("GEMINI_API_KEY")
     
@@ -499,7 +851,7 @@ async def scan(body: ScanIn, user=Depends(current_user)):
             sys_prompt = (
                 "Tu es l'expert produits cosmétiques de l'application MySolaia. On te montre l'image d'un produit de soin.\n"
                 "1. LIS ATTENTIVEMENT le texte écrit sur le flacon/l'étiquette (OCR). La marque (ex: 'The Ordinary', 'CeraVe', 'La Roche-Posay') et le nom complet exact du produit (ex: 'Niacinamide 10% + Zinc 1%'). Ne confonds pas avec une autre marque célèbre.\n"
-                "2. Détermine la catégorie parmi : nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible.\n"
+                "2. Détermine la catégorie parmi : nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible, patch (patchs à boutons hydrocolloïdes).\n"
                 "3. Détecte la durée PAO en mois (Period After Opening) : si le symbole de pot ouvert (ex: 3M, 6M, 12M, 24M) est visible, utilise ce chiffre (3, 6, 12 ou 24). Sinon, déduis la durée standard selon la formule (vitamine C = 3, sérums/yeux = 6, crèmes/nettoyants = 12, huiles/poudres = 24).\n"
                 "4. Identifie les actifs présents parmi cette liste stricte : retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine.\n"
                 "Réponds UNIQUEMENT en JSON valide sans balises markdown ni texte autour:\n"
@@ -576,6 +928,39 @@ async def scan(body: ScanIn, user=Depends(current_user)):
         "texture_label": data.get("texture_label") or "Fluide",
     }
     return {"recognized": bool(brand or nom), "product": proposed, "note": "À confirmer."}
+
+
+# ---------------- Modèle « 5 Actifs / Reste en Pause » ----------------
+async def apply_free_downgrade(user_id: str):
+    """Après annulation/expiration : 5 produits restent actifs (favoris d'abord,
+    puis les plus récents), les autres sont verrouillés 🔴 jusqu'au réabonnement."""
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"statut_abonnement": "expire", "is_premium": False}})
+    ups = await db.user_products.find(
+        {"user_id": user_id, "actif": True}, {"_id": 0}).to_list(500)
+    favs = [u for u in ups if u.get("is_favorite")]
+    others = [u for u in ups if not u.get("is_favorite")]
+    favs.sort(key=lambda u: u.get("date_ajout", ""), reverse=True)
+    others.sort(key=lambda u: u.get("date_ajout", ""), reverse=True)
+    ordered = favs + others
+    keep_ids = {u["id"] for u in ordered[:MAX_FREE_PRODUCTS]}
+    for u in ordered:
+        if u["id"] in keep_ids:
+            await db.user_products.update_one(
+                {"id": u["id"]},
+                {"$set": {"locked_by_downgrade": False}})
+        else:
+            await db.user_products.update_one(
+                {"id": u["id"]},
+                {"$set": {"actif": False, "locked_by_downgrade": True}})
+
+
+async def restore_after_resubscribe(user_id: str):
+    """Au réabonnement : déverrouille tout ce qui avait été mis en pause."""
+    await db.user_products.update_many(
+        {"user_id": user_id, "locked_by_downgrade": True},
+        {"$set": {"actif": True, "locked_by_downgrade": False}})
 
 
 # ---------------- Stripe & Billing Portal ----------------
@@ -669,6 +1054,24 @@ async def payment_status(session_id: str):
                     "stripe_customer_id": customer_id
                 }}
             )
+            # Modèle « 5 Actifs / Reste en Pause » : réabonnement → tout déverrouillé
+            if user_filter:
+                try:
+                    uid = (await db.users.find_one(user_filter, {"_id": 0, "id": 1})) or {}
+                    if uid.get("id"):
+                        await restore_after_resubscribe(uid["id"])
+                except Exception as e:
+                    logger.warning(f"restore_after_resubscribe: {e}")
+            # Étape 6 — parrainage : +1 invitation pour la marraine (une seule fois)
+            if user_filter:
+                new_sub = await db.users.find_one(user_filter, {"_id": 0})
+                if new_sub and new_sub.get("referred_by") and not new_sub.get("referral_rewarded"):
+                    await db.users.update_one(
+                        {"id": new_sub["referred_by"]},
+                        {"$inc": {"invites_remaining": 1}})
+                    await db.users.update_one(
+                        user_filter,
+                        {"$set": {"referral_rewarded": True}})
 
         if record:
             await db.payment_transactions.update_one(
@@ -708,7 +1111,43 @@ async def stripe_webhook(request: Request):
         await db.payment_transactions.update_one(
             {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
             {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"), "customer_id": obj.get("customer")}})
+    if t == "customer.subscription.deleted":
+        customer_id = obj.get("customer")
+        if customer_id:
+            u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0})
+            if u:
+                await apply_free_downgrade(u["id"])
+                logger.info(f"Downgrade après annulation Stripe pour {u['id']}")
     return {"status": "ok"}
+
+@api_router.post("/subscription/refresh")
+async def refresh_subscription(user=Depends(current_user)):
+    """Vérifie auprès de Stripe si un abonnement actif existe encore.
+    Si non → applique le modèle « 5 Actifs / Reste en Pause ».
+    Ne dégrade jamais si l'appel Stripe échoue (principe de prudence)."""
+    customer_id = user.get("stripe_customer_id")
+    active = False
+    stripe_ok = False
+    if customer_id:
+        try:
+            for status in ("active", "trialing"):
+                subs = stripe.Subscription.list(customer=customer_id, status=status, limit=1)
+                if subs.data:
+                    active = True
+                    break
+            stripe_ok = True
+        except Exception as e:
+            logger.warning(f"Stripe refresh failed: {e}")
+    if active:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"statut_abonnement": "actif", "is_premium": True}})
+        await restore_after_resubscribe(user["id"])
+        return {"statut": "actif"}
+    if stripe_ok and customer_id and (user.get("statut_abonnement") == "actif" or user.get("is_premium")):
+        await apply_free_downgrade(user["id"])
+        return {"statut": "expire"}
+    return {"statut": user.get("statut_abonnement") or "gratuit"}
 
 @api_router.api_route("/health", methods=["GET", "HEAD"])
 async def health():

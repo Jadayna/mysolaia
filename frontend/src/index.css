@@ -112,6 +112,20 @@ body {
   animation: fadeUp 0.7s ease both;
 }
 
+/* Pluie d'étoiles — célébration de fin de rituel */
+@keyframes starFall {
+  0% { transform: translateY(-40px) rotate(0deg); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(460px) rotate(220deg); opacity: 0; }
+}
+.celebrate-star {
+  position: absolute;
+  top: 0;
+  font-size: 26px;
+  pointer-events: none;
+  animation: starFall 2.8s ease-in forwards;
+}
+
 ::selection {
   background: rgba(182, 130, 53, 0.18);
   color: var(--ink);

@@ -3,6 +3,8 @@ import { ArrowLeft, Save, Trash2, AlertTriangle, RotateCcw, CreditCard, Layers }
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
+import { isTimerFeedbackEnabled, setTimerFeedbackEnabled } from '../lib/timerFeedback';
+import { getReminderSettings, saveReminderSettings, scheduleReminders, notificationPermission, requestNotificationPermission } from '../lib/reminders';
 
 const SKIN_TYPES = [
   { value: 'seche', fr: 'Sèche', en: 'Dry' },
@@ -51,6 +53,24 @@ const ProfileScreen = ({ go }) => {
   const [trackSkinFeel, setTrackSkinFeel] = useState(
     user?.track_skin_feel !== undefined ? user.track_skin_feel : true
   );
+
+  // Étape 7 — Sons & vibrations des minuteurs (activé par défaut)
+  const [timerFeedback, setTimerFeedback] = useState(isTimerFeedbackEnabled);
+
+  // Rappels de routine (notifications locales)
+  const [reminders, setReminders] = useState(getReminderSettings);
+  const [notifPerm, setNotifPerm] = useState(notificationPermission());
+  const updateReminders = (patch) => {
+    const next = { ...reminders, ...patch };
+    setReminders(next);
+    saveReminderSettings(next);
+    scheduleReminders(lang);
+  };
+  const enableReminders = async () => {
+    const perm = await requestNotificationPermission();
+    setNotifPerm(perm);
+    updateReminders({ enabled: perm === 'granted' });
+  };
 
   // --- Réinitialiser ---
   const [showReset, setShowReset] = useState(false);
@@ -300,7 +320,7 @@ const ProfileScreen = ({ go }) => {
       {/* ===== Préférences du journal ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
-          {lang === 'fr' ? 'Préférences du journal' : 'Journal preferences'}
+          {lang === 'fr' ? 'Préférences' : 'Preferences'}
         </h2>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -330,6 +350,97 @@ const ProfileScreen = ({ go }) => {
             />
           </button>
         </div>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-body text-[13px] font-medium" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Sons & vibrations des minuteurs' : 'Timer sounds & vibrations'}
+            </p>
+            <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? 'Clochette douce et vibration à la fin de chaque minuteur.'
+                : 'Gentle chime and vibration when each timer ends.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !timerFeedback;
+              setTimerFeedback(next);
+              setTimerFeedbackEnabled(next);
+            }}
+            className="w-11 h-6 rounded-full transition-colors relative p-0.5 shrink-0"
+            style={{ background: timerFeedback ? 'var(--gold)' : 'var(--line)' }}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                timerFeedback ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        {/* ===== Rappels de routine ===== */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-body text-[13px] font-medium" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Rappels de routine' : 'Routine reminders'}
+            </p>
+            <p className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? 'Un doux rappel matin & soir — jamais si ta routine est déjà faite.'
+                : 'A gentle morning & evening nudge — never if your routine is already done.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { reminders.enabled ? updateReminders({ enabled: false }) : enableReminders(); }}
+            className="w-11 h-6 rounded-full transition-colors relative p-0.5 shrink-0"
+            style={{ background: reminders.enabled ? 'var(--gold)' : 'var(--line)' }}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                reminders.enabled ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        {reminders.enabled && notifPerm !== 'granted' && (
+          <button
+            type="button"
+            onClick={enableReminders}
+            className="w-full py-2 rounded-[8px] font-body text-[11px] uppercase tracking-caps"
+            style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }}
+          >
+            {lang === 'fr' ? 'Autoriser les notifications' : 'Allow notifications'}
+          </button>
+        )}
+        {reminders.enabled && (
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <label className="block">
+              <span className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+                {lang === 'fr' ? 'Matin' : 'Morning'}
+              </span>
+              <input
+                type="time"
+                value={reminders.morning}
+                onChange={(e) => updateReminders({ morning: e.target.value })}
+                className="mt-1 w-full px-3 py-2 rounded-[8px] font-body text-[13px] tnum"
+                style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+                {lang === 'fr' ? 'Soir' : 'Evening'}
+              </span>
+              <input
+                type="time"
+                value={reminders.evening}
+                onChange={(e) => updateReminders({ evening: e.target.value })}
+                className="mt-1 w-full px-3 py-2 rounded-[8px] font-body text-[13px] tnum"
+                style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       {/* ===== Vider mon étagère ===== */}

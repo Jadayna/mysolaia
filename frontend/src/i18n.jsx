@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 const DICT = {
   fr: {
     appName: 'MySolaia',
-    nav: { accueil: 'Accueil', scan: 'Scan', routine: 'Routine', journal: 'Journal', essai: 'Essai' },
+    nav: { accueil: 'Accueil', scan: 'Scan', routine: 'Routine', journal: 'Journal', essai: 'Essai', menu: 'Menu' },
     greetingMorning: 'Bonjour', greetingEvening: 'Bonsoir',
     shelf: 'Ton étagère', products: 'produits', addPhoto: 'Ajouter par photo',
     start: 'Commencer', steps: 'étapes', tonight: 'Ce soir', thisMorning: 'Ce matin',

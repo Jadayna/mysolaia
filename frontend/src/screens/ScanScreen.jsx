@@ -16,6 +16,7 @@ const CATEGORIES = [
   { value: 'spf', fr: 'Protection solaire (SPF)', en: 'Sunscreen (SPF)' },
   { value: 'levres', fr: 'Lèvres', en: 'Lips' },
   { value: 'cils_sourcils', fr: 'Cils & sourcils', en: 'Lashes & brows' },
+  { value: 'patch', fr: 'Patch (boutons)', en: 'Pimple patch' },
 ];
 
 const MOMENTS = [
@@ -23,6 +24,15 @@ const MOMENTS = [
   { value: 'matin', fr: 'Matin', en: 'Morning' },
   { value: 'soir', fr: 'Soir', en: 'Evening' },
 ];
+
+// Libellés traduits pour l'affichage (moment & catégorie) — Étape 4
+const momentLabel = (value, lang) =>
+  (MOMENTS.find((m) => m.value === value)?.[lang === 'fr' ? 'fr' : 'en']) || value;
+
+const categoryLabel = (value, lang) => {
+  const v = String(value || '').toLowerCase();
+  return (CATEGORIES.find((c) => c.value === v)?.[lang === 'fr' ? 'fr' : 'en']) || value;
+};
 
 const PAO_OPTIONS = [
   { value: 0, fr: 'Non spécifié', en: 'Not specified' },
@@ -129,6 +139,7 @@ const [products, setProducts] = useState(() => {
 
   // Formulaire d'édition / création manuelle
   const [showManual, setShowManual] = useState(false);
+  const [showAddOptions, setShowAddOptions] = useState(false); // Étape 2 : panneau des 3 options d'ajout
   const [editingShelfId, setEditingShelfId] = useState(null);
   const [savingManual, setSavingManual] = useState(false);
   const [mNom, setMNom] = useState('');
@@ -140,6 +151,7 @@ const [products, setProducts] = useState(() => {
   const [mPaoMonths, setMPaoMonths] = useState(0);
   const [mPhoto, setMPhoto] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [trickyGuide, setTrickyGuide] = useState([]);
 
   const fetchProducts = async () => {
     try {
@@ -164,7 +176,11 @@ const [products, setProducts] = useState(() => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+    // Étape 8 — base de connaissances des produits capricieux
+    api.get(`/knowledge/tricky?lang=${lang}`).then(({ data }) => {
+      setTrickyGuide(data?.familles || []);
+    }).catch(() => {});
+  }, [lang]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -418,7 +434,36 @@ const [products, setProducts] = useState(() => {
     }
   };
 
+  // Étape 5 — « Utiliser dans ma routine ce soir » : force le produit dans la routine du soir
+  const handleUseTonight = async (p) => {
+    const pid = p.shelf_id || p.id;
+    try {
+      const res = await api.post(`/shelf/${pid}/use-tonight`);
+      const forceSoir = res?.data?.force_soir === true;
+      setProducts((prev) =>
+        prev.map((item) => {
+          const itemId = item.shelf_id || item.id;
+          return itemId === pid ? { ...item, force_soir: forceSoir } : item;
+        })
+      );
+      setToastMsg(forceSoir
+        ? (lang === 'fr' ? 'Ajouté à ta routine de ce soir ✨' : 'Added to your tonight\'s routine ✨')
+        : (lang === 'fr' ? 'Retiré de ta routine de ce soir' : 'Removed from your tonight\'s routine'));
+      setTimeout(() => setToastMsg(null), 3500);
+    } catch (err) {
+      console.error("Erreur use-tonight:", err);
+    }
+  };
+
   const handleToggle = async (shelfId) => {
+    const prod = products.find((x) => x.shelf_id === shelfId || x.id === shelfId);
+    if (prod?.locked_by_downgrade) {
+      setToastMsg(lang === 'fr'
+        ? '🔴 Soin verrouillé — réabonne-toi à MySolaia Illimité pour le réactiver.'
+        : '🔴 Locked product — resubscribe to MySolaia Unlimited to reactivate it.');
+      setTimeout(() => setToastMsg(null), 4000);
+      return;
+    }
     try {
       const res = await api.post(`/shelf/${shelfId}/toggle`);
       const actif = res?.data?.actif;
@@ -457,47 +502,47 @@ const [products, setProducts] = useState(() => {
         </div>
       </div>
 
-      {/* Zone d'ajout : Caméra + Galerie */}
-      <div className="w-full p-5 rounded-[20px] border-2 border-dashed flex flex-col items-center gap-4" style={{ borderColor: '#D4A373', background: 'var(--cream-card)' }}>
-        <div className="p-3.5 rounded-full text-white" style={{ background: '#A37B68' }}>
-          {loading ? <Loader2 size={24} className="animate-spin" /> : <Camera size={24} />}
-        </div>
+      {/* Zone d'ajout compacte — Étape 2 : un seul bouton, 3 options */}
+      <div className="w-full">
+        <button
+          onClick={() => setShowAddOptions((v) => !v)}
+          disabled={loading}
+          className="w-full py-3.5 rounded-[16px] flex items-center justify-center gap-2 font-body text-[12px] uppercase tracking-caps font-semibold text-white active:scale-[0.98] transition-all shadow-sm"
+          style={{ background: '#A37B68' }}
+        >
+          {loading ? <Loader2 size={18} className="animate-spin" /> : (showAddOptions ? <ChevronUp size={18} /> : <Plus size={18} />)}
+          {loading
+            ? LOADING_STEPS[lang === 'fr' ? 'fr' : 'en'][loadingMsg]
+            : (lang === 'fr' ? 'Ajouter un soin à mon étagère' : 'Add a product to my shelf')}
+        </button>
 
-        {loading ? (
-          <p className="font-display text-[15px] font-medium text-center transition-all" style={{ color: 'var(--ink)' }}>
-            {LOADING_STEPS[lang === 'fr' ? 'fr' : 'en'][loadingMsg]}
-          </p>
-        ) : (
-          <>
-            <p className="font-display text-[15px] font-medium text-center" style={{ color: 'var(--ink)' }}>
-              {lang === 'fr' ? 'Ajouter un produit' : 'Add a product'}
-            </p>
-            <div className="w-full flex flex-col gap-2.5">
-              <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold text-white active:scale-[0.98] transition-all" style={{ background: '#A37B68' }}>
-                <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" disabled={loading} />
-                {lang === 'fr' ? 'Prendre une photo' : 'Take a photo'}
-              </label>
-
-              <label className="w-full py-3 rounded-[12px] text-center cursor-pointer font-body text-[11px] uppercase tracking-caps font-semibold active:scale-[0.98] transition-all" style={{ background: 'transparent', border: '1px solid #A37B68', color: '#A37B68' }}>
-                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={loading} />
-                {lang === 'fr' ? 'Importer de la galerie' : 'Import from gallery'}
-              </label>
-
-              <button 
-                onClick={() => {
-                  setEditingShelfId(null);
-                  setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
-                  setMPhoto(null); setMOpenedAt(''); setMPaoMonths(0);
-                  setShowManual((v) => !v);
-                }} 
-                className="w-full py-2 flex items-center justify-center gap-1.5 font-body text-[11px] uppercase tracking-caps" 
-                style={{ color: 'var(--ink-soft)' }}
-              >
-                <Plus size={14} />
-                {lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}
-              </button>
-            </div>
-          </>
+        {showAddOptions && !loading && (
+          <div className="mt-2 p-2 rounded-[16px] border animate-fade-up space-y-1" style={{ background: 'var(--cream-card)', borderColor: 'var(--line)' }}>
+            <label className="w-full px-4 py-3 rounded-[12px] flex items-center gap-3 cursor-pointer font-body text-[13px] font-medium active:scale-[0.99] transition-all hover:bg-white" style={{ color: 'var(--ink)' }}>
+              <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" disabled={loading} />
+              <span className="text-[18px]">📸</span>
+              <span>{lang === 'fr' ? 'Prendre une photo' : 'Take a photo'}</span>
+            </label>
+            <label className="w-full px-4 py-3 rounded-[12px] flex items-center gap-3 cursor-pointer font-body text-[13px] font-medium active:scale-[0.99] transition-all hover:bg-white" style={{ color: 'var(--ink)' }}>
+              <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={loading} />
+              <span className="text-[18px]">🖼️</span>
+              <span>{lang === 'fr' ? 'Choisir dans la galerie' : 'Pick from gallery'}</span>
+            </label>
+            <button
+              onClick={() => {
+                setShowAddOptions(false);
+                setEditingShelfId(null);
+                setMNom(''); setMBrand(''); setMCat('serum'); setMMoment('les_deux'); setMActifs([]);
+                setMPhoto(null); setMOpenedAt(''); setMPaoMonths(0);
+                setShowManual(true);
+              }}
+              className="w-full px-4 py-3 rounded-[12px] flex items-center gap-3 font-body text-[13px] font-medium active:scale-[0.99] transition-all hover:bg-white text-left"
+              style={{ color: 'var(--ink)' }}
+            >
+              <span className="text-[18px]">✍️</span>
+              <span>{lang === 'fr' ? 'Saisir manuellement' : 'Enter manually'}</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -697,7 +742,7 @@ const [products, setProducts] = useState(() => {
                   <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : pid)}>
                     <div className="flex-1 pr-2">
                       <span className="font-body text-[9px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
-                        {p.categorie || p.category || 'SOIN'}
+                        {categoryLabel(p.categorie || p.category, lang) || (lang === 'fr' ? 'Soin' : 'Product')}
                       </span>
                       <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{p.nom}</p>
                       <p className="font-body text-[11px]" style={{ color: 'var(--ink-faint)' }}>{p.brand || p.marque}</p>
@@ -733,11 +778,16 @@ const [products, setProducts] = useState(() => {
                       <button
                         onClick={() => handleToggle(pid)}
                         className="px-2.5 py-1 rounded-full font-body text-[9px] uppercase tracking-caps transition-all"
-                        style={actif
-                          ? { background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }
-                          : { background: 'transparent', color: 'var(--ink-faint)', border: '1px solid var(--line)' }}
+                        title={p.locked_by_downgrade ? (lang === 'fr' ? 'Verrouillé — réabonne-toi pour réactiver' : 'Locked — resubscribe to reactivate') : undefined}
+                        style={p.locked_by_downgrade
+                          ? { background: 'rgba(192,57,43,0.1)', color: '#c0392b', border: '1px solid rgba(192,57,43,0.35)' }
+                          : actif
+                            ? { background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }
+                            : { background: 'transparent', color: 'var(--ink-faint)', border: '1px solid var(--line)' }}
                       >
-                        {actif ? (lang === 'fr' ? 'Actif' : 'On') : (lang === 'fr' ? 'Inactif' : 'Off')}
+                        {p.locked_by_downgrade
+                          ? (lang === 'fr' ? '🔴 Verrouillé' : '🔴 Locked')
+                          : actif ? (lang === 'fr' ? 'Actif' : 'On') : (lang === 'fr' ? 'Inactif' : 'Off')}
                       </button>
                       <button onClick={() => handleDelete(pid)} className="p-2 text-red-500 hover:bg-red-50 rounded-full">
                         <Trash2 size={16} />
@@ -763,12 +813,12 @@ const [products, setProducts] = useState(() => {
                         <div className="flex-1 space-y-2">
                           <div className="p-2 rounded-[10px] bg-white border border-stone-200">
                             <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Moment' : 'When'}</span>
-                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.moment ? (lang === 'fr' ? p.moment.replace('_', ' ') : p.moment) : 'Tous les moments'}</span>
+                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.moment ? momentLabel(p.moment, lang) : (lang === 'fr' ? 'Tous les moments' : 'Anytime')}</span>
                           </div>
 
                           <div className="p-2 rounded-[10px] bg-white border border-stone-200">
                             <span className="text-stone-400 block text-[9px] uppercase tracking-caps">{lang === 'fr' ? 'Catégorie' : 'Category'}</span>
-                            <span className="font-medium text-[11px] text-stone-800 capitalize">{p.categorie || p.category}</span>
+                            <span className="font-medium text-[11px] text-stone-800 capitalize">{categoryLabel(p.categorie || p.category, lang)}</span>
                           </div>
 
                           {Array.isArray(p.actifs) && p.actifs.length > 0 && (
@@ -786,33 +836,72 @@ const [products, setProducts] = useState(() => {
                         </div>
                       </div>
 
-                    {/* Bouton Shopping / Rachat intelligent */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShopProduct(p);
-                      }}
-                      className="w-full py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
-                      style={{
-                        background: 'rgba(163, 123, 104, 0.1)',
-                        border: '1px solid var(--gold-soft)',
-                        color: 'var(--ink)'
-                      }}
-                    >
-                      <span>✨ {lang === 'fr' ? 'Trouver ou racheter ce soin' : 'Find or restock product'}</span>
-                    </button>                      
-
-                      {/* Bouton Modifier sous les détails */}
-                      <div className="pt-2 border-t border-stone-200 flex justify-end">
-                        <button
-                          onClick={() => handleEditProduct(p)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] font-body text-[11px] font-medium uppercase tracking-caps shadow-sm"
-                          style={{ background: '#FAF6F0', border: '1px solid var(--line)', color: 'var(--ink)' }}
-                        >
-                          <Pencil size={12} style={{ color: 'var(--gold)' }} />
-                          <span>{lang === 'fr' ? 'Modifier ce produit' : 'Edit product'}</span>
+                    {/* Étape 8 — Produit capricieux : mode d'emploi */}
+                    {Array.isArray(p.tricky) && p.tricky.length > 0 && (
+                      <div className="p-3 rounded-[12px] space-y-2.5" style={{ background: 'rgba(182,130,53,0.08)', border: '1px solid var(--gold-soft)' }}>
+                        <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+                          ⚠️ {lang === 'fr' ? 'Produit capricieux — mode d\u2019emploi' : 'Tricky product — how to use'}
+                        </p>
+                        {p.tricky.map((key) => {
+                          const fam = trickyGuide.find((f) => f.key === key);
+                          if (!fam) return null;
+                          return (
+                            <div key={key}>
+                              <p className="font-display text-[13px] font-medium" style={{ color: 'var(--ink)' }}>{fam.emoji} {fam.titre}</p>
+                              <ul className="mt-1 space-y-1">
+                                {fam.conseils.slice(0, 3).map((c, i) => (
+                                  <li key={i} className="font-body text-[11.5px] leading-snug" style={{ color: 'var(--ink-soft)' }}>• {c}</li>
+                                ))}
+                              </ul>
+                              {fam.a_eviter.slice(0, 1).map((w, i) => (
+                                <p key={`w-${i}`} className="font-body text-[11.5px] mt-1" style={{ color: '#c0392b' }}>🚫 {w}</p>
+                              ))}
+                            </div>
+                          );
+                        })}
+                        <button onClick={() => go('aide')} className="font-body text-[11px] underline" style={{ color: 'var(--gold)' }}>
+                          {lang === 'fr' ? 'Voir le guide complet' : 'See the full guide'}
                         </button>
                       </div>
+                    )}
+
+                    {/* Boutons Racheter / Modifier côte à côte — Étape 3 */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShopProduct(p);
+                        }}
+                        className="flex-1 py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
+                        style={{
+                          background: 'rgba(163, 123, 104, 0.1)',
+                          border: '1px solid var(--gold-soft)',
+                          color: 'var(--ink)'
+                        }}
+                      >
+                        <span>🛒 {lang === 'fr' ? 'Racheter' : 'Restock'}</span>
+                      </button>
+                      <button
+                        onClick={() => handleEditProduct(p)}
+                        className="flex-1 py-2.5 rounded-[10px] flex items-center justify-center gap-1.5 font-body text-[11px] uppercase tracking-caps font-medium transition-all active:scale-[0.98] shadow-sm"
+                        style={{ background: '#FAF6F0', border: '1px solid var(--line)', color: 'var(--ink)' }}
+                      >
+                        <span>✏️ {lang === 'fr' ? 'Modifier' : 'Edit'}</span>
+                      </button>
+                    </div>
+
+                    {/* Étape 5 — Forcer le produit dans la routine du soir */}
+                    <button
+                      onClick={() => handleUseTonight(p)}
+                      className="w-full mt-2 py-2.5 rounded-[10px] flex items-center justify-center gap-2 font-body text-[11px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]"
+                      style={p.force_soir
+                        ? { background: 'rgba(182,130,53,0.18)', border: '1px solid var(--gold)', color: 'var(--gold)' }
+                        : { background: 'transparent', border: '1px dashed var(--gold-soft)', color: 'var(--ink-soft)' }}
+                    >
+                      <span>{p.force_soir ? '✨' : '🌙'} {p.force_soir
+                        ? (lang === 'fr' ? 'Dans ta routine de ce soir' : 'In your tonight\'s routine')
+                        : (lang === 'fr' ? 'Utiliser dans ma routine ce soir' : 'Use in my tonight\'s routine')}</span>
+                    </button>
                     </div>
                   )}
                 </div>

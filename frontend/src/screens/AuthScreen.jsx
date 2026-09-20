@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Download, Share, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
+import api from '../lib/api';
 
 const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [view, setView] = useState('auth'); // 'auth' | 'forgot' | 'forgot-sent'
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotError, setForgotError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, register } = useAuth();
@@ -56,6 +61,25 @@ const AuthScreen = () => {
     }
   };
 
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    if (forgotBusy) return;
+    setForgotBusy(true);
+    setForgotError('');
+    try {
+      await api.post('/auth/forgot', { email: forgotEmail, origin_url: window.location.origin });
+      // Le backend répond toujours OK (anti-énumération) : on affiche la confirmation.
+      setForgotBusy(false);
+      setView('forgot-sent');
+    } catch (err) {
+      // Échec réel de la requête (réseau, serveur) : on reste sur le formulaire avec un message.
+      setForgotBusy(false);
+      setForgotError(lang === 'fr'
+        ? "Impossible de joindre le serveur. Vérifie ta connexion et réessaie."
+        : "Couldn't reach the server. Check your connection and try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col justify-between p-8 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
       {/* Sélecteur de langue */}
@@ -70,6 +94,7 @@ const AuthScreen = () => {
       </div>
 
       {/* En-tête / Logo */}
+      {view === 'auth' ? (
       <div className="my-auto space-y-4">
       <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
         {lang === 'fr' ? "LA ROUTINE QUI SE CONSTRUIT D'ELLE-MÊME" : 'THE ROUTINE THAT BUILDS ITSELF'}
@@ -104,6 +129,18 @@ const AuthScreen = () => {
             style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
             required
           />
+          {isLogin && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => setView('forgot')}
+                className="font-body text-[12px] underline cursor-pointer"
+                style={{ color: 'var(--ink-soft)' }}
+              >
+                {lang === 'fr' ? 'Mot de passe oublié ?' : 'Forgot password?'}
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -145,6 +182,75 @@ const AuthScreen = () => {
           )}
         </p>
       </div>
+      ) : (
+      <div className="my-auto space-y-4 max-w-sm mx-auto w-full">
+        <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
+          {lang === 'fr' ? 'MOT DE PASSE OUBLIÉ' : 'FORGOT PASSWORD'}
+        </p>
+        <div className="flex justify-center items-center">
+          <img
+            src="/mysolaia-nom-4096.png"
+            alt="MySolaia"
+            className="h-16 object-contain mx-auto"
+          />
+        </div>
+        {view === 'forgot' ? (
+          <form onSubmit={handleForgot} className="mt-8 space-y-3">
+            <p className="font-body text-[13px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? "Entre ton courriel et on t'enverra un lien pour choisir un nouveau mot de passe."
+                : "Enter your email and we'll send you a link to choose a new password."}
+            </p>
+            <input
+              type="email"
+              placeholder="Email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
+              style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
+              required
+            />
+            {forgotError && (
+              <p className="font-body text-[12.5px]" style={{ color: '#B3261E' }}>
+                {forgotError}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={forgotBusy}
+              className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm disabled:opacity-60"
+              style={{ background: '#A37B68' }}
+            >
+              {forgotBusy ? '…' : (lang === 'fr' ? 'ENVOYER LE LIEN' : 'SEND LINK')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('auth')}
+              className="font-body text-[12px] underline cursor-pointer"
+              style={{ color: 'var(--ink-soft)' }}
+            >
+              {lang === 'fr' ? '← Retour à la connexion' : '← Back to sign in'}
+            </button>
+          </form>
+        ) : (
+          <div className="mt-8 space-y-4">
+            <p className="font-body text-[13.5px]" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? "Si un compte existe avec ce courriel, tu vas recevoir un lien pour réinitialiser ton mot de passe (valide 1 heure). Pense à vérifier tes indésirables !"
+                : 'If an account exists with this email, you will receive a link to reset your password (valid 1 hour). Check your spam folder!'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setView('auth')}
+              className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] shadow-sm"
+              style={{ background: '#A37B68' }}
+            >
+              {lang === 'fr' ? 'RETOUR À LA CONNEXION' : 'BACK TO SIGN IN'}
+            </button>
+          </div>
+        )}
+      </div>
+      )}
 
       {/* Bouton d'installation sur l'écran d'accueil */}
         {!isStandalone && (
