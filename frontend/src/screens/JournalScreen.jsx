@@ -195,13 +195,13 @@ const JournalScreen = ({ go }) => {
             <div className="relative w-full rounded-[14px] overflow-hidden select-none" style={{ height: 300, border: '1.5px solid var(--gold-soft)' }}>
               {/* Avant = la plus ancienne */}
               <img src={skinPhotos[skinPhotos.length - 1].url} alt="Avant" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-              {/* Après = la plus récente, révélée au curseur */}
+              {/* Après = la plus récente, révélée à droite du curseur */}
               <img
                 src={skinPhotos[0].url}
                 alt="Après"
                 draggable={false}
                 className="absolute inset-0 w-full h-full object-cover"
-                style={{ clipPath: `inset(0 ${100 - splitPos}% 0 0)` }}
+                style={{ clipPath: `inset(0 0 0 ${splitPos}%)` }}
               />
               {/* Ligne de séparation */}
               <div className="absolute top-0 bottom-0 w-[2px]" style={{ left: `${splitPos}%`, background: '#fff', boxShadow: '0 0 8px rgba(0,0,0,0.4)' }} />
