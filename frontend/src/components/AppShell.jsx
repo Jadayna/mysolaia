@@ -363,7 +363,6 @@ const go = (id, opts) => {
                 </div>
                 <ChevronRight size={16} className="text-stone-400" />
               </button>
-            </div>
 
             {/* SECTION 2 : Préférences & Application */}
             <div className="space-y-2">
