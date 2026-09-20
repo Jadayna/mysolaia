@@ -5,22 +5,6 @@ import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { shareVictory } from '../lib/shareCard';
 
-// Paliers de badges (calculés à la volée depuis les données existantes)
-const STREAK_BADGES = [
-  { n: 1, fr: 'Premier jour', en: 'First day' },
-  { n: 3, fr: '3 jours de suite', en: '3-day streak' },
-  { n: 7, fr: 'Une semaine', en: 'One week' },
-  { n: 30, fr: 'Un mois', en: 'One month' },
-  { n: 100, fr: '100 jours', en: '100 days' },
-  { n: 365, fr: 'Une année', en: 'One year' },
-];
-
-const PRODUCT_BADGES = [
-  { n: 1, fr: 'Premier produit', en: 'First product' },
-  { n: 5, fr: 'Étagère garnie', en: 'Stocked shelf' },
-  { n: 10, fr: 'Collectionneuse', en: 'Collector' },
-  { n: 20, fr: 'Passionnée', en: 'Enthusiast' },
-];
 
 const JournalScreen = ({ go }) => {
   const { t, lang } = useT();
@@ -98,7 +82,7 @@ const JournalScreen = ({ go }) => {
     try {
       const userName = user?.nom || user?.prenom || user?.first_name || '';
       const lastEntry = entries[0];
-      await shareVictory({ lang, streak, routineTitle: lastEntry?.title || '', userName });
+      await shareVictory({ lang, streak, routineTitle: lastEntry?.title || '', userName, soins30, exfo30, badges: unlockedBadges.map((b) => ({ icon: b.icon, title: b.title })) });
     } catch (e) {
       console.warn('Partage impossible :', e.message);
     } finally {
@@ -142,6 +126,32 @@ const JournalScreen = ({ go }) => {
   const entries = Array.isArray(data.entries) ? data.entries : [];
   const stats = Array.isArray(data.stats) ? data.stats : [];
   const streak = parseInt(data?.stats?.[0]?.n || '0', 10) || 0;
+
+  // ===== Victoires de soin : 16 badges permanents (court + long terme) =====
+  const _tl = (e) => (e.title || '').toLowerCase();
+  const morningCount = entries.filter((e) => { const t = _tl(e); return t.includes('matin') || t.includes('jour') || t.includes('day'); }).length;
+  const eveningCount = entries.filter((e) => { const t = _tl(e); return t.includes('soir') || t.includes('evening'); }).length;
+  const soins30 = stats[1]?.n || '0';
+  const exfo30 = stats[2]?.n || '0';
+  const badges = [
+    { id: 'first', icon: '🌱', title: lang === 'fr' ? 'Première Lueur' : 'First Glow', desc: lang === 'fr' ? '1ère routine validée' : '1st completed routine', unlocked: entries.length >= 1 },
+    { id: 'streak3', icon: '🔥', title: lang === 'fr' ? 'Rythme Solaire' : 'Solar Rhythm', desc: lang === 'fr' ? '3 jours consécutifs' : '3 days in a row', unlocked: streak >= 3 },
+    { id: 'streak7', icon: '👑', title: lang === 'fr' ? 'Constance d\'Or' : 'Golden Habit', desc: lang === 'fr' ? '7 jours consécutifs' : '7 days in a row', unlocked: streak >= 7 },
+    { id: 'streak14', icon: '🌟', title: lang === 'fr' ? 'Étoile Filante' : 'Shooting Star', desc: lang === 'fr' ? '14 jours consécutifs' : '14 days in a row', unlocked: streak >= 14 },
+    { id: 'streak30', icon: '🏆', title: lang === 'fr' ? 'Légende Solaire' : 'Solar Legend', desc: lang === 'fr' ? '30 jours consécutifs' : '30 days in a row', unlocked: streak >= 30 },
+    { id: 'sun', icon: '☀️', title: lang === 'fr' ? 'Bouclier UV' : 'UV Shield', desc: lang === 'fr' ? '3 routines du matin' : '3 morning routines', unlocked: morningCount >= 3 },
+    { id: 'dawn', icon: '🌅', title: lang === 'fr' ? 'Aube Éclatante' : 'Radiant Dawn', desc: lang === 'fr' ? '10 routines du matin' : '10 morning routines', unlocked: morningCount >= 10 },
+    { id: 'moon', icon: '🌙', title: lang === 'fr' ? 'Reine de la Nuit' : 'Night Queen', desc: lang === 'fr' ? '5 routines du soir' : '5 evening routines', unlocked: eveningCount >= 5 },
+    { id: 'night', icon: '🌌', title: lang === 'fr' ? 'Veillée d\'Or' : 'Golden Night', desc: lang === 'fr' ? '15 routines du soir' : '15 evening routines', unlocked: eveningCount >= 15 },
+    { id: 'shelf', icon: '🧴', title: lang === 'fr' ? 'Armoire de Soins' : 'Skincare Shelf', desc: lang === 'fr' ? '5 flacons ordonnés' : '5 products organized', unlocked: shelfCount >= 5 },
+    { id: 'collector', icon: '💄', title: lang === 'fr' ? 'Collectionneuse' : 'Collector', desc: lang === 'fr' ? '10 flacons ordonnés' : '10 products organized', unlocked: shelfCount >= 10 },
+    { id: 'selfie', icon: '📸', title: lang === 'fr' ? 'Miroir du Temps' : 'Time Mirror', desc: lang === 'fr' ? '1er selfie de peau' : '1st skin selfie', unlocked: skinPhotos.length >= 1 },
+    { id: 'gallery', icon: '🖼️', title: lang === 'fr' ? 'Galerie du Temps' : 'Time Gallery', desc: lang === 'fr' ? '5 selfies de peau' : '5 skin selfies', unlocked: skinPhotos.length >= 5 },
+    { id: 'master', icon: '💎', title: lang === 'fr' ? 'Sagesse Cutanée' : 'Skin Wisdom', desc: lang === 'fr' ? '10 routines notées' : '10 routines logged', unlocked: entries.length >= 10 },
+    { id: 'devotee', icon: '📓', title: lang === 'fr' ? 'Rituel Ancré' : 'Anchored Ritual', desc: lang === 'fr' ? '25 routines notées' : '25 routines logged', unlocked: entries.length >= 25 },
+    { id: 'legend', icon: '💫', title: lang === 'fr' ? 'Icône de Constance' : 'Consistency Icon', desc: lang === 'fr' ? '50 routines notées' : '50 routines logged', unlocked: entries.length >= 50 },
+  ];
+  const unlockedBadges = badges.filter((b) => b.unlocked);
 
   return (
     <div className="px-6 pt-6 pb-28 max-h-screen overflow-y-auto animate-fade-up space-y-6">
@@ -334,93 +344,27 @@ const JournalScreen = ({ go }) => {
         ))}
       </div>
 
-          {/* ===== Salle des 8 Trophées Débloquables ===== */}
+          {/* ===== Salle des Trophées ===== */}
       <div className="space-y-2.5 pt-2">
         <div className="flex items-center justify-between">
           <span className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
             {lang === 'fr' ? 'Mes Victoires de Soin' : 'Care Victories'}
           </span>
-          <button
-            onClick={handleShare}
-            disabled={sharing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body text-[10px] uppercase tracking-caps text-white gold-btn disabled:opacity-50"
-          >
-            <Share2 size={12} />
-            <span>{sharing ? '…' : (lang === 'fr' ? 'Partager' : 'Share')}</span>
-          </button>
           <span className="font-body text-[11px] font-medium" style={{ color: 'var(--ink-soft)' }}>
-            {[
-              entries.length >= 1,
-              streak >= 3,
-              streak >= 7,
-              entries.filter(e => e.title?.toLowerCase().includes('matin') || e.title?.toLowerCase().includes('jour') || e.title?.toLowerCase().includes('day')).length >= 3,
-              entries.filter(e => e.title?.toLowerCase().includes('soir') || e.title?.toLowerCase().includes('evening')).length >= 5,
-              shelfCount >= 5,
-              skinPhotos.length >= 1,
-              entries.length >= 10,
-            ].filter(Boolean).length} / 8 {lang === 'fr' ? 'débloqués' : 'unlocked'}
+            {unlockedBadges.length} / {badges.length} {lang === 'fr' ? 'débloqués' : 'unlocked'}
           </span>
         </div>
+        <button
+          onClick={handleShare}
+          disabled={sharing}
+          className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-[14px] font-body text-[11px] uppercase tracking-caps font-semibold text-white gold-btn disabled:opacity-50"
+        >
+          <Share2 size={14} />
+          <span>{sharing ? '…' : (lang === 'fr' ? 'Partager ma victoire' : 'Share my victory')}</span>
+        </button>
 
         <div className="grid grid-cols-2 gap-2.5">
-          {[
-            {
-              id: 'first',
-              icon: '🌱',
-              title: lang === 'fr' ? 'Première Lueur' : 'First Glow',
-              desc: lang === 'fr' ? '1ère routine validée' : '1st completed routine',
-              unlocked: entries.length >= 1,
-            },
-            {
-              id: 'streak3',
-              icon: '🔥',
-              title: lang === 'fr' ? 'Rythme Solaire' : 'Solar Rhythm',
-              desc: lang === 'fr' ? '3 jours consécutifs' : '3 days in a row',
-              unlocked: streak >= 3,
-            },
-            {
-              id: 'streak7',
-              icon: '👑',
-              title: lang === 'fr' ? 'Constance d\'Or' : 'Golden Habit',
-              desc: lang === 'fr' ? '7 jours consécutifs' : '7 days in a row',
-              unlocked: streak >= 7,
-            },
-            {
-              id: 'sun',
-              icon: '☀️',
-              title: lang === 'fr' ? 'Bouclier UV' : 'UV Shield',
-              desc: lang === 'fr' ? '3 routines du matin' : '3 morning routines',
-              unlocked: entries.filter(e => e.title?.toLowerCase().includes('matin') || e.title?.toLowerCase().includes('jour') || e.title?.toLowerCase().includes('day')).length >= 3,
-            },
-            {
-              id: 'moon',
-              icon: '🌙',
-              title: lang === 'fr' ? 'Reine de la Nuit' : 'Night Queen',
-              desc: lang === 'fr' ? '5 routines du soir' : '5 evening routines',
-              unlocked: entries.filter(e => e.title?.toLowerCase().includes('soir') || e.title?.toLowerCase().includes('evening')).length >= 5,
-            },
-            {
-              id: 'shelf',
-              icon: '🧴',
-              title: lang === 'fr' ? 'Armoire de Soins' : 'Skincare Shelf',
-              desc: lang === 'fr' ? '5 flacons ordonnés' : '5 products organized',
-              unlocked: shelfCount >= 5,
-            },
-            {
-              id: 'selfie',
-              icon: '📸',
-              title: lang === 'fr' ? 'Miroir du Temps' : 'Time Mirror',
-              desc: lang === 'fr' ? '1er selfie de peau' : '1st skin photo saved',
-              unlocked: skinPhotos.length >= 1,
-            },
-            {
-              id: 'master',
-              icon: '💎',
-              title: lang === 'fr' ? 'Sagesse Cutanée' : 'Skin Wisdom',
-              desc: lang === 'fr' ? '10 routines notées' : '10 routines logged',
-              unlocked: entries.length >= 10,
-            },
-          ].map((badge) => (
+          {badges.map((badge) => (
             <div
               key={badge.id}
               className={`p-3 rounded-[16px] border flex items-center gap-2.5 transition-all ${
