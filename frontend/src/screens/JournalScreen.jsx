@@ -162,7 +162,7 @@ const JournalScreen = ({ go }) => {
 
   useEffect(() => {
     let active = true;
-    api.get('/journal', { params: { periode, lang } })
+    api.get('/journal', { params: { periode, lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone } })
       .then((r) => { if (active) setData(r.data); })
       .catch(() => {});
     return () => { active = false; };

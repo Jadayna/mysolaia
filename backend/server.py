@@ -9,6 +9,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone, date
+from zoneinfo import ZoneInfo
 import jwt
 import bcrypt
 
@@ -534,11 +535,21 @@ async def add_journal(body: JournalIn, user=Depends(current_user)):
     return {"ok": True}
 
 @api_router.get("/journal")
-async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(current_user)):
+async def get_journal(periode: str = "week", lang: str = "fr", tz: str = "UTC", user=Depends(current_user)):
     lang = "en" if lang == "en" else "fr"
+    try:
+        user_tz = ZoneInfo(tz)
+    except Exception:
+        user_tz = ZoneInfo("UTC")
     entries = await db.journal_entries.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
     entries.sort(key=lambda e: e["horodatage"], reverse=True)
-    today = date.today()
+
+    def local_day(e):
+        """Jour calendaire de l'entrée dans le fuseau horaire de l'utilisatrice
+        (les horodatages sont stockés en UTC)."""
+        return datetime.fromisoformat(e["horodatage"]).astimezone(user_tz).date().isoformat()
+
+    today = datetime.now(user_tz).date()
     n_days = 30 if periode == "month" else 7
 
     def is_morning(rt):
@@ -552,16 +563,16 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
     days = []
     for i in range(n_days - 1, -1, -1):
         d = today - timedelta(days=i)
-        day_entries = [e for e in entries if e["horodatage"][:10] == d.isoformat()]
+        day_entries = [e for e in entries if local_day(e) == d.isoformat()]
         matin = any(is_morning(e["routine_type"]) for e in day_entries)
         soir = any(is_evening(e["routine_type"]) for e in day_entries)
         days.append({"d": d.day, "matin": matin, "soir": soir})
 
-    last30 = [e for e in entries if e["horodatage"][:10] >= (today - timedelta(days=30)).isoformat()]
+    last30 = [e for e in entries if local_day(e) >= (today - timedelta(days=30)).isoformat()]
     exfo = len([e for e in last30 if "exfoliation" in (e["routine_type"] or "").lower()])
     streak = 0
     cur = today
-    day_set = {e["horodatage"][:10] for e in entries}
+    day_set = {local_day(e) for e in entries}
     while cur.isoformat() in day_set:
         streak += 1
         cur = cur - timedelta(days=1)
@@ -569,7 +580,7 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
     weekdays = WEEKDAYS_FR if lang == "fr" else WEEKDAYS_EN
 
     def fmt(e):
-        dt = datetime.fromisoformat(e["horodatage"])
+        dt = datetime.fromisoformat(e["horodatage"]).astimezone(user_tz)
         wd = weekdays[dt.weekday()][:3]
         complete = e["etapes_completees"] >= e["nb_total_etapes"]
         if lang == "fr":
@@ -585,7 +596,7 @@ async def get_journal(periode: str = "week", lang: str = "fr", user=Depends(curr
              {"n": str(exfo), "label": "exfo30"}]
 
     start = (today - timedelta(days=n_days - 1)).isoformat()
-    ranged = [e for e in entries if e["horodatage"][:10] >= start]
+    ranged = [e for e in entries if local_day(e) >= start]
 
     return {"days": days, "stats": stats, "entries": [fmt(e) for e in ranged[:30]],
             "observation": _observation(entries, lang),
