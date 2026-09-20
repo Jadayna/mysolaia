@@ -18,13 +18,13 @@ const HelpScreen = ({ go }) => {
   const SUPPORT_EMAIL = 'support@mysolaia.app';
 
   const faq = lang === 'fr' ? [
-    ["Comment scanner un produit ?", "Va dans l'onglet Scan, prends une photo de la face avant de l'étiquette, et l'IA identifie la marque et le nom. Le produit s'ajoute à ton étagère."],
+    ["Comment scanner un produit ?", "Va dans l'onglet Scan, prends une photo de la face avant de l'étiquette, et MySolaia identifie la marque et le nom. Le produit s'ajoute à ton étagère."],
     ["Le scan ne reconnaît pas mon produit", "Assure-toi que l'étiquette est bien éclairée et lisible. Si le service est momentanément occupé, réessaie après quelques secondes."],
     ["Comment fonctionne l'essai gratuit ?", "Tu as 7 jours d'accès complet. Rien n'est prélevé avant la fin de l'essai, et tu peux annuler en tout temps depuis Mon Abonnement."],
     ["Comment annuler mon abonnement ?", "Va dans Mon Abonnement, puis « Gérer mon abonnement / Résilier ». Tout se gère depuis le portail sécurisé."],
     ["Mes données sont-elles protégées ?", "Oui. Consulte la section Confidentialité & CGU pour le détail sur la protection de tes données."],
   ] : [
-    ["How do I scan a product?", "Go to the Scan tab, take a photo of the front of the label, and the AI identifies the brand and name. The product is added to your shelf."],
+    ["How do I scan a product?", "Go to the Scan tab, take a photo of the front of the label, and MySolaia identifies the brand and name. The product is added to your shelf."],
     ["The scan doesn't recognize my product", "Make sure the label is well lit and readable. If the service is momentarily busy, try again after a few seconds."],
     ["How does the free trial work?", "You get 7 days of full access. Nothing is charged before the trial ends, and you can cancel anytime from My Subscription."],
     ["How do I cancel my subscription?", "Go to My Subscription, then « Manage subscription / Cancel ». Everything is handled from the secure portal."],
