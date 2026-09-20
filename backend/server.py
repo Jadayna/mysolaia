@@ -1180,7 +1180,7 @@ async def root():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://mysolaia.vercel.app", "http://localhost:5173"],
+    allow_origins=["https://mysolaia.vercel.app", "http://localhost:5173", "https://www.mysolaia.ca", "https://mysolaia.ca"],
     allow_origin_regex=r"https://mysolaia.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
