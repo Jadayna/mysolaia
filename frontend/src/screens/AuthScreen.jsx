@@ -9,6 +9,7 @@ const AuthScreen = () => {
   const [view, setView] = useState('auth'); // 'auth' | 'forgot' | 'forgot-sent'
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotError, setForgotError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, register } = useAuth();
@@ -64,13 +65,19 @@ const AuthScreen = () => {
     e.preventDefault();
     if (forgotBusy) return;
     setForgotBusy(true);
+    setForgotError('');
     try {
       await api.post('/auth/forgot', { email: forgotEmail, origin_url: window.location.origin });
+      // Le backend répond toujours OK (anti-énumération) : on affiche la confirmation.
+      setForgotBusy(false);
+      setView('forgot-sent');
     } catch (err) {
-      // Le backend répond toujours OK : on affiche la confirmation dans tous les cas
+      // Échec réel de la requête (réseau, serveur) : on reste sur le formulaire avec un message.
+      setForgotBusy(false);
+      setForgotError(lang === 'fr'
+        ? "Impossible de joindre le serveur. Vérifie ta connexion et réessaie."
+        : "Couldn't reach the server. Check your connection and try again.");
     }
-    setForgotBusy(false);
-    setView('forgot-sent');
   };
 
   return (
@@ -203,6 +210,11 @@ const AuthScreen = () => {
               style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
               required
             />
+            {forgotError && (
+              <p className="font-body text-[12.5px]" style={{ color: '#B3261E' }}>
+                {forgotError}
+              </p>
+            )}
             <button
               type="submit"
               disabled={forgotBusy}
