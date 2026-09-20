@@ -40,7 +40,7 @@ const TrialScreen = () => {
         }
       }).catch(() => {});
     }
-  }, []);
+  }, [setUser]);
 
   const startTrial = async () => {
     setBusy(true);

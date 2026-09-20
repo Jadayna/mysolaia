@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Copy, Check, UserPlus, X, Flame, ChevronRight } from 'lucide-react';
 import { useT } from '../i18n';
 import api from '../lib/api';
@@ -24,16 +24,16 @@ const CircleScreen = ({ go }) => {
   const [copied, setCopied] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const { data } = await api.get('/circle');
       setCircle(data);
     } catch (e) {
       console.error('cercle:', e.message);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const flash = (type, text) => {
     setMsg({ type, text });

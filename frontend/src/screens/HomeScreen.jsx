@@ -389,7 +389,7 @@ const HomeScreen = ({ go }) => {
     api.get('/home', { params: { lang, phase: apiPhase } })
       .then((res) => setSuggestion(res?.data?.suggestion || null))
       .catch(() => {});
-  }, [lang]);
+  }, [lang, isNight]);
 
 
 
