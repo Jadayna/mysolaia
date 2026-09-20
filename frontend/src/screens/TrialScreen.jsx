@@ -74,15 +74,50 @@ const TrialScreen = () => {
 
   // Vue « déjà abonnée » : on ne propose plus jamais l'essai
   if (isSubscribed) {
+    const sinceDate = user?.date_inscription
+      ? new Date(user.date_inscription).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { day: 'numeric', month: 'long', year: 'numeric' })
+      : null;
+    const perks = lang === 'fr' ? [
+      'Étagère illimitée — tous tes flacons, sans plafond',
+      'Routines personnalisées matin & soir',
+      'Journal & suivi de peau',
+      'Minuteurs de soin intégrés',
+      'Météo beauté intelligente',
+    ] : [
+      'Unlimited shelf — all your bottles, no cap',
+      'Personalized AM & PM routines',
+      'Skin journal & tracking',
+      'Built-in ritual timers',
+      'Smart beauty weather',
+    ];
     return (
       <div className="px-6 pt-6 animate-fade-up">
-        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{t('trialTitle')}</span>
+        <span className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--ink-faint)' }}>{lang === 'fr' ? 'Abonnement' : 'Subscription'}</span>
         <h2 className="font-display text-[28px] mt-1">✨ {lang === 'fr' ? 'Abonnement Illimité Actif' : 'Unlimited Subscription Active'}</h2>
         <p className="font-body text-[13px] leading-relaxed mt-3" style={{ color: 'var(--ink-soft)' }}>
           {lang === 'fr'
-            ? `Merci de rayonner avec nous ! Profite de MySolaia sans aucune limite : étagère illimitée, routines personnalisées, journal.`
-            : `Thanks for glowing with us! Enjoy MySolaia without limits: unlimited shelf, personalized routines, journal.`}
+            ? `Merci de rayonner avec nous ! Profite de MySolaia sans aucune limite.`
+            : `Thanks for glowing with us! Enjoy MySolaia without limits.`}
         </p>
+        {sinceDate && (
+          <p className="font-body italic text-[12px] mt-2" style={{ color: 'var(--gold)' }}>
+            {lang === 'fr' ? `Avec nous depuis le ${sinceDate} 🌙` : `Glowing with us since ${sinceDate} 🌙`}
+          </p>
+        )}
+
+        <div className="rounded-[10px] p-4 mt-6" style={{ background: 'var(--cream-card)', border: '1px solid var(--gold)' }}>
+          <p className="font-body tracking-caps text-[10px] uppercase" style={{ color: 'var(--gold)' }}>
+            {lang === 'fr' ? 'Ton cocon illimité' : 'Your unlimited cocoon'}
+          </p>
+          <ul className="mt-3 space-y-2.5">
+            {perks.map((perk, i) => (
+              <li key={i} className="flex gap-2.5 items-start">
+                <span className="text-[13px] leading-relaxed" style={{ color: 'var(--gold)' }}>✓</span>
+                <span className="font-body text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{perk}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <button onClick={handleManageSubscription} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">
           {lang === 'fr' ? 'Gérer mon abonnement' : 'Manage my subscription'}
