@@ -366,6 +366,7 @@ async def _shelf_products(uid: str, active_only=True):
                       "notes": up.get("notes", ""), "actif": up.get("actif", True),
                       "date_ouverture": up.get("date_ouverture"), "pao_mois": up.get("pao_mois", 0),
                       "force_soir": up.get("force_soir", False),
+                      "is_favorite": up.get("is_favorite", False),
                       "locked_by_downgrade": up.get("locked_by_downgrade", False),
                       "tricky": tricky_keys_for_actifs(prod.get("actifs", []))}
             result.append(merged)
