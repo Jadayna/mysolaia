@@ -1,21 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Mail, FlaskConical } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { useT } from '../i18n';
-import api from '../lib/api';
 
 const HelpScreen = ({ go }) => {
   const { lang } = useT();
-  const [guide, setGuide] = useState([]);
 
-  // Étape 8 — base de connaissances des produits capricieux
-  useEffect(() => {
-    api.get(`/knowledge/tricky?lang=${lang}`).then(({ data }) => {
-      setGuide(data?.familles || []);
-    }).catch(() => {});
-  }, [lang]);
-
-  // ← Remplace par ta vraie adresse de support
-  const SUPPORT_EMAIL = 'support@mysolaia.app';
+  const SUPPORT_EMAIL = 'contact@mysolaia.ca';
 
   const faq = lang === 'fr' ? [
     ["Comment scanner un produit ?", "Va dans l'onglet Scan, prends une photo de la face avant de l'étiquette, et MySolaia identifie la marque et le nom. Le produit s'ajoute à ton étagère."],
@@ -55,39 +45,6 @@ const HelpScreen = ({ go }) => {
           </div>
         ))}
       </div>
-
-      {/* Étape 8 — Guide des produits capricieux */}
-      {guide.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FlaskConical size={16} style={{ color: 'var(--gold)' }} />
-            <h2 className="font-display text-[17px]" style={{ color: 'var(--ink)' }}>
-              {lang === 'fr' ? 'Produits capricieux 🧪' : 'Tricky products 🧪'}
-            </h2>
-          </div>
-          <p className="font-body text-[12px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
-            {lang === 'fr'
-              ? "Ces actifs puissants demandent un mode d'emploi. Retrouve leurs conseils aussi dans la fiche de chaque produit concerné."
-              : "These powerful actives need a manual. You'll also find their tips in each concerned product's card."}
-          </p>
-          {guide.map((fam) => (
-            <div key={fam.key} className="p-4 rounded-[16px] space-y-2" style={{ background: 'var(--cream-card)', border: '1px solid var(--gold-soft)' }}>
-              <p className="font-display text-[15px] font-medium" style={{ color: 'var(--ink)' }}>{fam.emoji} {fam.titre}</p>
-              <p className="font-body text-[12px] italic" style={{ color: 'var(--ink-soft)' }}>{fam.intro}</p>
-              <ul className="space-y-1">
-                {fam.conseils.map((c, i) => (
-                  <li key={i} className="font-body text-[12.5px] leading-snug" style={{ color: 'var(--ink-soft)' }}>• {c}</li>
-                ))}
-              </ul>
-              <div className="pt-1 space-y-1">
-                {fam.a_eviter.map((w, i) => (
-                  <p key={i} className="font-body text-[12.5px]" style={{ color: '#c0392b' }}>🚫 {w}</p>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       <a href={`mailto:${SUPPORT_EMAIL}`} className="gold-btn w-full rounded-[8px] py-3 font-body tracking-caps text-[11px] uppercase flex items-center justify-center gap-2">
         <Mail size={16} />
