@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Camera, ArrowRight, CloudSun, Cloud, CloudRain, CloudSnow, CloudFog, CloudLightning } from 'lucide-react';
+import { Sun, Moon, Camera, ArrowRight, Lightbulb, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 import api from '../lib/api';
@@ -207,8 +207,6 @@ function pickTip(temp, code, lang, isNight = false) {
   return pool[stableIndex];
 }
 
-const COND_ICONS = { sun: Sun, cloud: Cloud, fog: CloudFog, rain: CloudRain, snow: CloudSnow, storm: CloudLightning };
-
 const HomeScreen = ({ go }) => {
   const { user } = useAuth();
   const { lang } = useT();
@@ -275,6 +273,7 @@ const HomeScreen = ({ go }) => {
   const [cachedInsight, setCachedInsight] = useState(() => {
     return localStorage.getItem('solaia_last_insight') || '';
   });
+  const [conseilOpen, setConseilOpen] = useState(false);
 
   const computedInsight = (() => {
     const fr = lang === 'fr';
@@ -394,7 +393,6 @@ const HomeScreen = ({ go }) => {
 
 
   const safeProducts = Array.isArray(products) ? products : [];
-  const WeatherIcon = COND_ICONS[weather.cond] || CloudSun;
 
   // Météo → conseil adaptatif concret (au-delà du simple tip)
   const weatherAlert = () => {
@@ -416,6 +414,25 @@ const HomeScreen = ({ go }) => {
   // Streak en danger : le soir, routine non faite, streak à protéger
   const streakAtRisk = isNight && streak > 0 && !isRoutineDone('soir');
 
+  // Conseil unique : un seul slot intelligent, dépliable. Priorité :
+  // 1) suggestion du moteur (produit manquant) 2) alerte météo notable 3) observation perso spécifique.
+  // Si rien à dire, la section n'apparaît pas du tout.
+  const insightText = finalInsight || '';
+  const isGenericInsight =
+    insightText === `${totalEntries} routines notées. Peu importe l'heure ou la fréquence, c'est ton moment à toi.` ||
+    insightText === `${totalEntries} routines logged. No matter the time or frequency, this is your personal ritual.`;
+  const conseil = (() => {
+    if (suggestion) return { title: suggestion.title, text: suggestion.text, action: 'scan' };
+    if (alertMsg) return { title: null, text: alertMsg, action: null };
+    if (insightText && !isGenericInsight)
+      return {
+        title: lang === 'fr' ? 'CE QUE JE REMARQUE' : 'WHAT I NOTICE',
+        text: insightText,
+        action: null,
+      };
+    return null;
+  })();
+
 
   return (
     <div className="px-6 pt-6 pb-12 space-y-6">
@@ -430,24 +447,6 @@ const HomeScreen = ({ go }) => {
             : (lang === 'fr' ? 'Aujourd\'hui, on illumine' : 'Today, let\'s glow')}
         </h1>
       </div>
-
-      {/* Météo + conseil */}
-      {weather.temp !== '--' && (
-        <div className="p-4 rounded-[16px] flex items-center gap-3.5" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-          <WeatherIcon size={24} style={{ color: 'var(--gold)' }} />
-          <div>
-            <span className="font-display text-[13px] font-semibold" style={{ color: 'var(--ink)' }}>{weather.temp}</span>
-            <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>{weather.tip}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Alerte météo adaptative */}
-      {alertMsg && (
-        <div className="p-4 rounded-[16px] flex items-center gap-3 animate-fade-up" style={{ background: 'rgba(182,130,53,0.10)', border: '1px solid var(--gold-soft)' }}>
-          <p className="font-body text-[12.5px] leading-relaxed" style={{ color: 'var(--ink)' }}>{alertMsg}</p>
-        </div>
-      )}
 
       {/* Streak en danger */}
       {streakAtRisk && (
@@ -465,7 +464,7 @@ const HomeScreen = ({ go }) => {
       )}
 
       {/* Routine */}
-      <div className="p-6 rounded-[20px] shadow-sm space-y-4" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+      <div className="p-6 rounded-[20px] shadow-sm space-y-4" style={{ background: 'linear-gradient(135deg, rgba(182,130,53,0.16) 0%, rgba(182,130,53,0.07) 100%)', border: '1px solid var(--gold-soft)' }}>
         <div className="flex items-center justify-between font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--gold)' }}>
           <div className="flex items-center gap-2">
             {isNight ? <Moon size={14} /> : <Sun size={14} />}
@@ -505,32 +504,40 @@ const HomeScreen = ({ go }) => {
         </button>
       </div>
 
-      {/* Remarque */}
-      <div className="p-5 rounded-[18px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-        <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
-          {lang === 'fr' ? 'CE QUE JE REMARQUE' : 'WHAT I NOTICE'}
-        </p>
-        <p className="font-body italic text-[13.5px] mt-2 leading-relaxed" style={{ color: 'var(--ink)' }}>
-          "{finalInsight}"
-        </p>
-      </div>
-
-      {/* Conseil du moteur — ce qui manque */}
-      {suggestion && (
-        <div className="p-5 rounded-[18px] animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--gold-soft)' }}>
-          <p className="font-body text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
-            {suggestion.title}
-          </p>
-          <p className="font-body text-[13px] mt-2 leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
-            {suggestion.text}
-          </p>
+      {/* Conseil unique — dépliable, n'apparaît que s'il y a quelque chose à dire */}
+      {conseil && (
+        <div className="rounded-[14px] overflow-hidden animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
           <button
-            onClick={() => go('scan')}
-            className="mt-3 font-body text-[11px] uppercase tracking-caps font-semibold"
-            style={{ color: 'var(--gold)' }}
+            onClick={() => setConseilOpen((o) => !o)}
+            className="w-full flex items-center justify-between px-4 py-3.5"
           >
-            {lang === 'fr' ? 'Scanner un produit →' : 'Scan a product →'}
+            <span className="flex items-center gap-2 font-body text-[11px] uppercase tracking-caps font-bold" style={{ color: 'var(--gold)' }}>
+              <Lightbulb size={15} />
+              {lang === 'fr' ? 'Conseil' : 'Tip'}
+            </span>
+            <ChevronDown size={16} style={{ color: 'var(--ink-faint)', transform: conseilOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
           </button>
+          {conseilOpen && (
+            <div className="px-4 pb-4">
+              {conseil.title && (
+                <p className="font-body text-[10px] uppercase tracking-caps font-semibold mb-1.5" style={{ color: 'var(--gold)' }}>
+                  {conseil.title}
+                </p>
+              )}
+              <p className="font-body text-[13.5px] leading-relaxed" style={{ color: 'var(--ink)' }}>
+                {conseil.text}
+              </p>
+              {conseil.action === 'scan' && (
+                <button
+                  onClick={() => go('scan')}
+                  className="mt-2.5 font-body text-[11px] uppercase tracking-caps font-semibold"
+                  style={{ color: 'var(--gold)' }}
+                >
+                  {lang === 'fr' ? 'Scanner un produit →' : 'Scan a product →'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -538,11 +545,15 @@ const HomeScreen = ({ go }) => {
       <div>
         <div className="flex justify-between items-center mb-3">
           <span className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
-            {lang === 'fr' ? 'TON ÉTAGÈRE' : 'YOUR SHELF'}
+            {lang === 'fr' ? 'TON ÉTAGÈRE' : 'YOUR SHELF'} · {safeProducts.length} {lang === 'fr' ? 'produits' : 'products'}
           </span>
-          <span className="font-body text-[11px]" style={{ color: 'var(--ink-soft)' }}>
-            {safeProducts.length} {lang === 'fr' ? 'produits' : 'products'}
-          </span>
+          <button
+            onClick={() => go('scan')}
+            className="font-body text-[11px] uppercase tracking-caps font-semibold"
+            style={{ color: 'var(--gold)' }}
+          >
+            {lang === 'fr' ? 'Gérer →' : 'Manage →'}
+          </button>
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
@@ -555,17 +566,6 @@ const HomeScreen = ({ go }) => {
           ))}
         </div>
 
-        <button 
-          onClick={() => go('scan')} 
-          className="w-full mt-3 py-3 rounded-[12px] font-body text-[10px] uppercase tracking-caps font-semibold transition-all active:scale-[0.98]" 
-          style={{ 
-            background: 'var(--cream-card)', 
-            border: '1px solid var(--line-strong)', 
-            color: 'var(--ink-soft)' 
-          }}
-        >
-          {lang === 'fr' ? 'GÉRER MES PRODUITS' : 'MANAGE PRODUCTS'}
-        </button>
       </div>
     </div>
   );

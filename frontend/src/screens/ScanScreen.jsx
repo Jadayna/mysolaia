@@ -500,7 +500,7 @@ const [products, setProducts] = useState(() => {
   const inputStyle = { background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' };
 
   return (
-    <div className="px-6 pt-6 pb-28 space-y-6 animate-fade-up">
+    <div className="px-6 pt-6 pb-28 h-[100dvh] flex flex-col overflow-hidden space-y-6 animate-fade-up">
       {/* Toast Notification Magique */}
       {toastMsg && (
         <div className="fixed top-5 left-4 right-4 z-50 p-3.5 rounded-[14px] shadow-lg flex items-center gap-2 animate-fade-down" style={{ background: 'var(--ink)', color: '#FAF6F0' }}>
@@ -510,7 +510,7 @@ const [products, setProducts] = useState(() => {
       )}
 
       {/* En-tête */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         <button onClick={() => go('accueil')} className="p-2 rounded-full border" style={{ borderColor: 'var(--line)', background: 'var(--cream-card)' }}>
           <ArrowLeft size={18} />
         </button>
@@ -525,7 +525,7 @@ const [products, setProducts] = useState(() => {
       </div>
 
       {/* Zone d'ajout compacte — Étape 2 : un seul bouton, 3 options */}
-      <div className="w-full">
+      <div className="w-full shrink-0">
         <button
           onClick={() => setShowAddOptions((v) => !v)}
           disabled={loading}
@@ -570,7 +570,7 @@ const [products, setProducts] = useState(() => {
 
       {/* Formulaire d'entrée manuelle / modification */}
       {showManual && (
-        <div className="p-5 rounded-[20px] space-y-3 animate-fade-up" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <div className="p-5 rounded-[20px] space-y-3 animate-fade-up shrink-0 max-h-[45vh] overflow-y-auto" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
           <div className="flex items-center justify-between">
             <h3 className="font-display text-[16px]" style={{ color: 'var(--ink)' }}>
               {editingShelfId 
@@ -703,9 +703,9 @@ const [products, setProducts] = useState(() => {
         </div>
       )}
 
-    {/* Liste des produits avec Barre de Recherche & Scroll dédié */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
+    {/* Liste des produits avec Barre de Recherche — la page est fixe, seule la liste défile */}
+      <div className="flex-1 min-h-0 flex flex-col space-y-3 pt-2">
+        <div className="flex items-center justify-between shrink-0">
           <h3 className="font-body text-[11px] uppercase tracking-caps font-semibold" style={{ color: 'var(--ink-faint)' }}>
             {lang === 'fr' ? 'Mes produits enregistrés' : 'My saved products'} ({filteredProducts.length}{searchQuery ? ` / ${products.length}` : ''})
           </h3>
@@ -718,7 +718,7 @@ const [products, setProducts] = useState(() => {
 
         {/* Barre de Recherche Élégante */}
         {products.length > 2 && (
-          <div className="relative">
+          <div className="relative shrink-0">
             <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--ink-faint)' }} />
             <input
               type="text"
@@ -736,8 +736,8 @@ const [products, setProducts] = useState(() => {
           </div>
         )}
 
-        {/* Zone de défilement dédiée aux produits */}
-        <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+        {/* Liste des produits — seul scroll de l'écran */}
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1" style={{ scrollbarWidth: 'thin' }}>
           {filteredProducts.length === 0 ? (
             <div className="p-6 text-center rounded-[16px] border border-dashed" style={{ borderColor: 'var(--line)' }}>
               <Package size={28} className="mx-auto mb-2 opacity-40" style={{ color: 'var(--ink-faint)' }} />

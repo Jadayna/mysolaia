@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle, Share, Download, RotateCcw, ChevronRight, Users } from 'lucide-react';
+import { Home, Camera, ListChecks, LineChart, Sparkles, Globe, LogOut, Shield, CreditCard, X, User, Package, HelpCircle, Share, Download, RotateCcw, ChevronRight, Users, FlaskConical } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import HomeScreen from '../screens/HomeScreen';
@@ -11,6 +11,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import HelpScreen from '../screens/HelpScreen';
 import PrivacyScreen from '../screens/PrivacyScreen';
 import CircleScreen from '../screens/CircleScreen';
+import TrickyGuideScreen from '../screens/TrickyGuideScreen';
 import api from '../lib/api';
 import { scheduleReminders } from '../lib/reminders';
 import { initAnalytics, trackScreen } from '../lib/analytics';
@@ -30,6 +31,7 @@ const EXTRA_SCREENS = [
   { id: 'aide', screen: HelpScreen },
   { id: 'confidentialite', screen: PrivacyScreen },
   { id: 'cercle', screen: CircleScreen },
+  { id: 'capricieux', screen: TrickyGuideScreen },
 ];
 
 const AppShell = () => {
@@ -358,6 +360,22 @@ const go = (id, opts) => {
                     </p>
                     <p className="font-body text-[11px] text-stone-400">
                       {lang === 'fr' ? "Amies, streaks & Wizz 💫" : "Friends, streaks & Wizz 💫"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-stone-400" />
+              </button>
+
+              {/* Produits capricieux — guide extrait de l'Aide */}
+              <button onClick={() => { setShowMenuModal(false); go('capricieux'); }} className="w-full flex items-center justify-between p-3.5 rounded-[16px] bg-white border border-stone-200/80 shadow-xs hover:border-amber-300 transition-all">
+                <div className="flex items-center gap-3">
+                  <FlaskConical size={18} style={{ color: '#A37B68' }} />
+                  <div className="text-left">
+                    <p className="font-display text-[14px] font-medium" style={{ color: 'var(--ink)' }}>
+                      {lang === 'fr' ? "Produits capricieux 🧪" : "Tricky products 🧪"}
+                    </p>
+                    <p className="font-body text-[11px] text-stone-400">
+                      {lang === 'fr' ? "Mode d'emploi des actifs puissants" : "How to use powerful actives"}
                     </p>
                   </div>
                 </div>

@@ -6,6 +6,51 @@ import { useAuth } from '../context/AuthContext';
 import { shareVictory } from '../lib/shareCard';
 
 
+// Carte badge réutilisable (vedettes + modales)
+const BadgeCard = ({ badge, large }) => (
+  <div
+    className={`rounded-[16px] border transition-all ${
+      large ? 'flex flex-col items-center text-center p-3 gap-1.5' : 'flex items-center gap-2.5 p-3'
+    } ${badge.unlocked ? 'bg-white shadow-xs border-amber-200' : 'bg-stone-100/50 border-stone-200 opacity-60'}`}
+  >
+    <div
+      className={`${large ? 'w-12 h-12 text-[22px]' : 'w-10 h-10 text-[18px]'} rounded-[12px] flex items-center justify-center shrink-0 ${
+        badge.unlocked ? 'bg-amber-50 shadow-xs' : 'bg-stone-200/60 grayscale'
+      }`}
+    >
+      {badge.icon}
+    </div>
+    <div className={large ? '' : 'flex-1 min-w-0 text-left'}>
+      <p
+        className={`font-display font-semibold ${large ? 'text-[11px] leading-tight' : 'text-[12.5px] truncate'}`}
+        style={{ color: badge.unlocked ? 'var(--ink)' : 'var(--ink-soft)' }}
+      >
+        {badge.title}
+      </p>
+      <p className={`font-body text-[10px] text-stone-500 ${large ? 'leading-tight' : 'truncate'}`}>
+        {badge.desc}
+      </p>
+    </div>
+  </div>
+);
+
+// Définition des badges — rank = prestige (≈ ordre de déblocage : les plus exigeants arrivent en dernier)
+const buildBadges = ({ entries, streak, shelfCount, skinPhotos, lang }) => {
+  const fr = lang === 'fr';
+  const morningCount = entries.filter((e) => { const t = (e.title || '').toLowerCase(); return t.includes('matin') || t.includes('jour') || t.includes('day'); }).length;
+  const eveningCount = entries.filter((e) => { const t = (e.title || '').toLowerCase(); return t.includes('soir') || t.includes('evening'); }).length;
+  return [
+    { id: 'first', icon: '🌱', rank: 1, title: fr ? 'Première Lueur' : 'First Glow', desc: fr ? '1ère routine validée' : '1st completed routine', unlocked: entries.length >= 1 },
+    { id: 'selfie', icon: '📸', rank: 2, title: fr ? 'Miroir du Temps' : 'Time Mirror', desc: fr ? '1er selfie de peau' : '1st skin photo saved', unlocked: skinPhotos.length >= 1 },
+    { id: 'shelf', icon: '🧴', rank: 3, title: fr ? 'Armoire de Soins' : 'Skincare Shelf', desc: fr ? '5 flacons ordonnés' : '5 products organized', unlocked: shelfCount >= 5 },
+    { id: 'sun', icon: '☀️', rank: 4, title: fr ? 'Bouclier UV' : 'UV Shield', desc: fr ? '3 routines du matin' : '3 morning routines', unlocked: morningCount >= 3 },
+    { id: 'streak3', icon: '🔥', rank: 5, title: fr ? 'Rythme Solaire' : 'Solar Rhythm', desc: fr ? '3 jours consécutifs' : '3 days in a row', unlocked: streak >= 3 },
+    { id: 'moon', icon: '🌙', rank: 6, title: fr ? 'Reine de la Nuit' : 'Night Queen', desc: fr ? '5 routines du soir' : '5 evening routines', unlocked: eveningCount >= 5 },
+    { id: 'streak7', icon: '👑', rank: 7, title: fr ? "Constance d'Or" : 'Golden Habit', desc: fr ? '7 jours consécutifs' : '7 days in a row', unlocked: streak >= 7 },
+    { id: 'master', icon: '💎', rank: 8, title: fr ? 'Sagesse Cutanée' : 'Skin Wisdom', desc: fr ? '10 routines notées' : '10 routines logged', unlocked: entries.length >= 10 },
+  ];
+};
+
 const JournalScreen = ({ go }) => {
   const { t, lang } = useT();
   const [periode, setPeriode] = useState('week'); // 'week' | 'month'
@@ -23,6 +68,7 @@ const JournalScreen = ({ go }) => {
   const [comparing, setComparing] = useState(false);
   const [splitPos, setSplitPos] = useState(50);
   const [sharing, setSharing] = useState(false);
+  const [badgeView, setBadgeView] = useState(null); // null | 'all' (mes badges) | 'todo' (à obtenir)
   const { user } = useAuth();
 
   // Charger les photos depuis le compte utilisateur
@@ -100,7 +146,7 @@ const JournalScreen = ({ go }) => {
 
   useEffect(() => {
     let active = true;
-    api.get('/journal', { params: { periode, lang } })
+    api.get('/journal', { params: { periode, lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone } })
       .then((r) => { if (active) setData(r.data); })
       .catch(() => {});
     return () => { active = false; };
@@ -127,6 +173,7 @@ const JournalScreen = ({ go }) => {
   const stats = Array.isArray(data.stats) ? data.stats : [];
   const streak = parseInt(data?.stats?.[0]?.n || '0', 10) || 0;
 
+<<<<<<< HEAD
   // ===== Victoires de soin : 16 badges permanents (court + long terme) =====
   const _tl = (e) => (e.title || '').toLowerCase();
   const morningCount = entries.filter((e) => { const t = _tl(e); return t.includes('matin') || t.includes('jour') || t.includes('day'); }).length;
@@ -152,6 +199,13 @@ const JournalScreen = ({ go }) => {
     { id: 'legend', icon: '💫', title: lang === 'fr' ? 'Icône de Constance' : 'Consistency Icon', desc: lang === 'fr' ? '50 routines notées' : '50 routines logged', unlocked: entries.length >= 50 },
   ];
   const unlockedBadges = badges.filter((b) => b.unlocked);
+=======
+  // Badges : 3 plus prestigieux débloqués en vedette (≈ les plus récents)
+  const badges = buildBadges({ entries, streak, shelfCount, skinPhotos, lang });
+  const unlockedBadges = badges.filter((b) => b.unlocked);
+  const lockedBadges = badges.filter((b) => !b.unlocked);
+  const featuredBadges = [...unlockedBadges].sort((a, b) => b.rank - a.rank).slice(0, 3);
+>>>>>>> feuille-de-route
 
   return (
     <div className="px-6 pt-6 pb-28 max-h-screen overflow-y-auto animate-fade-up space-y-6">
@@ -205,13 +259,13 @@ const JournalScreen = ({ go }) => {
             <div className="relative w-full rounded-[14px] overflow-hidden select-none" style={{ height: 300, border: '1.5px solid var(--gold-soft)' }}>
               {/* Avant = la plus ancienne */}
               <img src={skinPhotos[skinPhotos.length - 1].url} alt="Avant" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-              {/* Après = la plus récente, révélée au curseur */}
+              {/* Après = la plus récente, révélée à droite du curseur */}
               <img
                 src={skinPhotos[0].url}
                 alt="Après"
                 draggable={false}
                 className="absolute inset-0 w-full h-full object-cover"
-                style={{ clipPath: `inset(0 ${100 - splitPos}% 0 0)` }}
+                style={{ clipPath: `inset(0 0 0 ${splitPos}%)` }}
               />
               {/* Ligne de séparation */}
               <div className="absolute top-0 bottom-0 w-[2px]" style={{ left: `${splitPos}%`, background: '#fff', boxShadow: '0 0 8px rgba(0,0,0,0.4)' }} />
@@ -248,6 +302,35 @@ const JournalScreen = ({ go }) => {
       </div>
 
       {/* Modal Zoom Photo */}
+      {badgeView && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in"
+          onClick={() => setBadgeView(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-[20px] p-4 space-y-3 animate-fade-up max-h-[82vh] overflow-y-auto"
+            style={{ background: '#FAF6F0' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-body text-[11px] uppercase tracking-caps font-semibold" style={{ color: 'var(--gold)' }}>
+                {badgeView === 'all'
+                  ? (lang === 'fr' ? 'Mes badges' : 'My badges')
+                  : (lang === 'fr' ? 'Badges à obtenir' : 'Badges to earn')}
+              </span>
+              <button onClick={() => setBadgeView(null)} className="p-1 rounded-full text-stone-400">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {(badgeView === 'all' ? unlockedBadges : lockedBadges).map((badge) => (
+                <BadgeCard key={badge.id} badge={badge} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {previewPhoto && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-fade-in">
           <div className="w-full max-w-xs rounded-[20px] overflow-hidden p-4 space-y-3 animate-fade-up" style={{ background: '#FAF6F0' }}>
@@ -363,6 +446,7 @@ const JournalScreen = ({ go }) => {
           <span>{sharing ? '…' : (lang === 'fr' ? 'Partager ma victoire' : 'Share my victory')}</span>
         </button>
 
+<<<<<<< HEAD
         <div className="grid grid-cols-2 gap-2.5">
           {badges.map((badge) => (
             <div
@@ -372,24 +456,43 @@ const JournalScreen = ({ go }) => {
                   ? 'bg-white shadow-xs border-amber-200'
                   : 'bg-stone-100/50 border-stone-200 opacity-60'
               }`}
+=======
+        {/* Vedettes : les 3 badges les plus prestigieux débloqués */}
+        {featuredBadges.length > 0 ? (
+          <div className="grid grid-cols-3 gap-2.5">
+            {featuredBadges.map((badge) => (
+              <BadgeCard key={badge.id} badge={badge} large />
+            ))}
+          </div>
+        ) : (
+          <p className="font-body italic text-[12px] py-2 text-center" style={{ color: 'var(--ink-faint)' }}>
+            {lang === 'fr'
+              ? "Valide ta première routine pour débloquer ton premier badge !"
+              : "Complete your first routine to unlock your first badge!"}
+          </p>
+        )}
+
+        {/* Liens : tous mes badges / badges à obtenir */}
+        <div className="flex items-center justify-center gap-6 pt-1">
+          {unlockedBadges.length > 0 && (
+            <button
+              onClick={() => setBadgeView('all')}
+              className="font-body text-[11px] font-semibold underline underline-offset-4"
+              style={{ color: 'var(--gold)' }}
+>>>>>>> feuille-de-route
             >
-              <div
-                className={`w-10 h-10 rounded-[12px] flex items-center justify-center text-[18px] shrink-0 ${
-                  badge.unlocked ? 'bg-amber-50 shadow-xs' : 'bg-stone-200/60 grayscale'
-                }`}
-              >
-                {badge.icon}
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="font-display text-[12.5px] font-semibold truncate" style={{ color: badge.unlocked ? 'var(--ink)' : 'var(--ink-soft)' }}>
-                  {badge.title}
-                </p>
-                <p className="font-body text-[10px] text-stone-500 truncate">
-                  {badge.desc}
-                </p>
-              </div>
-            </div>
-          ))}
+              {lang === 'fr' ? 'Voir mes badges' : 'See my badges'} →
+            </button>
+          )}
+          {lockedBadges.length > 0 && (
+            <button
+              onClick={() => setBadgeView('todo')}
+              className="font-body text-[11px] font-semibold underline underline-offset-4"
+              style={{ color: 'var(--ink-soft)' }}
+            >
+              {lang === 'fr' ? 'Badges à obtenir' : 'Badges to earn'} →
+            </button>
+          )}
         </div>
       </div>
 
