@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, CalendarDays, Flame, Package, Camera, Trash2, Plus, X, Award, ShieldCheck, Lock, Sparkles, TrendingUp, TrendingDown, Minus, Share2, ArrowLeftRight, ArrowLeft, ChevronLeft, ChevronRight, Trophy, NotebookPen, Activity } from 'lucide-react';
+import { Calendar, CalendarDays, Flame, Package, Camera, Trash2, Plus, X, Award, ShieldCheck, Lock, Sparkles, TrendingUp, TrendingDown, Minus, Share2, ArrowLeftRight, ArrowLeft, ChevronLeft, ChevronRight, Trophy, NotebookPen, Activity, Target } from 'lucide-react';
 import api from '../lib/api';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
@@ -81,6 +81,68 @@ const SectionTile = ({ icon, title, subtitle, onClick }) => (
     </div>
   </button>
 );
+
+// ===== Section Ma peau : note moyenne + historique des notes =====
+const PeauSection = ({ entries, avg, lang, onBack }) => {
+  const fr = lang === 'fr';
+  const rated = entries.filter((e) => typeof e.note_peau === 'number' && e.note_peau > 0).slice(0, 10);
+  return (
+    <div className="space-y-5">
+      <SectionHeader
+        title={fr ? 'Ma peau' : 'My skin'}
+        subtitle={avg ? `${fr ? 'Note moyenne' : 'Average rating'} : ${avg} / 5` : null}
+        onBack={onBack}
+      />
+      {avg ? (
+        <>
+          <div className="p-6 rounded-[20px] text-center" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+            <p className="font-display text-[44px] tnum" style={{ color: 'var(--gold)' }}>{avg}<span className="text-[20px]"> / 5</span></p>
+            <p className="font-body text-[11px] mt-1" style={{ color: 'var(--ink-faint)' }}>
+              {fr ? 'D’après tes notes après chaque routine.' : 'Based on your ratings after each routine.'}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {rated.map((e, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 px-4 py-3 rounded-[14px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+                <span className="font-body text-[12px] line-clamp-1" style={{ color: 'var(--ink-soft)' }}>{e.title || (fr ? 'Routine' : 'Routine')}</span>
+                <span className="font-display text-[15px] shrink-0" style={{ color: 'var(--gold)' }}>
+                  {'★'.repeat(e.note_peau)}{'☆'.repeat(Math.max(0, 5 - e.note_peau))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="font-body text-[13px] text-center py-8" style={{ color: 'var(--ink-faint)' }}>
+          {fr ? 'Note ta peau après chaque routine et ta moyenne apparaîtra ici. ✨' : 'Rate your skin after each routine and your average will appear here. ✨'}
+        </p>
+      )}
+    </div>
+  );
+};
+
+// ===== Section Assiduité : % d'étapes complétées =====
+const AssiduiteSection = ({ pct, done, total, lang, onBack }) => {
+  const fr = lang === 'fr';
+  return (
+    <div className="space-y-5">
+      <SectionHeader
+        title={fr ? 'Assiduité' : 'Consistency'}
+        subtitle={pct !== null ? `${done} / ${total} ${fr ? 'étapes' : 'steps'}` : null}
+        onBack={onBack}
+      />
+      <div className="p-6 rounded-[20px] text-center space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <p className="font-display text-[44px] tnum" style={{ color: 'var(--gold)' }}>{pct !== null ? `${pct} %` : '—'}</p>
+        <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${pct || 0}%`, background: 'var(--gold)' }} />
+        </div>
+        <p className="font-body text-[12px]" style={{ color: 'var(--ink-faint)' }}>
+          {fr ? 'Des étapes de ta routine complétées sur la période affichée.' : 'Of your routine steps completed in the shown period.'}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 // En-tête d'une section (avec retour)
 const SectionHeader = ({ title, subtitle, onBack }) => (
@@ -206,7 +268,7 @@ const PhotosSection = ({ skinPhotos, onBack, onUpload, onDelete, lang }) => {
           onClick={() => setPreviewIdx(null)}
         >
           <div
-            className="w-full max-w-xs rounded-[20px] overflow-hidden p-4 space-y-3 animate-fade-up"
+            className="w-full max-w-sm rounded-[20px] overflow-hidden p-4 space-y-3 animate-fade-up max-h-[92vh] overflow-y-auto"
             style={{ background: '#FAF6F0' }}
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
@@ -227,7 +289,7 @@ const PhotosSection = ({ skinPhotos, onBack, onUpload, onDelete, lang }) => {
               </button>
             </div>
             <div className="relative">
-              <img src={skinPhotos[previewIdx].url} alt="Selfie" className="w-full h-64 object-cover rounded-[14px]" draggable={false} />
+              <img src={skinPhotos[previewIdx].url} alt="Selfie" className="w-full max-h-[58vh] object-contain rounded-[14px]" draggable={false} />
               {previewIdx < skinPhotos.length - 1 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); goPhoto(1); }}
@@ -565,6 +627,16 @@ const JournalScreen = ({ go }) => {
   const morningCount = entries.filter((e) => { const t = _tl(e); return t.includes('matin') || t.includes('jour') || t.includes('day'); }).length;
   const eveningCount = entries.filter((e) => { const t = _tl(e); return t.includes('soir') || t.includes('evening'); }).length;
 
+  // Ma peau : note moyenne (période affichée, échelle 1-5)
+  const ratedEntries = entries.filter((e) => typeof e.note_peau === 'number' && e.note_peau > 0);
+  const skinNoteAvg = ratedEntries.length > 0
+    ? (ratedEntries.reduce((sum, e) => sum + e.note_peau, 0) / ratedEntries.length).toFixed(1).replace('.', fr ? ',' : '.')
+    : null;
+  // Assiduité : % d'étapes de routine complétées (période affichée)
+  const stepsDone = entries.reduce((sum, e) => sum + (parseInt(e.etapes_completees, 10) || 0), 0);
+  const stepsTotal = entries.reduce((sum, e) => sum + (parseInt(e.nb_total_etapes, 10) || 0), 0);
+  const assiduite = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : null;
+
   // Badges : 3 plus prestigieux débloqués en vedette (≈ les plus récents)
   const badges = buildBadges({ entries, streak, shelfCount, skinPhotos, soins30, exfo30, morningCount, eveningCount, lang });
   const unlockedBadges = badges.filter((b) => b.unlocked);
@@ -577,7 +649,8 @@ const JournalScreen = ({ go }) => {
     try {
       const userName = user?.nom || user?.prenom || user?.first_name || '';
       const lastEntry = entries[0];
-      await shareVictory({ lang, streak, routineTitle: lastEntry?.title || '', userName, soins30, exfo30, badges: unlockedBadges.map((b) => ({ icon: b.icon, title: b.title })) });
+      await shareVictory({ lang, streak, routineTitle: lastEntry?.title || '', userName, soins30, exfo30, badges: featuredBadges.map((b) => ({ icon: b.icon, title: b.title, desc: b.desc, rank: b.rank })),
+        badgesTotal: unlockedBadges.length });
     } catch (e) {
       console.warn('Partage impossible :', e.message);
     } finally {
@@ -629,6 +702,14 @@ const JournalScreen = ({ go }) => {
         />
       )}
 
+      {section === 'peau' && (
+        <PeauSection entries={entries} avg={skinNoteAvg} lang={lang} onBack={back} />
+      )}
+
+      {section === 'assiduite' && (
+        <AssiduiteSection pct={assiduite} done={stepsDone} total={stepsTotal} lang={lang} onBack={back} />
+      )}
+
       {section === null && (
         <>
           {/* En-tête */}
@@ -643,7 +724,7 @@ const JournalScreen = ({ go }) => {
           <div className="grid grid-cols-2 gap-3 animate-fade-up">
             <SectionTile
               icon={<Camera size={22} style={{ color: 'var(--gold)' }} />}
-              title={fr ? 'Photos' : 'Photos'}
+              title={fr ? 'Mon évolution' : 'My evolution'}
               subtitle={`${skinPhotos.length} ${fr ? 'photos' : 'photos'}`}
               onClick={() => setSection('photos')}
             />
@@ -664,6 +745,18 @@ const JournalScreen = ({ go }) => {
               title={fr ? 'Mon rythme' : 'My rhythm'}
               subtitle={`${streak} ${fr ? 'jours de suite' : 'day streak'}`}
               onClick={() => setSection('rythme')}
+            />
+            <SectionTile
+              icon={<Sparkles size={22} style={{ color: 'var(--gold)' }} />}
+              title={fr ? 'Ma peau' : 'My skin'}
+              subtitle={skinNoteAvg ? `${skinNoteAvg} / 5` : (fr ? 'Pas encore notée' : 'Not rated yet')}
+              onClick={() => setSection('peau')}
+            />
+            <SectionTile
+              icon={<Target size={22} style={{ color: 'var(--gold)' }} />}
+              title={fr ? 'Assiduité' : 'Consistency'}
+              subtitle={assiduite !== null ? `${assiduite} %` : '—'}
+              onClick={() => setSection('assiduite')}
             />
           </div>
         </>

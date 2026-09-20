@@ -4,16 +4,16 @@
   "description": "Calcule l'ordre d'application de tes produits skincare et prévient des combinaisons risquées.",
   "icons": [
     { 
-      "src": "/mysolaia-symbole-2048.png", 
-      "type": "image/png", 
-      "sizes": "2048x2048", 
-      "purpose": "any maskable" 
+      "src": "/mysolaia-symbole-2048.png",
+      "type": "image/png",
+      "sizes": "2048x2048",
+      "purpose": "any" 
     },
     { 
-      "src": "icon-512.png", 
-      "type": "image/png", 
-      "sizes": "512x512", 
-      "purpose": "maskable any" 
+      "src": "/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable" 
     }
   ],
   "start_url": "/",
