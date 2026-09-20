@@ -188,14 +188,14 @@ def _send_reset_email(to_email: str, reset_link: str, lang: str = "fr") -> bool:
         html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
 <h2 style="color:#A37B68;">MySolaia</h2>
 <p style="color:#4a4a4a;">Tu as demandé à réinitialiser ton mot de passe. Clique sur le bouton ci-dessous (lien valide 1 heure) :</p>
-<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="background:#A37B68;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;">Choisir un nouveau mot de passe</a></p>
+<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="display:inline-block;background:#A37B68;color:#ffffff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;white-space:nowrap;">Choisir un nouveau mot de passe</a></p>
 <p style="color:#8a8a8a;font-size:13px;">Si ce n'était pas toi, ignore simplement ce courriel — ton mot de passe reste inchangé.</p></div>"""
     else:
         subject = "Reset your MySolaia password"
         html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
 <h2 style="color:#A37B68;">MySolaia</h2>
 <p style="color:#4a4a4a;">You asked to reset your password. Click the button below (link valid for 1 hour):</p>
-<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="background:#A37B68;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;">Choose a new password</a></p>
+<p style="text-align:center;margin:28px 0;"><a href="{reset_link}" style="display:inline-block;background:#A37B68;color:#ffffff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;white-space:nowrap;">Choose a new password</a></p>
 <p style="color:#8a8a8a;font-size:13px;">If this wasn't you, just ignore this email — your password stays unchanged.</p></div>"""
     try:
         r = requests.post(
@@ -263,6 +263,12 @@ async def update_profile(body: ProfileIn, user=Depends(current_user)):
     await db.users.update_one({"id": user["id"]}, {"$set": updates})
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
     return {"user": fresh}
+
+@api_router.post("/auth/tip-seen")
+async def mark_tip_seen(user=Depends(current_user)):
+    """Mémorise que l'astuce 'premier scan' a été vue (persisté au compte : survit aux changements d'appareil/navigateur/adresse)."""
+    await db.users.update_one({"id": user["id"]}, {"$set": {"first_scan_tip_seen": True}})
+    return {"ok": True}
 
 @api_router.put("/auth/security")
 async def update_security(body: SecurityUpdateIn, user=Depends(current_user)):
