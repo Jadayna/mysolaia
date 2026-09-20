@@ -12,6 +12,8 @@ const AuthScreen = () => {
   const [forgotError, setForgotError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState('');
   const { login, register } = useAuth();
   const { lang, setLang } = useT();
     const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -52,12 +54,28 @@ const AuthScreen = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLogin) {
-      login(email, password);
-    } else {
-      register(email, password);
+    if (authBusy) return;
+    setAuthBusy(true);
+    setAuthError('');
+    try {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(email, password);
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      setAuthError(
+        status === 401
+          ? (lang === 'fr' ? 'Courriel ou mot de passe incorrect.' : 'Incorrect email or password.')
+          : (lang === 'fr'
+              ? 'Impossible de joindre le serveur. Vérifie ta connexion et réessaie.'
+              : "Couldn't reach the server. Check your connection and try again.")
+      );
+    } finally {
+      setAuthBusy(false);
     }
   };
 
@@ -144,13 +162,21 @@ const AuthScreen = () => {
 
           <button
             type="submit"
-            className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm"
+            disabled={authBusy}
+            className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm disabled:opacity-70"
             style={{ background: '#A37B68' }}
           >
-            {isLogin 
-              ? (lang === 'fr' ? 'SE CONNECTER' : 'SIGN IN') 
-              : (lang === 'fr' ? 'CRÉER UN COMPTE' : 'CREATE ACCOUNT')}
+            {authBusy
+              ? (lang === 'fr' ? (isLogin ? 'Connexion…' : 'Création…') : (isLogin ? 'Signing in…' : 'Creating…'))
+              : (isLogin
+                ? (lang === 'fr' ? 'SE CONNECTER' : 'SIGN IN')
+                : (lang === 'fr' ? 'CRÉER UN COMPTE' : 'CREATE ACCOUNT'))}
           </button>
+          {authError && (
+            <p className="font-body text-[12px] text-center pt-1" style={{ color: '#B4564A' }}>
+              {authError}
+            </p>
+          )}
         </form>
 
         {/* Bascule entre Se Connecter / Créer un compte */}
@@ -258,11 +284,11 @@ const AuthScreen = () => {
             <button
               type="button"
               onClick={handleInstall}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-body text-[11px] uppercase tracking-caps font-semibold shadow-sm transition-all active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-body text-[11px] uppercase tracking-caps font-semibold shadow-sm transition-all active:scale-[0.98] whitespace-nowrap animate-install-nudge"
               style={{ background: 'rgba(182,130,53,0.12)', color: 'var(--gold)', border: '1px solid var(--gold-soft)' }}
             >
               <Download size={13} />
-              <span>{lang === 'fr' ? "Installer l'application sur mon écran" : "Add app to home screen"}</span>
+              <span>{lang === 'fr' ? "Installer l'application" : "Install the app"}</span>
             </button>
           </div>
         )}
