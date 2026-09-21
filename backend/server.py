@@ -108,6 +108,9 @@ class CheckoutIn(BaseModel):
     lookup_key: str
     origin_url: str
 
+class PortalIn(BaseModel):
+    origin_url: str
+
 class JoinCircleIn(BaseModel):
     code: str
 
@@ -1029,7 +1032,7 @@ async def checkout(body: CheckoutIn, user=Depends(current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/payments/portal")
-async def customer_portal(body: CheckoutIn, user=Depends(current_user)):
+async def customer_portal(body: PortalIn, user=Depends(current_user)):
     """Crée un lien vers le portail client Stripe pour gérer/annuler l'abonnement en 1 clic"""
     try:
         # Chercher la dernière transaction du user pour retrouver son customer ID si existant, ou en créer un

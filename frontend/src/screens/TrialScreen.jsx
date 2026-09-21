@@ -9,6 +9,7 @@ const TrialScreen = () => {
   const [plan, setPlan] = useState('monthly');
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [portalError, setPortalError] = useState(false);
 
   // Déjà abonnée ? → on n'affiche plus jamais l'essai (Étape : fix TrialScreen)
   const isSubscribed = user?.is_premium === true || user?.statut_abonnement === 'actif';
@@ -52,15 +53,25 @@ const TrialScreen = () => {
   };
 
   const handleManageSubscription = async () => {
+    setPortalError(false);
     try {
       const { data } = await api.post('/payments/portal', { origin_url: window.location.origin });
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setPortalError(true);
       }
     } catch (e) {
       console.error("Erreur portail Stripe", e);
+      setPortalError(true);
     }
   };
+
+  const portalErrorMsg = portalError && (
+    <p className="font-body italic text-[12px] mt-2 text-center" style={{ color: '#c0392b' }}>
+      {lang === 'fr' ? "Le portail n'a pas pu s'ouvrir. Réessaie dans un moment." : 'The portal could not be opened. Please try again in a moment.'}
+    </p>
+  );
 
   const timeline = lang === 'fr' ? [
     ['J1', 'Accès complet immédiat — étagère illimitée, routines personnalisées, journal.'],
@@ -122,6 +133,7 @@ const TrialScreen = () => {
         <button onClick={handleManageSubscription} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">
           {lang === 'fr' ? 'Gérer mon abonnement' : 'Manage my subscription'}
         </button>
+        {portalErrorMsg}
 
         <p className="font-body italic text-[11.5px] leading-relaxed mt-8 mb-4" style={{ color: 'var(--ink-faint)' }}>{t('legal')}</p>
       </div>
@@ -165,6 +177,7 @@ const TrialScreen = () => {
         <button onClick={handleManageSubscription} className="font-body text-[11.5px] underline hover:opacity-80 transition" style={{ color: 'var(--ink-soft)' }}>
           {lang === 'fr' ? 'Déjà abonné ? Gérer mon abonnement / Résilier' : 'Already subscribed? Manage subscription / Cancel'}
         </button>
+        {portalErrorMsg}
       </div>
 
       <div className="mt-8">
