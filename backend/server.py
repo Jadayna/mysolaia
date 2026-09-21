@@ -972,7 +972,8 @@ async def apply_free_downgrade(user_id: str):
     puis les plus récents), les autres sont verrouillés 🔴 jusqu'au réabonnement."""
     await db.users.update_one(
         {"id": user_id},
-        {"$set": {"statut_abonnement": "expire", "is_premium": False}})
+        {"$set": {"statut_abonnement": "expire", "is_premium": False,
+                  "cancel_at_period_end": False, "current_period_end": None}})
     ups = await db.user_products.find(
         {"user_id": user_id, "actif": True}, {"_id": 0}).to_list(500)
     favs = [u for u in ups if u.get("is_favorite")]
@@ -1147,6 +1148,17 @@ async def stripe_webhook(request: Request):
         await db.payment_transactions.update_one(
             {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
             {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"), "customer_id": obj.get("customer")}})
+    if t == "customer.subscription.updated":
+        customer_id = obj.get("customer")
+        if customer_id:
+            u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0})
+            if u:
+                period_end = obj.get("current_period_end")
+                await db.users.update_one(
+                    {"id": u["id"]},
+                    {"$set": {"cancel_at_period_end": bool(obj.get("cancel_at_period_end")),
+                              "current_period_end": datetime.fromtimestamp(period_end, tz=timezone.utc).isoformat() if period_end else None}})
+                logger.info(f"Sync résiliation Stripe pour {u['id']}: cancel_at_period_end={bool(obj.get('cancel_at_period_end'))}")
     if t == "customer.subscription.deleted":
         customer_id = obj.get("customer")
         if customer_id:
@@ -1184,6 +1196,63 @@ async def refresh_subscription(user=Depends(current_user)):
         await apply_free_downgrade(user["id"])
         return {"statut": "expire"}
     return {"statut": user.get("statut_abonnement") or "gratuit"}
+
+async def _active_stripe_sub(user: dict):
+    """Retrouve l'abonnement Stripe actif ou en essai de l'utilisatrice."""
+    customer_id = user.get("stripe_customer_id")
+    if not customer_id:
+        tx = await db.payment_transactions.find_one({"user_id": user["id"], "customer_id": {"$exists": True}})
+        customer_id = tx.get("customer_id") if tx else None
+    if not customer_id:
+        return None
+    for status in ("active", "trialing"):
+        subs = stripe.Subscription.list(customer=customer_id, status=status, limit=1)
+        if subs.data:
+            return subs.data[0]
+    return None
+
+def _period_end_iso(sub) -> str | None:
+    ts = sub.get("current_period_end")
+    return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat() if ts else None
+
+@api_router.post("/subscription/cancel")
+async def cancel_subscription(user=Depends(current_user)):
+    """Résiliation en 1 clic : l'accès illimité continue jusqu'à la fin de la période payée."""
+    try:
+        sub = await _active_stripe_sub(user)
+        if not sub:
+            raise HTTPException(404, "Aucun abonnement actif trouvé")
+        updated = stripe.Subscription.modify(sub.id, cancel_at_period_end=True)
+        period_end = _period_end_iso(updated)
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"cancel_at_period_end": True, "current_period_end": period_end}})
+        logger.info(f"Résiliation à fin de période pour {user['id']}")
+        return {"ok": True, "current_period_end": period_end}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Échec résiliation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/subscription/reactivate")
+async def reactivate_subscription(user=Depends(current_user)):
+    """Réactive un abonnement résilié avant la fin de sa période."""
+    try:
+        sub = await _active_stripe_sub(user)
+        if not sub:
+            raise HTTPException(404, "Aucun abonnement à réactiver trouvé")
+        stripe.Subscription.modify(sub.id, cancel_at_period_end=False)
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"cancel_at_period_end": False, "current_period_end": None}})
+        logger.info(f"Réactivation pour {user['id']}")
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Échec réactivation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.api_route("/health", methods=["GET", "HEAD"])
 async def health():

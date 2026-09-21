@@ -10,6 +10,9 @@ const TrialScreen = () => {
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
   const [portalError, setPortalError] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelError, setCancelError] = useState(false);
 
   // Déjà abonnée ? → on n'affiche plus jamais l'essai (Étape : fix TrialScreen)
   const isSubscribed = user?.is_premium === true || user?.statut_abonnement === 'actif';
@@ -66,6 +69,33 @@ const TrialScreen = () => {
       setPortalError(true);
     }
   };
+
+  const refreshUser = () => api.get('/auth/me')
+    .then(({ data }) => { if (data?.user) setUser(data.user); })
+    .catch(() => {});
+
+  const handleCancel = async () => {
+    setCancelBusy(true); setCancelError(false);
+    try {
+      await api.post('/subscription/cancel');
+      setConfirmCancel(false);
+      await refreshUser();
+    } catch (e) { setCancelError(true); }
+    setCancelBusy(false);
+  };
+
+  const handleReactivate = async () => {
+    setCancelBusy(true); setCancelError(false);
+    try {
+      await api.post('/subscription/reactivate');
+      await refreshUser();
+    } catch (e) { setCancelError(true); }
+    setCancelBusy(false);
+  };
+
+  const subEndDate = user?.current_period_end
+    ? new Date(user.current_period_end).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
 
   const portalErrorMsg = portalError && (
     <p className="font-body italic text-[12px] mt-2 text-center" style={{ color: '#c0392b' }}>
@@ -130,8 +160,50 @@ const TrialScreen = () => {
           </ul>
         </div>
 
-        <button onClick={handleManageSubscription} className="gold-btn w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase">
-          {lang === 'fr' ? 'Gérer mon abonnement' : 'Manage my subscription'}
+        {user?.cancel_at_period_end ? (
+          <div className="rounded-[10px] p-4 mt-6" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+            <p className="font-body text-[13px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? `Ton abonnement se termine ${subEndDate ? `le ${subEndDate}` : 'à la fin de ta période'}. Tu gardes l'accès illimité jusque-là.`
+                : `Your subscription ends ${subEndDate ? `on ${subEndDate}` : 'at the end of your period'}. You keep unlimited access until then.`}
+            </p>
+            <button onClick={handleReactivate} disabled={cancelBusy} className="gold-btn w-full rounded-[8px] py-3 mt-4 font-body tracking-caps text-[11px] uppercase">
+              {lang === 'fr' ? 'Réactiver mon abonnement' : 'Reactivate my subscription'}
+            </button>
+          </div>
+        ) : (
+          <>
+            {!confirmCancel ? (
+              <button onClick={() => setConfirmCancel(true)} className="w-full rounded-[8px] py-3 mt-6 font-body tracking-caps text-[11px] uppercase" style={{ background: 'transparent', border: '1px solid var(--line)', color: 'var(--ink-soft)' }}>
+                {lang === 'fr' ? 'Résilier mon abonnement' : 'Cancel my subscription'}
+              </button>
+            ) : (
+              <div className="rounded-[10px] p-4 mt-6" style={{ background: '#fff', border: '1px solid #c0392b' }}>
+                <p className="font-body text-[13px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+                  {lang === 'fr'
+                    ? "Tu garderas l'accès illimité jusqu'à la fin de ta période payée. Confirmer la résiliation ?"
+                    : 'You keep unlimited access until the end of your paid period. Confirm cancellation?'}
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => setConfirmCancel(false)} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-soft)' }}>
+                    {lang === 'fr' ? 'Garder' : 'Keep'}
+                  </button>
+                  <button onClick={handleCancel} disabled={cancelBusy} className="flex-1 rounded-[8px] py-2.5 font-body tracking-caps text-[11px] uppercase" style={{ background: '#c0392b', color: '#fff' }}>
+                    {cancelBusy ? '…' : (lang === 'fr' ? 'Confirmer' : 'Confirm')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {cancelError && (
+          <p className="font-body italic text-[12px] mt-2 text-center" style={{ color: '#c0392b' }}>
+            {lang === 'fr' ? "Ça n'a pas fonctionné. Réessaie dans un moment." : 'Something went wrong. Please try again in a moment.'}
+          </p>
+        )}
+
+        <button onClick={handleManageSubscription} className="w-full font-body text-[11.5px] underline mt-4 hover:opacity-80 transition" style={{ color: 'var(--ink-soft)' }}>
+          {lang === 'fr' ? 'Mettre à jour ma carte bancaire' : 'Update my payment method'}
         </button>
         {portalErrorMsg}
 
