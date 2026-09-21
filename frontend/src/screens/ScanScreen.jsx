@@ -163,7 +163,8 @@ const [products, setProducts] = useState(() => {
   localStorage.setItem('solaia_cached_shelf', JSON.stringify(Array.isArray(data) ? data : []));      
     } catch (e) {
       console.error("Erreur chargement étagère :", e);
-      setProducts([]);
+      // On garde les produits en cache plutôt que d'afficher une étagère vide :
+      // un échec réseau ne veut pas dire que les produits ont disparu.
     }
   };
 
