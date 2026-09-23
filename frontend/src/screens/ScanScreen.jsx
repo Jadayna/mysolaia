@@ -4,6 +4,7 @@ import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { CATEGORIES, categoryLabel } from '../lib/categories';
+import { resolveMagasin } from '../lib/magasins';
 
 const MOMENTS = [
   { value: 'les_deux', fr: 'Les deux', en: 'Both' },
@@ -113,6 +114,8 @@ const [products, setProducts] = useState(() => {
   });
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
+  // Panneau "Racheter" : le produit concerné, ou null si fermé
+  const [shopSheet, setShopSheet] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
   const [modalConfirm, setModalConfirm] = useState(null);
   const [showFirstScanTip, setShowFirstScanTip] = useState(() => {
@@ -410,10 +413,17 @@ const [products, setProducts] = useState(() => {
   };
 
   const handleShopProduct = (p) => {
-    const brand = p.brand || p.marque || '';
-    const nom = p.nom || '';
-    const query = encodeURIComponent(`${brand} ${nom}`.trim());
-    window.open(`https://www.google.com/search?tbm=shop&q=${query}`, '_blank', 'noopener,noreferrer');
+    const favs = Array.isArray(user?.magasins_favoris) ? user.magasins_favoris : [];
+    if (favs.length === 0) {
+      // Aucun magasin favori : recherche Google Shopping générique (comportement actuel)
+      const brand = p.brand || p.marque || '';
+      const nom = p.nom || '';
+      const query = encodeURIComponent(`${brand} ${nom}`.trim());
+      window.open(`https://www.google.com/search?tbm=shop&q=${query}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    // Magasins favoris définis : on propose leurs recherches directes
+    setShopSheet(p);
   };
 
   const handleToggleFavorite = async (p, e) => {
@@ -936,6 +946,55 @@ const [products, setProducts] = useState(() => {
           </div>
         </div>
       )}
+
+      {/* Panneau "Racheter" : recherche directe dans les magasins favoris */}
+      {shopSheet && (() => {
+        const brand = shopSheet.brand || shopSheet.marque || '';
+        const nom = shopSheet.nom || '';
+        const q = encodeURIComponent(`${brand} ${nom}`.trim());
+        const favs = (Array.isArray(user?.magasins_favoris) ? user.magasins_favoris : [])
+          .map((m) => resolveMagasin(m, lang))
+          .filter(Boolean);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end justify-center animate-fade-in" onClick={() => setShopSheet(null)}>
+            <div className="w-full max-w-md rounded-t-[20px] p-5 pb-8 space-y-2.5 shadow-xl animate-fade-up" style={{ background: '#FAF6F0', borderTop: '1px solid var(--gold-soft)' }} onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-display text-[17px] text-center" style={{ color: 'var(--ink)' }}>
+                🛒 {lang === 'fr' ? 'Racheter ce produit' : 'Restock this product'}
+              </h3>
+              <p className="font-body text-[12px] text-center" style={{ color: 'var(--ink-soft)' }}>
+                {[brand, nom].filter(Boolean).join(' — ')}
+              </p>
+              <div className="space-y-2 pt-1">
+                {favs.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => { window.open(s.url(q), '_blank', 'noopener,noreferrer'); setShopSheet(null); }}
+                    className="w-full py-3 px-4 rounded-[10px] font-body text-[13px] font-medium flex items-center justify-between transition-all active:scale-[0.98]"
+                    style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}
+                  >
+                    <span>{lang === 'fr' ? 'Chercher chez' : 'Search at'} {s.label}</span>
+                    <span style={{ color: 'var(--gold)' }}>→</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { window.open(`https://www.google.com/search?tbm=shop&q=${q}`, '_blank', 'noopener,noreferrer'); setShopSheet(null); }}
+                className="w-full py-2 font-body text-[12px] underline"
+                style={{ color: 'var(--ink-soft)' }}
+              >
+                {lang === 'fr' ? 'Chercher ailleurs (Google)' : 'Search elsewhere (Google)'}
+              </button>
+              <button
+                onClick={() => setShopSheet(null)}
+                className="w-full py-2.5 rounded-[10px] font-body text-[11px] uppercase tracking-caps font-medium border"
+                style={{ borderColor: 'var(--line)', background: 'transparent', color: 'var(--ink-soft)' }}
+              >
+                {lang === 'fr' ? 'Fermer' : 'Close'}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

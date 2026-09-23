@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { isTimerFeedbackEnabled, setTimerFeedbackEnabled } from '../lib/timerFeedback';
 import { getReminderSettings, saveReminderSettings, scheduleReminders, notificationPermission, requestNotificationPermission } from '../lib/reminders';
+import { MAGASINS, CUSTOM_PREFIX } from '../lib/magasins';
 
 const SKIN_TYPES = [
   { value: 'seche', fr: 'Sèche', en: 'Dry' },
@@ -91,6 +92,25 @@ const ProfileScreen = ({ go }) => {
     setObjectifs((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
   };
 
+  // --- Magasins favoris (max 3) : proposés en premier au moment de racheter ---
+  const [magasins, setMagasins] = useState(
+    Array.isArray(user?.magasins_favoris) ? user.magasins_favoris.filter((m) => typeof m === 'string') : []
+  );
+  const [customMagasin, setCustomMagasin] = useState('');
+
+  const toggleMagasin = (id) => {
+    setMagasins((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : (prev.length < 3 ? [...prev, id] : prev)
+    );
+  };
+  const addCustomMagasin = () => {
+    const nom = customMagasin.trim();
+    if (!nom || magasins.length >= 3) return;
+    setMagasins((prev) => [...prev, `${CUSTOM_PREFIX}${nom}`]);
+    setCustomMagasin('');
+  };
+  const removeMagasin = (id) => setMagasins((prev) => prev.filter((m) => m !== id));
+
   const saveProfile = async () => {
     setMsgProfile(null);
     setBusyProfile(true);
@@ -101,6 +121,7 @@ const ProfileScreen = ({ go }) => {
         sensibilite: sensibilite,
         objectifs: objectifs,
         track_skin_feel: trackSkinFeel,
+        magasins_favoris: magasins,
       });
       localStorage.setItem('solaia_track_skin', JSON.stringify(trackSkinFeel));
       setMsgProfile({ type: 'ok', text: lang === 'fr' ? 'Profil enregistré.' : 'Profile saved.' });
@@ -441,6 +462,75 @@ const ProfileScreen = ({ go }) => {
             </label>
           </div>
         )}
+      </div>
+
+      {/* ===== Mes magasins favoris ===== */}
+      <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
+          {lang === 'fr' ? 'Mes magasins favoris' : 'My favourite stores'}
+        </h2>
+        <p className="font-body text-[11px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+          {lang === 'fr'
+            ? `Choisis jusqu'à 3 magasins — ils te seront proposés en premier quand tu voudras racheter un produit. (${magasins.length}/3)`
+            : `Pick up to 3 stores — they'll be suggested first when you restock a product. (${magasins.length}/3)`}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {MAGASINS.map((m) => {
+            const on = magasins.includes(m.id);
+            const plein = !on && magasins.length >= 3;
+            return (
+              <button key={m.id} type="button" onClick={() => toggleMagasin(m.id)} disabled={plein}
+                className="px-3 py-1.5 rounded-full font-body text-[12px] transition-all"
+                style={on
+                  ? { background: 'var(--gold)', color: '#fff', border: '1px solid var(--gold)' }
+                  : plein
+                    ? { background: '#fff', color: 'var(--ink-faint)', border: '1px solid var(--line)', opacity: 0.45 }
+                    : { background: '#fff', color: 'var(--ink-soft)', border: '1px solid var(--line)' }}>
+                {lang === 'fr' ? m.fr : m.en}
+              </button>
+            );
+          })}
+        </div>
+        {magasins.some((m) => m.startsWith(CUSTOM_PREFIX)) && (
+          <div className="flex flex-wrap gap-2">
+            {magasins.filter((m) => m.startsWith(CUSTOM_PREFIX)).map((m) => (
+              <span key={m} className="pl-3 pr-1.5 py-1 rounded-full font-body text-[12px] flex items-center gap-1"
+                style={{ background: 'var(--gold)', color: '#fff', border: '1px solid var(--gold)' }}>
+                {m.slice(CUSTOM_PREFIX.length)}
+                <button type="button" onClick={() => removeMagasin(m)}
+                  className="w-5 h-5 rounded-full font-bold leading-none" style={{ background: 'rgba(255,255,255,0.25)' }}
+                  aria-label={lang === 'fr' ? 'Retirer' : 'Remove'}>
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        {magasins.length < 3 && (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customMagasin}
+              onChange={(e) => setCustomMagasin(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') addCustomMagasin(); }}
+              placeholder={lang === 'fr' ? 'Autre magasin…' : 'Other store…'}
+              className="flex-1 p-2.5 rounded-[10px] font-body text-[13px] outline-none"
+              style={inputStyle}
+            />
+            <button type="button" onClick={addCustomMagasin} disabled={!customMagasin.trim()}
+              className="px-4 rounded-[10px] font-body text-[12px] uppercase tracking-caps"
+              style={{ background: 'var(--gold)', color: '#fff', opacity: customMagasin.trim() ? 1 : 0.5 }}>
+              {lang === 'fr' ? 'Ajouter' : 'Add'}
+            </button>
+          </div>
+        )}
+        {msgProfile && (
+          <p className="font-body text-[13px]" style={{ color: msgProfile.type === 'ok' ? 'var(--gold)' : '#c0392b' }}>{msgProfile.text}</p>
+        )}
+        <button onClick={saveProfile} disabled={busyProfile} className="gold-btn w-full rounded-[8px] py-3 font-body tracking-caps text-[11px] uppercase flex items-center justify-center gap-2">
+          <Save size={16} />
+          {busyProfile ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer mes magasins' : 'Save my stores')}
+        </button>
       </div>
 
       {/* ===== Vider mon étagère ===== */}

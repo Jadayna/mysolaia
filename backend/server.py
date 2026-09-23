@@ -6,7 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os, logging, uuid, json, re, secrets, string, asyncio
 import requests
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, validator
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo
@@ -70,6 +70,12 @@ class ProfileIn(BaseModel):
     langue: Optional[str] = None
     track_skin_feel: Optional[bool] = None
     skin_photos: Optional[List[dict]] = None
+    magasins_favoris: Optional[List[str]] = None
+
+    @validator("magasins_favoris")
+    def _max_trois_magasins(cls, v):
+        # Maximum 3 magasins favoris (ids prédéfinis ou "custom:<nom>")
+        return v[:3] if isinstance(v, list) else v
 
 class SecurityUpdateIn(BaseModel):
     current_password: str
