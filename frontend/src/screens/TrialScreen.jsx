@@ -105,11 +105,11 @@ const TrialScreen = () => {
 
   const timeline = lang === 'fr' ? [
     ['J1', 'Accès complet immédiat — étagère illimitée, routines personnalisées, journal.'],
-    ['J5', "Rappel par courriel 2 jours avant la fin de ton essai gratuit."],
+    ['J5', "Rappel par courriel 3 jours avant la fin de ton essai gratuit."],
     ['J7', `Premier prélèvement (${plan === 'yearly' ? '39,99 $' : '4,99 $'}) uniquement si tu décides de continuer. Annulation en 1 clic.`],
   ] : [
     ['D1', 'Instant full access — unlimited shelf, personalized routines, journal.'],
-    ['D5', 'Email reminder 2 days before your free trial ends.'],
+    ['D5', 'Email reminder 3 days before your free trial ends.'],
     ['D7', `First charge (${plan === 'yearly' ? '$39.99' : '$4.99'}) only if you decide to keep it. Cancel in 1 tap.`],
   ];
 

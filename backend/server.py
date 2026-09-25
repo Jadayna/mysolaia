@@ -238,6 +238,79 @@ def _send_reset_email(to_email: str, reset_link: str, lang: str = "fr") -> bool:
         return False
 
 
+_MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin",
+            "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+_MOIS_EN = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"]
+
+
+def _format_trial_date(ts: int, lang: str) -> str:
+    """Formate un timestamp Unix en date lisible, sans dépendre des locales système."""
+    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+    if lang == "fr":
+        return f"{dt.day} {_MOIS_FR[dt.month - 1]} {dt.year}"
+    return f"{_MOIS_EN[dt.month - 1]} {dt.day}, {dt.year}"
+
+
+def _send_trial_reminder_email(to_email: str, lang: str, amount_label: str, charge_date: str) -> bool:
+    """Rappel de fin d'essai via Resend — déclenché par le webhook Stripe
+    customer.subscription.trial_will_end (envoyé 3 jours avant la fin de l'essai)."""
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    if not api_key:
+        logging.warning("RESEND_API_KEY non configuré — rappel de fin d'essai non envoyé à %s", to_email)
+        return False
+    from_email = os.environ.get("RESET_FROM_EMAIL", "MySolaia <noreply@mysolaia.app>")
+    app_url = "https://www.mysolaia.ca"
+    if lang == "fr":
+        subject = "Ton essai MySolaia se termine dans 3 jours"
+        html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
+<h2 style="color:#A37B68;">MySolaia</h2>
+<p style="color:#4a4a4a;">Ton essai gratuit se termine le <strong>{charge_date}</strong>.</p>
+<p style="color:#4a4a4a;">Si tu continues, ton premier prélèvement de <strong>{amount_label}</strong> aura lieu le {charge_date}.</p>
+<p style="color:#4a4a4a;">Tu peux annuler en 1 clic à tout moment depuis l'application (Profil → Abonnement) — aucun frais si tu annules avant le {charge_date}.</p>
+<p style="text-align:center;margin:28px 0;"><a href="{app_url}" style="display:inline-block;background:#A37B68;color:#ffffff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;white-space:nowrap;">Ouvrir MySolaia</a></p>
+<p style="color:#8a8a8a;font-size:13px;">Une question ? Écris-nous à contact@mysolaia.ca.</p></div>"""
+        text = (
+            "MySolaia — fin de ton essai gratuit\n\n"
+            f"Ton essai gratuit se termine le {charge_date}.\n\n"
+            f"Si tu continues, ton premier prélèvement de {amount_label} aura lieu le {charge_date}.\n\n"
+            f"Tu peux annuler en 1 clic à tout moment depuis l'application (Profil → Abonnement) — aucun frais si tu annules avant le {charge_date}.\n\n"
+            f"Ouvrir MySolaia : {app_url}\n\n"
+            "Une question ? Écris-nous à contact@mysolaia.ca."
+        )
+    else:
+        subject = "Your MySolaia trial ends in 3 days"
+        html = f"""<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;background:#FAF6F0;padding:32px;border-radius:16px;">
+<h2 style="color:#A37B68;">MySolaia</h2>
+<p style="color:#4a4a4a;">Your free trial ends on <strong>{charge_date}</strong>.</p>
+<p style="color:#4a4a4a;">If you continue, your first charge of <strong>{amount_label}</strong> will occur on {charge_date}.</p>
+<p style="color:#4a4a4a;">You can cancel in 1 tap at any time from the app (Profile → Subscription) — no charge if you cancel before {charge_date}.</p>
+<p style="text-align:center;margin:28px 0;"><a href="{app_url}" style="display:inline-block;background:#A37B68;color:#ffffff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold;white-space:nowrap;">Open MySolaia</a></p>
+<p style="color:#8a8a8a;font-size:13px;">Questions? Write to us at contact@mysolaia.ca.</p></div>"""
+        text = (
+            "MySolaia — your free trial is ending\n\n"
+            f"Your free trial ends on {charge_date}.\n\n"
+            f"If you continue, your first charge of {amount_label} will occur on {charge_date}.\n\n"
+            f"You can cancel in 1 tap at any time from the app (Profile → Subscription) — no charge if you cancel before {charge_date}.\n\n"
+            f"Open MySolaia: {app_url}\n\n"
+            "Questions? Write to us at contact@mysolaia.ca."
+        )
+    try:
+        r = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"from": from_email, "to": [to_email], "subject": subject, "html": html, "text": text},
+            timeout=15,
+        )
+        if r.status_code not in (200, 201):
+            logging.error("Resend: échec envoi rappel essai (%s): %s", r.status_code, r.text[:200])
+            return False
+        return True
+    except Exception as e:
+        logging.error("Resend: exception rappel essai: %s", str(e)[:200])
+        return False
+
+
 @api_router.post("/auth/forgot")
 async def forgot_password(body: ForgotIn):
     # Toujours répondre OK pour ne pas révéler si le courriel existe ou non
@@ -1172,6 +1245,39 @@ async def stripe_webhook(request: Request):
             if u:
                 await apply_free_downgrade(u["id"])
                 logger.info(f"Downgrade après annulation Stripe pour {u['id']}")
+    if t == "customer.subscription.trial_will_end":
+        # Rappel de fin d'essai : Stripe envoie cet événement 3 jours avant la fin de l'essai.
+        customer_id = obj.get("customer")
+        sub_id = obj.get("id")
+        if customer_id and sub_id:
+            u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0})
+            if u and u.get("trial_reminder_sent_for") != sub_id:
+                lang = u.get("langue", "fr")
+                trial_end = obj.get("trial_end")
+                charge_date = _format_trial_date(trial_end, lang) if trial_end else "?"
+                amount_label = ""
+                try:
+                    price = obj["items"]["data"][0]["price"]
+                    unit = price.get("unit_amount", 0) / 100
+                    interval = (price.get("recurring") or {}).get("interval", "")
+                    if lang == "fr":
+                        amount_label = f"{str(('%.2f' % unit)).replace('.', ',')} $"
+                        if interval == "year":
+                            amount_label += " par année"
+                        elif interval == "month":
+                            amount_label += " par mois"
+                    else:
+                        amount_label = f"${unit:.2f}"
+                        if interval == "year":
+                            amount_label += " per year"
+                        elif interval == "month":
+                            amount_label += " per month"
+                except Exception:
+                    amount_label = "4,99 $" if lang == "fr" else "$4.99"
+                ok = await asyncio.to_thread(_send_trial_reminder_email, u["email"], lang, amount_label, charge_date)
+                if ok:
+                    await db.users.update_one({"id": u["id"]}, {"$set": {"trial_reminder_sent_for": sub_id}})
+                    logger.info(f"Rappel fin d'essai envoyé à {u['id']} (sub {sub_id})")
     return {"status": "ok"}
 
 @api_router.post("/subscription/refresh")

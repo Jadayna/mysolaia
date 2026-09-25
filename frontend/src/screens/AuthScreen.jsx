@@ -3,6 +3,7 @@ import { Download, Share, X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 import api from '../lib/api';
+import PrivacyScreen from './PrivacyScreen';
 
 const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,6 +14,9 @@ const AuthScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [consentAge, setConsentAge] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
   const { login, register } = useAuth();
@@ -58,6 +62,13 @@ const AuthScreen = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (authBusy) return;
+    // Consentement explicite requis à l'inscription (Loi 25) : 14 ans+ et politique lue.
+    if (!isLogin && (!consentAge || !consentPrivacy)) {
+      setAuthError(lang === 'fr'
+        ? "Coche les deux cases pour créer ton compte (14 ans ou plus, et politique de confidentialité lue)."
+        : "Please check both boxes to create your account (14 or older, and privacy policy read).");
+      return;
+    }
     setAuthBusy(true);
     setAuthError('');
     try {
@@ -169,6 +180,48 @@ const AuthScreen = () => {
               >
                 {lang === 'fr' ? 'Mot de passe oublié ?' : 'Forgot password?'}
               </button>
+            </div>
+          )}
+
+          {!isLogin && (
+            <div className="space-y-2.5 text-left pt-1">
+              <div className="flex items-start gap-2.5">
+                <input
+                  id="consent-age"
+                  type="checkbox"
+                  checked={consentAge}
+                  onChange={(e) => setConsentAge(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#A37B68]"
+                />
+                <label htmlFor="consent-age" className="font-body text-[12px] leading-snug cursor-pointer" style={{ color: 'var(--ink-soft)' }}>
+                  {lang === 'fr'
+                    ? "J'ai 14 ans ou plus (en deçà, le consentement d'un parent ou tuteur est requis)."
+                    : "I am 14 or older (under 14, a parent or guardian's consent is required)."}
+                </label>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <input
+                  id="consent-privacy"
+                  type="checkbox"
+                  checked={consentPrivacy}
+                  onChange={(e) => setConsentPrivacy(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#A37B68]"
+                />
+                <span className="font-body text-[12px] leading-snug" style={{ color: 'var(--ink-soft)' }}>
+                  <label htmlFor="consent-privacy" className="cursor-pointer">
+                    {lang === 'fr' ? "J'ai lu et j'accepte la " : 'I have read and accept the '}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacy(true)}
+                    className="underline font-semibold cursor-pointer"
+                    style={{ color: 'var(--ink)' }}
+                  >
+                    {lang === 'fr' ? 'politique de confidentialité' : 'privacy policy'}
+                  </button>
+                  .
+                </span>
+              </div>
             </div>
           )}
 
@@ -311,6 +364,13 @@ const AuthScreen = () => {
           ? "Aucun avis médical : l'application ordonne et prévient, elle ne pose pas de diagnostic."
           : "No medical advice: the app orders and warns, it does not diagnose."}
       </p>
+
+      {/* Politique de confidentialité + CGU (lecture avant inscription) */}
+      {showPrivacy && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
+          <PrivacyScreen go={() => setShowPrivacy(false)} />
+        </div>
+      )}
     </div>
   );
 };
