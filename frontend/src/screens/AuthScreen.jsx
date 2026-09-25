@@ -111,7 +111,7 @@ const AuthScreen = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between px-6 pt-5 pb-4 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
+    <div className="min-h-dvh flex flex-col justify-between px-6 pt-5 pb-4 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
       {/* Sélecteur de langue */}
       <div className="flex justify-end">
         <button 
