@@ -111,7 +111,7 @@ const AuthScreen = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between p-8 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
+    <div className="min-h-screen flex flex-col justify-between px-6 pt-5 pb-4 text-center" style={{ background: 'var(--cream-bg, #FAF6F0)' }}>
       {/* Sélecteur de langue */}
       <div className="flex justify-end">
         <button 
@@ -125,7 +125,7 @@ const AuthScreen = () => {
 
       {/* En-tête / Logo */}
       {view === 'auth' ? (
-      <div className="my-auto space-y-4">
+      <div className="my-auto space-y-3">
       <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
         {lang === 'fr' ? "LA ROUTINE QUI SE CONSTRUIT D'ELLE-MÊME" : 'THE ROUTINE THAT BUILDS ITSELF'}
       </p>
@@ -135,12 +135,12 @@ const AuthScreen = () => {
           <img 
             src="/mysolaia-nom-4096.png" 
             alt="MySolaia" 
-            className="h-16 object-contain mx-auto" 
+            className="h-14 object-contain mx-auto" 
           />
         </div>
 
         {/* Formulaire */}
-        <form onSubmit={handleSubmit} className="mt-8 space-y-3 max-w-sm mx-auto">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-3 max-w-sm mx-auto">
           <input
             type="email"
             placeholder="Email"
@@ -228,7 +228,7 @@ const AuthScreen = () => {
           <button
             type="submit"
             disabled={authBusy}
-            className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm disabled:opacity-70"
+            className="w-full py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm disabled:opacity-70"
             style={{ background: '#A37B68' }}
           >
             {authBusy
@@ -245,7 +245,7 @@ const AuthScreen = () => {
         </form>
 
         {/* Bascule entre Se Connecter / Créer un compte */}
-        <p className="font-body text-[12.5px] mt-4" style={{ color: 'var(--ink-soft)' }}>
+        <p className="font-body text-[12.5px] mt-3" style={{ color: 'var(--ink-soft)' }}>
           {isLogin ? (
             <>
               {lang === 'fr' ? 'Pas encore de compte ? ' : "Don't have an account? "}
@@ -274,7 +274,7 @@ const AuthScreen = () => {
         </p>
       </div>
       ) : (
-      <div className="my-auto space-y-4 max-w-sm mx-auto w-full">
+      <div className="my-auto space-y-3 max-w-sm mx-auto w-full">
         <p className="font-body text-[10px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
           {lang === 'fr' ? 'MOT DE PASSE OUBLIÉ' : 'FORGOT PASSWORD'}
         </p>
@@ -282,11 +282,11 @@ const AuthScreen = () => {
           <img
             src="/mysolaia-nom-4096.png"
             alt="MySolaia"
-            className="h-16 object-contain mx-auto"
+            className="h-14 object-contain mx-auto"
           />
         </div>
         {view === 'forgot' ? (
-          <form onSubmit={handleForgot} className="mt-8 space-y-3">
+          <form onSubmit={handleForgot} className="mt-6 space-y-3">
             <p className="font-body text-[13px]" style={{ color: 'var(--ink-soft)' }}>
               {lang === 'fr'
                 ? "Entre ton courriel et on t'enverra un lien pour choisir un nouveau mot de passe."
@@ -309,7 +309,7 @@ const AuthScreen = () => {
             <button
               type="submit"
               disabled={forgotBusy}
-              className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm disabled:opacity-60"
+              className="w-full py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] mt-2 shadow-sm disabled:opacity-60"
               style={{ background: '#A37B68' }}
             >
               {forgotBusy ? '…' : (lang === 'fr' ? 'ENVOYER LE LIEN' : 'SEND LINK')}
@@ -324,7 +324,7 @@ const AuthScreen = () => {
             </button>
           </form>
         ) : (
-          <div className="mt-8 space-y-4">
+          <div className="mt-6 space-y-3">
             <p className="font-body text-[13.5px]" style={{ color: 'var(--ink-soft)' }}>
               {lang === 'fr'
                 ? "Si un compte existe avec ce courriel, tu vas recevoir un lien pour réinitialiser ton mot de passe (valide 1 heure). Pense à vérifier tes indésirables !"
@@ -333,7 +333,7 @@ const AuthScreen = () => {
             <button
               type="button"
               onClick={() => setView('auth')}
-              className="w-full py-4 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] shadow-sm"
+              className="w-full py-3.5 rounded-[12px] font-body text-[11px] uppercase tracking-caps font-semibold text-white transition-all active:scale-[0.98] shadow-sm"
               style={{ background: '#A37B68' }}
             >
               {lang === 'fr' ? 'RETOUR À LA CONNEXION' : 'BACK TO SIGN IN'}
@@ -345,7 +345,7 @@ const AuthScreen = () => {
 
       {/* Bouton d'installation sur l'écran d'accueil */}
         {!isStandalone && (
-          <div className="pt-4">
+          <div className="pt-2">
             <button
               type="button"
               onClick={handleInstall}
@@ -359,7 +359,7 @@ const AuthScreen = () => {
         )}
 
       {/* Avertissement bas de page */}
-      <p className="font-body italic text-[11px] text-center" style={{ color: 'var(--ink-faint)' }}>
+      <p className="font-body italic text-[10.5px] text-center mt-2" style={{ color: 'var(--ink-faint)' }}>
         {lang === 'fr' 
           ? "Aucun avis médical : l'application ordonne et prévient, elle ne pose pas de diagnostic."
           : "No medical advice: the app orders and warns, it does not diagnose."}
