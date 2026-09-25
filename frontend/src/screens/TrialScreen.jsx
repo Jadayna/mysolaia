@@ -115,9 +115,6 @@ const TrialScreen = () => {
 
   // Vue « déjà abonnée » : on ne propose plus jamais l'essai
   if (isSubscribed) {
-    const sinceDate = user?.date_inscription
-      ? new Date(user.date_inscription).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { day: 'numeric', month: 'long', year: 'numeric' })
-      : null;
     const perks = lang === 'fr' ? [
       'Étagère illimitée — tous tes flacons, sans plafond',
       'Routines personnalisées matin & soir',
@@ -140,9 +137,9 @@ const TrialScreen = () => {
             ? `Merci de rayonner avec nous ! Profite de MySolaia sans aucune limite.`
             : `Thanks for glowing with us! Enjoy MySolaia without limits.`}
         </p>
-        {sinceDate && (
+        {subEndDate && !user?.cancel_at_period_end && (
           <p className="font-body italic text-[12px] mt-2" style={{ color: 'var(--gold)' }}>
-            {lang === 'fr' ? `Avec nous depuis le ${sinceDate} 🌙` : `Glowing with us since ${sinceDate} 🌙`}
+            {lang === 'fr' ? `Prochain renouvellement le ${subEndDate} 🌙` : `Renews on ${subEndDate} 🌙`}
           </p>
         )}
 

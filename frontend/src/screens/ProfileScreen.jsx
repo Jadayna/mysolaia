@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Trash2, AlertTriangle, RotateCcw, CreditCard, Layers } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, AlertTriangle, RotateCcw, CreditCard, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 import { useT } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
@@ -79,6 +79,7 @@ const ProfileScreen = ({ go }) => {
 
   // --- Vider l'étagère uniquement ---
   const [showClearShelf, setShowClearShelf] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
   const [clearingShelf, setClearingShelf] = useState(false);
 
   // --- Suppression de compte ---
@@ -306,52 +307,55 @@ const ProfileScreen = ({ go }) => {
         </button>
       </div>
 
-      {/* ===== Courriel actuel ===== */}
-      <div className="p-4 rounded-[16px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
-        <p className="font-body text-[11px] uppercase tracking-caps" style={{ color: 'var(--ink-faint)' }}>
-          {lang === 'fr' ? 'Courriel actuel' : 'Current email'}
-        </p>
-        <p className="font-display text-[15px] mt-1" style={{ color: 'var(--ink)' }}>{user?.email}</p>
+      {/* ===== Courriel & mot de passe (repliable) ===== */}
+      <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
+        <button type="button" onClick={() => setShowSecurity(!showSecurity)} className="w-full flex items-center justify-between gap-2 text-left">
+          <span>
+            <span className="font-display text-[15px] block" style={{ color: 'var(--ink)' }}>
+              {lang === 'fr' ? 'Courriel & mot de passe' : 'Email & password'}
+            </span>
+            <span className="font-body text-[11px] block mt-0.5" style={{ color: 'var(--ink-faint)' }}>{user?.email}</span>
+          </span>
+          {showSecurity
+            ? <ChevronUp size={18} style={{ color: 'var(--ink-soft)' }} />
+            : <ChevronDown size={18} style={{ color: 'var(--ink-soft)' }} />}
+        </button>
+        {showSecurity && (
+          <>
+            <p className="font-body text-[11px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr' ? 'Remplis uniquement ce que tu veux changer.' : 'Fill in only what you want to change.'}
+            </p>
+            <label className="block">
+              <span className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
+                {lang === 'fr' ? 'Nouveau courriel' : 'New email'}
+              </span>
+              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+                placeholder={user?.email || ''} className="w-full mt-1 p-3 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
+            </label>
+            <label className="block">
+              <span className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
+                {lang === 'fr' ? 'Nouveau mot de passe' : 'New password'}
+              </span>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••" className="w-full mt-1 p-3 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
+            </label>
+            <label className="block">
+              <span className="font-body text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
+                {lang === 'fr' ? 'Mot de passe actuel (requis pour confirmer)' : 'Current password (required to confirm)'}
+              </span>
+              <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••" className="w-full mt-1 p-3 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
+            </label>
+            {msg && (
+              <p className="font-body text-[13px]" style={{ color: msg.type === 'ok' ? 'var(--gold)' : '#c0392b' }}>{msg.text}</p>
+            )}
+            <button onClick={save} disabled={busy} className="gold-btn w-full rounded-[8px] py-3 font-body tracking-caps text-[11px] uppercase flex items-center justify-center gap-2">
+              <Save size={16} />
+              {busy ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer courriel / mot de passe' : 'Save email / password')}
+            </button>
+          </>
+        )}
       </div>
-
-      {/* ===== Sécurité ===== */}
-      <div className="space-y-3">
-        <label className="block">
-          <span className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
-            {lang === 'fr' ? 'Nouveau courriel (optionnel)' : 'New email (optional)'}
-          </span>
-          <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
-            placeholder={user?.email || ''} className="w-full mt-1 p-3 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
-        </label>
-
-        <label className="block">
-          <span className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
-            {lang === 'fr' ? 'Nouveau mot de passe (optionnel)' : 'New password (optional)'}
-          </span>
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="••••••••" className="w-full mt-1 p-3 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
-        </label>
-
-        <label className="block">
-          <span className="font-body text-[12px] font-medium" style={{ color: 'var(--ink)' }}>
-            {lang === 'fr' ? 'Mot de passe actuel (obligatoire pour confirmer)' : 'Current password (required to confirm)'}
-          </span>
-          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="••••••••" className="w-full mt-1 p-3 rounded-[10px] font-body text-[14px] outline-none" style={inputStyle} />
-        </label>
-      </div>
-
-      {msg && (
-        <p className="font-body text-[13px]" style={{ color: msg.type === 'ok' ? 'var(--gold)' : '#c0392b' }}>
-          {msg.text}
-        </p>
-      )}
-
-      <button onClick={save} disabled={busy} className="gold-btn w-full rounded-[8px] py-3 font-body tracking-caps text-[11px] uppercase flex items-center justify-center gap-2">
-        <Save size={16} />
-        {busy ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer courriel / mot de passe' : 'Save email / password')}
-      </button>
-
       {/* ===== Préférences du journal ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
