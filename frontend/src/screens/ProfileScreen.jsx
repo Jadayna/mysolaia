@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { isTimerFeedbackEnabled, setTimerFeedbackEnabled } from '../lib/timerFeedback';
 import { getReminderSettings, saveReminderSettings, scheduleReminders, notificationPermission, requestNotificationPermission } from '../lib/reminders';
-import { MAGASINS, CUSTOM_PREFIX } from '../lib/magasins';
+import { MAGASINS, CUSTOM_PREFIX, magasinLabel } from '../lib/magasins';
 
 const SKIN_TYPES = [
   { value: 'seche', fr: 'Sèche', en: 'Dry' },
@@ -96,19 +96,33 @@ const ProfileScreen = ({ go }) => {
   const [magasins, setMagasins] = useState(
     Array.isArray(user?.magasins_favoris) ? user.magasins_favoris.filter((m) => typeof m === 'string') : []
   );
-  const [customMagasin, setCustomMagasin] = useState('');
+  const [storeQuery, setStoreQuery] = useState('');
+  const [storeOpen, setStoreOpen] = useState(false);
 
-  const toggleMagasin = (id) => {
-    setMagasins((prev) =>
-      prev.includes(id) ? prev.filter((m) => m !== id) : (prev.length < 3 ? [...prev, id] : prev)
-    );
+  // Normalise pour la recherche (insensible aux accents et aux majuscules)
+  const norm = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  const addMagasin = (id) => {
+    if (magasins.length >= 3 || magasins.includes(id)) return;
+    setMagasins((prev) => [...prev, id]);
+    setStoreQuery('');
+    setStoreOpen(false);
   };
   const addCustomMagasin = () => {
-    const nom = customMagasin.trim();
+    const nom = storeQuery.trim();
     if (!nom || magasins.length >= 3) return;
+    const exists = magasins.some((m) => norm(magasinLabel(m, lang)) === norm(nom));
+    if (exists) return;
     setMagasins((prev) => [...prev, `${CUSTOM_PREFIX}${nom}`]);
-    setCustomMagasin('');
+    setStoreQuery('');
+    setStoreOpen(false);
   };
+  const storeMatches = MAGASINS.filter((m) => {
+    if (magasins.includes(m.id)) return false;
+    const q = norm(storeQuery.trim());
+    if (!q) return true;
+    return norm(m.fr).includes(q) || norm(m.en).includes(q);
+  }).slice(0, 8);
   const removeMagasin = (id) => setMagasins((prev) => prev.filter((m) => m !== id));
 
   const saveProfile = async () => {
@@ -464,39 +478,22 @@ const ProfileScreen = ({ go }) => {
         )}
       </div>
 
-      {/* ===== Mes magasins favoris ===== */}
+            {/* ===== Mes magasins favoris ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <h2 className="font-display text-[15px]" style={{ color: 'var(--ink)' }}>
           {lang === 'fr' ? 'Mes magasins favoris' : 'My favourite stores'}
         </h2>
         <p className="font-body text-[11px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
           {lang === 'fr'
-            ? `Choisis jusqu'à 3 magasins — ils te seront proposés en premier quand tu voudras racheter un produit. (${magasins.length}/3)`
-            : `Pick up to 3 stores — they'll be suggested first when you restock a product. (${magasins.length}/3)`}
+            ? `Choisis jusqu'à 3 magasins — tape un nom, choisis dans les suggestions. (${magasins.length}/3)`
+            : `Pick up to 3 stores — type a name, pick from the suggestions. (${magasins.length}/3)`}
         </p>
-        <div className="flex flex-wrap gap-2">
-          {MAGASINS.map((m) => {
-            const on = magasins.includes(m.id);
-            const plein = !on && magasins.length >= 3;
-            return (
-              <button key={m.id} type="button" onClick={() => toggleMagasin(m.id)} disabled={plein}
-                className="px-3 py-1.5 rounded-full font-body text-[12px] transition-all"
-                style={on
-                  ? { background: 'var(--gold)', color: '#fff', border: '1px solid var(--gold)' }
-                  : plein
-                    ? { background: '#fff', color: 'var(--ink-faint)', border: '1px solid var(--line)', opacity: 0.45 }
-                    : { background: '#fff', color: 'var(--ink-soft)', border: '1px solid var(--line)' }}>
-                {lang === 'fr' ? m.fr : m.en}
-              </button>
-            );
-          })}
-        </div>
-        {magasins.some((m) => m.startsWith(CUSTOM_PREFIX)) && (
+        {magasins.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {magasins.filter((m) => m.startsWith(CUSTOM_PREFIX)).map((m) => (
+            {magasins.map((m) => (
               <span key={m} className="pl-3 pr-1.5 py-1 rounded-full font-body text-[12px] flex items-center gap-1"
                 style={{ background: 'var(--gold)', color: '#fff', border: '1px solid var(--gold)' }}>
-                {m.slice(CUSTOM_PREFIX.length)}
+                {magasinLabel(m, lang)}
                 <button type="button" onClick={() => removeMagasin(m)}
                   className="w-5 h-5 rounded-full font-bold leading-none" style={{ background: 'rgba(255,255,255,0.25)' }}
                   aria-label={lang === 'fr' ? 'Retirer' : 'Remove'}>
@@ -507,21 +504,40 @@ const ProfileScreen = ({ go }) => {
           </div>
         )}
         {magasins.length < 3 && (
-          <div className="flex gap-2">
+          <div className="relative">
             <input
               type="text"
-              value={customMagasin}
-              onChange={(e) => setCustomMagasin(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') addCustomMagasin(); }}
-              placeholder={lang === 'fr' ? 'Autre magasin…' : 'Other store…'}
-              className="flex-1 p-2.5 rounded-[10px] font-body text-[13px] outline-none"
+              value={storeQuery}
+              onChange={(e) => { setStoreQuery(e.target.value); setStoreOpen(true); }}
+              onFocus={() => setStoreOpen(true)}
+              onBlur={() => setTimeout(() => setStoreOpen(false), 150)}
+              placeholder={lang === 'fr' ? 'Tape le nom d\u2019un magasin\u2026' : 'Type a store name\u2026'}
+              className="w-full p-2.5 rounded-[10px] font-body text-[13px] outline-none"
               style={inputStyle}
             />
-            <button type="button" onClick={addCustomMagasin} disabled={!customMagasin.trim()}
-              className="px-4 rounded-[10px] font-body text-[12px] uppercase tracking-caps"
-              style={{ background: 'var(--gold)', color: '#fff', opacity: customMagasin.trim() ? 1 : 0.5 }}>
-              {lang === 'fr' ? 'Ajouter' : 'Add'}
-            </button>
+            {storeOpen && (
+              <div className="absolute left-0 right-0 mt-1 rounded-[10px] z-20 max-h-56 overflow-y-auto"
+                style={{ background: '#fff', border: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+                {storeMatches.map((m) => (
+                  <button key={m.id} type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => addMagasin(m.id)}
+                    className="w-full text-left px-3.5 py-2.5 font-body text-[13px] active:bg-black/5"
+                    style={{ color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>
+                    {lang === 'fr' ? m.fr : m.en}
+                  </button>
+                ))}
+                {storeQuery.trim() !== '' && (
+                  <button type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={addCustomMagasin}
+                    className="w-full text-left px-3.5 py-2.5 font-body text-[13px] font-semibold"
+                    style={{ color: 'var(--gold)' }}>
+                    {lang === 'fr' ? `Ajouter \u00ab ${storeQuery.trim()} \u00bb` : `Add \u201c${storeQuery.trim()}\u201d`}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
         {msgProfile && (
@@ -532,8 +548,7 @@ const ProfileScreen = ({ go }) => {
           {busyProfile ? (lang === 'fr' ? 'Enregistrement...' : 'Saving...') : (lang === 'fr' ? 'Enregistrer mes magasins' : 'Save my stores')}
         </button>
       </div>
-
-      {/* ===== Vider mon étagère ===== */}
+{/* ===== Vider mon étagère ===== */}
       <div className="p-4 rounded-[16px] space-y-3" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
         <div className="flex items-center gap-2">
           <Layers size={16} style={{ color: 'var(--ink)' }} />
