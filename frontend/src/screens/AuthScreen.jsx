@@ -135,7 +135,7 @@ const AuthScreen = () => {
           <img 
             src="/mysolaia-nom-4096.png" 
             alt="MySolaia" 
-            className="h-14 object-contain mx-auto" 
+            className="h-16 object-contain mx-auto" 
           />
         </div>
 
@@ -282,7 +282,7 @@ const AuthScreen = () => {
           <img
             src="/mysolaia-nom-4096.png"
             alt="MySolaia"
-            className="h-14 object-contain mx-auto"
+            className="h-16 object-contain mx-auto"
           />
         </div>
         {view === 'forgot' ? (
