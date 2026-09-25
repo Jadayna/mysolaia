@@ -6,6 +6,7 @@ import AuthScreen from './screens/AuthScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import AppShell from './components/AppShell';
+import { initAnalytics } from './lib/analytics';
 
 const Splash = () => (
   <div className="app-shell items-center justify-center min-h-screen flex bg-[#FAF6F0]">
@@ -29,6 +30,11 @@ const Gate = () => {
 };
 
 function App() {
+  // Umami est initialisé ici (niveau racine) pour suivre TOUS les visiteurs,
+  // y compris la page d'accueil publique — pas seulement les utilisatrices connectées (AppShell).
+  React.useEffect(() => {
+    initAnalytics();
+  }, []);
   return (
     <div className="App">
       <LanguageProvider>
