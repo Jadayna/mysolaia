@@ -1,13 +1,15 @@
 // Analytics respectueuse de la vie privée (Umami Cloud — sans cookies, sans données personnelles).
-// Inactif tant que VITE_UMAMI_WEBSITE_ID n'est pas défini (Vercel → Environment Variables).
+// Inactif tant que REACT_APP_UMAMI_WEBSITE_ID n'est pas défini (Vercel → Environment Variables).
 // Mise en route : créer un compte gratuit sur https://cloud.umami.is, ajouter le site,
 // copier le "Website ID" dans Vercel. Aucune bannière de consentement requise.
+// NOTE : le frontend est en Create React App (pas Vite) — les variables doivent
+// utiliser le préfixe REACT_APP_ (process.env), pas import.meta.env / VITE_.
 
 let ready = false;
 
 export function initAnalytics() {
   try {
-    const id = import.meta.env.VITE_UMAMI_WEBSITE_ID;
+    const id = process.env.REACT_APP_UMAMI_WEBSITE_ID;
     if (!id || ready) return;
     ready = true;
     const s = document.createElement('script');

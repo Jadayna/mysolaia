@@ -50,7 +50,7 @@ const AppShell = () => {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Analytics (Umami) : chargée une seule fois si VITE_UMAMI_WEBSITE_ID est défini
+    // Analytics (Umami) : chargée une seule fois si REACT_APP_UMAMI_WEBSITE_ID est défini
     initAnalytics();
     // Rappels de routine : planifiés au démarrage, replanifiés à chaque retour dans l'app
     scheduleReminders(lang);
