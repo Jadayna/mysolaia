@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../lib/api';
+import { Eye, EyeOff } from 'lucide-react';
 import { useT } from '../i18n';
 
 const inputStyle = {
@@ -12,6 +13,8 @@ const ResetPasswordScreen = ({ token }) => {
   const { lang } = useT();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
@@ -87,24 +90,46 @@ const ResetPasswordScreen = ({ token }) => {
                 ? 'Choisis ton nouveau mot de passe (minimum 6 caractères).'
                 : 'Choose your new password (minimum 6 characters).'}
             </p>
-            <input
-              type="password"
-              placeholder={lang === 'fr' ? 'Nouveau mot de passe' : 'New password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
-              style={inputStyle}
-              required
-            />
-            <input
-              type="password"
-              placeholder={lang === 'fr' ? 'Confirme le mot de passe' : 'Confirm password'}
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
-              style={inputStyle}
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder={lang === 'fr' ? 'Nouveau mot de passe' : 'New password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3.5 pr-11 rounded-[12px] font-body text-[14px] outline-none"
+                style={inputStyle}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? (lang === 'fr' ? 'Masquer le mot de passe' : 'Hide password') : (lang === 'fr' ? 'Afficher le mot de passe' : 'Show password')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                style={{ color: 'var(--ink-faint)' }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type={showConfirm ? 'text' : 'password'}
+                placeholder={lang === 'fr' ? 'Confirme le mot de passe' : 'Confirm password'}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className="w-full px-4 py-3.5 pr-11 rounded-[12px] font-body text-[14px] outline-none"
+                style={inputStyle}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                aria-label={showConfirm ? (lang === 'fr' ? 'Masquer le mot de passe' : 'Hide password') : (lang === 'fr' ? 'Afficher le mot de passe' : 'Show password')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                style={{ color: 'var(--ink-faint)' }}
+              >
+                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {error && (
               <p className="font-body text-[12.5px]" style={{ color: '#B3261E' }}>
                 {error}

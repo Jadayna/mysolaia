@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Share, X } from 'lucide-react';
+import { Download, Share, X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 import api from '../lib/api';
@@ -12,6 +12,7 @@ const AuthScreen = () => {
   const [forgotError, setForgotError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
   const { login, register } = useAuth();
@@ -138,15 +139,26 @@ const AuthScreen = () => {
             style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
             required
           />
-          <input
-            type="password"
-            placeholder={lang === 'fr' ? 'Mot de passe' : 'Password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3.5 rounded-[12px] font-body text-[14px] outline-none"
-            style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={lang === 'fr' ? 'Mot de passe' : 'Password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3.5 pr-11 rounded-[12px] font-body text-[14px] outline-none"
+              style={{ background: '#FFF', border: '1px solid var(--line)', color: 'var(--ink)' }}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? (lang === 'fr' ? 'Masquer le mot de passe' : 'Hide password') : (lang === 'fr' ? 'Afficher le mot de passe' : 'Show password')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+              style={{ color: 'var(--ink-faint)' }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           {isLogin && (
             <div className="text-right">
               <button
