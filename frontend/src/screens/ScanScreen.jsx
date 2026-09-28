@@ -222,7 +222,7 @@ const [products, setProducts] = useState(() => {
       });
 
       // 2. Scan avec Gemini
-      const res = await api.post('/scan', { image_base64: photoDataUrl });
+      const res = await api.post('/scan', { image_base64: photoDataUrl, lang });
 
       if (res.data && res.data.product) {
         const prod = res.data.product;

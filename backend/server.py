@@ -103,6 +103,7 @@ class ManualProductIn(BaseModel):
 
 class ScanIn(BaseModel):
     image_base64: str
+    lang: str = "fr"
 
 class JournalIn(BaseModel):
     routine_type: str
@@ -940,9 +941,9 @@ async def scan(body: ScanIn, user=Depends(current_user)):
     await check_scan_quota(user)
     key = os.environ.get("EMERGENT_LLM_KEY")
     img = body.image_base64.split(",")[-1]
-    sys = ("Tu es l'expert produits de l'app MySolaia. On te montre la face avant d'un produit "
-           "de soin. Identifie la marque et le nom exact. Reponds UNIQUEMENT en JSON: "
-           '{"brand":"","nom":"","categorie":"nettoyant|exfoliant|serum|yeux|hydratant|spf|levres|cils_sourcils|traitement_cible|patch","actif_cle":"","texture_label":"","confiance":0.0}')
+    # Le scan suit la langue de l'app : le nom enregistré est dans la langue de l'utilisatrice.
+    scan_lang = (body.lang or "fr").lower()
+    scan_lang = "en" if scan_lang.startswith("en") else "fr"
     data = {}
     gemini_key = os.environ.get("GEMINI_API_KEY")
     
@@ -963,15 +964,26 @@ async def scan(body: ScanIn, user=Depends(current_user)):
 
             image_bytes = base64.b64decode(raw_b64)
 
-            sys_prompt = (
-                "Tu es l'expert produits cosmétiques de l'application MySolaia. On te montre l'image d'un produit de soin.\n"
-                "1. LIS ATTENTIVEMENT le texte écrit sur le flacon/l'étiquette (OCR). La marque (ex: 'The Ordinary', 'CeraVe', 'La Roche-Posay') et le nom complet exact du produit (ex: 'Niacinamide 10% + Zinc 1%'). Ne confonds pas avec une autre marque célèbre.\n"
-                "2. Détermine la catégorie parmi : nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible, patch (patchs à boutons hydrocolloïdes).\n"
-                "3. Détecte la durée PAO en mois (Period After Opening) : si le symbole de pot ouvert (ex: 3M, 6M, 12M, 24M) est visible, utilise ce chiffre (3, 6, 12 ou 24). Sinon, déduis la durée standard selon la formule (vitamine C = 3, sérums/yeux = 6, crèmes/nettoyants = 12, huiles/poudres = 24).\n"
-                "4. Identifie les actifs présents parmi cette liste stricte : retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine.\n"
-                "Réponds UNIQUEMENT en JSON valide sans balises markdown ni texte autour:\n"
-                '{"brand":"","nom":"","categorie":"serum","pao_mois":6,"actifs":[],"texture_label":"Fluide","confiance":0.95}'
-            )
+            if scan_lang == "en":
+                sys_prompt = (
+                    "You are the cosmetics product expert for the MySolaia app. You are shown an image of a skincare product.\n"
+                    "1. READ CAREFULLY the text printed on the bottle/label (OCR). The brand (e.g. 'The Ordinary', 'CeraVe', 'La Roche-Posay') and the exact full product name (ex: 'Niacinamide 10% + Zinc 1%'). Give the product name in English, as officially sold in English-speaking markets. Don't confuse it with another famous brand.\n"
+                    "2. Determine the category among: nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible, patch (hydrocolloid pimple patches).\n"
+                    "3. Detect the PAO duration in months (Period After Opening): if the open-jar symbol (e.g. 3M, 6M, 12M, 24M) is visible, use that number (3, 6, 12 or 24). Otherwise, deduce the standard duration by formula (vitamin C = 3, serums/eyes = 6, creams/cleansers = 12, oils/powders = 24).\n"
+                    "4. Identify the actives present from this strict list: retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine.\n"
+                    "Respond ONLY with valid JSON, no markdown tags or surrounding text:\n"
+                    '{"brand":"","nom":"","categorie":"serum","pao_mois":6,"actifs":[],"texture_label":"Fluid","confiance":0.95}'
+                )
+            else:
+                sys_prompt = (
+                    "Tu es l'expert produits cosmétiques de l'application MySolaia. On te montre l'image d'un produit de soin.\n"
+                    "1. LIS ATTENTIVEMENT le texte écrit sur le flacon/l'étiquette (OCR). La marque (ex: 'The Ordinary', 'CeraVe', 'La Roche-Posay') et le nom complet exact du produit (ex: 'Niacinamide 10% + Zinc 1%'). Ne confonds pas avec une autre marque célèbre.\n"
+                    "2. Détermine la catégorie parmi : nettoyant, exfoliant, serum, yeux, hydratant, spf, levres, cils_sourcils, traitement_cible, patch (patchs à boutons hydrocolloïdes).\n"
+                    "3. Détecte la durée PAO en mois (Period After Opening) : si le symbole de pot ouvert (ex: 3M, 6M, 12M, 24M) est visible, utilise ce chiffre (3, 6, 12 ou 24). Sinon, déduis la durée standard selon la formule (vitamine C = 3, sérums/yeux = 6, crèmes/nettoyants = 12, huiles/poudres = 24).\n"
+                    "4. Identifie les actifs présents parmi cette liste stricte : retinol, vitamine_c, aha, bha, niacinamide, peroxyde_benzoyle, acide_hyaluronique, peptides, ceramides, squalane, panthenol, acide_azelaique, acide_mandelique, vitamine_e, centella, zinc, allantoine, cafeine.\n"
+                    "Réponds UNIQUEMENT en JSON valide sans balises markdown ni texte autour:\n"
+                    '{"brand":"","nom":"","categorie":"serum","pao_mois":6,"actifs":[],"texture_label":"Fluide","confiance":0.95}'
+                )
 
 
             # Cascade de modèles : si l'un est surchargé (503), on bascule sur le suivant
@@ -1023,13 +1035,14 @@ async def scan(body: ScanIn, user=Depends(current_user)):
         matched["texture_score"] = matched.get("texture") or 3
         matched["pao_mois"] = int(data.get("pao_mois") or 6)
         matched["date_ouverture"] = datetime.now(timezone.utc).date().isoformat()
-        return {"recognized": True, "product": matched, "note": "Produit certifié reconnu."}
+        note = "Certified product recognized." if scan_lang == "en" else "Produit certifié reconnu."
+        return {"recognized": True, "product": matched, "note": note}
 
     cat = data.get("categorie") or "serum"
     proposed = {
         "id": None, 
-        "brand": brand or "Marque inconnue", 
-        "nom": nom or "Produit scanné",
+        "brand": brand or ("Unknown brand" if scan_lang == "en" else "Marque inconnue"),
+        "nom": nom or ("Scanned product" if scan_lang == "en" else "Produit scanné"),
         "categorie": cat,
         "category": cat.capitalize(),
         "actifs": [a for a in (data.get("actifs") or []) if a in {"retinol", "vitamine_c", "aha", "bha", "niacinamide", "peroxyde_benzoyle", "acide_hyaluronique", "peptides", "ceramides", "squalane", "panthenol", "acide_azelaique", "acide_mandelique", "vitamine_e", "centella", "zinc", "allantoine", "cafeine"}],
