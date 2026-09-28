@@ -105,8 +105,13 @@ const PeauSection = ({ entries, avg, lang, onBack }) => {
             {rated.map((e, i) => (
               <div key={i} className="flex items-center justify-between gap-3 px-4 py-3 rounded-[14px]" style={{ background: 'var(--cream-card)', border: '1px solid var(--line)' }}>
                 <span className="font-body text-[12px] line-clamp-1" style={{ color: 'var(--ink-soft)' }}>{e.title || (fr ? 'Routine' : 'Routine')}</span>
-                <span className="font-display text-[15px] shrink-0" style={{ color: 'var(--gold)' }}>
-                  {'★'.repeat(e.note_peau)}{'☆'.repeat(Math.max(0, 5 - e.note_peau))}
+                <span className="flex items-center gap-1.5 shrink-0">
+                  <span className="font-display text-[15px]" style={{ color: 'var(--gold)' }}>
+                    {'★'.repeat(e.note_peau)}{'☆'.repeat(Math.max(0, 5 - e.note_peau))}
+                  </span>
+                  {e.ressenti && FEELING_EMOJI[e.ressenti] && (
+                    <span className="text-[14px]">{FEELING_EMOJI[e.ressenti]}</span>
+                  )}
                 </span>
               </div>
             ))}
@@ -122,6 +127,8 @@ const PeauSection = ({ entries, avg, lang, onBack }) => {
 };
 
 // ===== Section Assiduité : % d'étapes complétées =====
+const FEELING_EMOJI = { eclatante: '✨', hydratee: '💧', apaisee: '🌿', tiraillements: '😣' };
+
 const AssiduiteSection = ({ pct, done, total, lang, onBack }) => {
   const fr = lang === 'fr';
   return (
@@ -421,9 +428,9 @@ const ActiviteSection = ({ entries, lang, t, onBack }) => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="font-body text-[13.5px] font-medium">{entry.title}</p>
-                    {entry.note_peau && (
+                    {(entry.ressenti || entry.note_peau) && (
                       <span className="text-[13px]" title={fr ? 'Ressenti peau' : 'Skin feel'}>
-                        {entry.note_peau <= 2 ? '😣' : entry.note_peau <= 4 ? '✨' : '🌟'}
+                        {FEELING_EMOJI[entry.ressenti] || (entry.note_peau <= 2 ? '😣' : entry.note_peau <= 4 ? '✨' : '🌟')}
                       </span>
                     )}
                   </div>

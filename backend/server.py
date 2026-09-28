@@ -110,6 +110,7 @@ class JournalIn(BaseModel):
     etapes_completees: int
     nb_total_etapes: int
     note_peau: Optional[int] = None
+    ressenti: Optional[str] = None
 
 class CheckoutIn(BaseModel):
     lookup_key: str
@@ -634,7 +635,7 @@ async def add_journal(body: JournalIn, user=Depends(current_user)):
     entry = {"id": str(uuid.uuid4()), "user_id": user["id"], "routine_type": body.routine_type,
              "horodatage": datetime.now(timezone.utc).isoformat(),
              "etapes_completees": body.etapes_completees, "nb_total_etapes": body.nb_total_etapes,
-             "note_peau": body.note_peau}
+             "note_peau": body.note_peau, "ressenti": body.ressenti}
     await db.journal_entries.insert_one(entry)
     # Étape 6 — un Wizz reçu auquel on répond par une routine complétée (12h pour répondre)
     now_iso = datetime.now(timezone.utc).isoformat()

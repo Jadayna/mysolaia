@@ -78,6 +78,14 @@ const Timer = ({ seconds, onDone, label }) => {
   );
 };
 
+// Ressentis peau (mots) - optionnels, en complement de la note en etoiles
+const FEELINGS = [
+  { key: 'eclatante', emoji: '\u2728', fr: '\u00c9clatante', en: 'Glowing', sub: 'Glowy & lumineuse', border: 'hover:border-amber-400' },
+  { key: 'hydratee', emoji: '\U0001f4a7', fr: 'Hydrat\u00e9e', en: 'Hydrated', sub: 'Souple & rebondie', border: 'hover:border-blue-400' },
+  { key: 'apaisee', emoji: '\U0001f33f', fr: 'Apais\u00e9e', en: 'Soothed', sub: 'Calme & fra\u00eeche', border: 'hover:border-emerald-400' },
+  { key: 'tiraillements', emoji: '\U0001f623', fr: 'Tiraillements', en: 'Tight', sub: 'Inconfort / s\u00e8che', border: 'hover:border-rose-400' },
+];
+
 const RoutineScreen = ({ go, routinePhase }) => {
   const { t, lang } = useT();
   // Utilise la phase transmise (jour/matin ou soir), sinon par défaut 'jour'
@@ -86,7 +94,8 @@ const RoutineScreen = ({ go, routinePhase }) => {
   const [done, setDone] = useState({});
   const [open, setOpen] = useState({});
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [skinRating, setSkinRating] = useState(null);
+  const [stars, setStars] = useState(0);
+  const [feeling, setFeeling] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guideMode, setGuideMode] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -136,6 +145,8 @@ const RoutineScreen = ({ go, routinePhase }) => {
 
     if (trackFeel) {
       // Si activé : on ouvre la boîte de dialogue
+      setStars(0);
+      setFeeling(null);
       setShowRatingModal(true);
     } else {
       // Si désactivé : on enregistre directement en 1 clic sans pop-up !
@@ -143,7 +154,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
     }
   };
 
-  const submitJournal = async (rating = null) => {
+  const submitJournal = async (rating = null, feelingKey = null) => {
     setIsSubmitting(true);
     try {
       await api.post('/journal', {
@@ -151,6 +162,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
         etapes_completees: doneCount,
         nb_total_etapes: total,
         note_peau: rating,
+        ressenti: feelingKey,
       });
       setShowRatingModal(false);
       // Marque la routine comme faite (rappels + streak en danger)
@@ -422,7 +434,7 @@ const RoutineScreen = ({ go, routinePhase }) => {
         </div>
       )}
 
-                  {/* Modal de Sensation de la peau à 4 humeurs */}
+{/* Modal de notation : etoiles 1-5 + ressenti (mots, optionnel) */}
       {showRatingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-xs animate-fade-up">
           <div className="w-full max-w-sm p-6 rounded-[24px] space-y-4 shadow-2xl text-center" style={{ background: '#FAF6F0', border: '1px solid var(--line)' }}>
@@ -434,67 +446,66 @@ const RoutineScreen = ({ go, routinePhase }) => {
                 <X size={18} />
               </button>
             </div>
-            
+
             <p className="font-body text-[12px]" style={{ color: 'var(--ink-soft)' }}>
               {lang === 'fr'
                 ? "Ton retour affine mes recommandations pour tes prochains soins."
                 : "Your feedback tunes my next routine recommendations."}
             </p>
 
+            {/* Note en etoiles 1-5 */}
+            <div className="flex items-center justify-center gap-1 pt-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setStars(n)}
+                  disabled={isSubmitting}
+                  className="p-1 transition-transform active:scale-110"
+                  aria-label={`${n} / 5`}
+                >
+                  <span className="text-[34px] leading-none" style={{ color: n <= stars ? '#A37B68' : '#D8CFC4' }}>
+                    {n <= stars ? '\u2605' : '\u2606'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Ressenti (mots) - optionnel */}
             <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button
-                onClick={() => submitJournal(5)}
-                disabled={isSubmitting}
-                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-amber-400 shadow-xs"
-              >
-                <span className="text-[24px]">✨</span>
-                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
-                  {lang === 'fr' ? "Éclatante" : "Glowing"}
-                </span>
-                <span className="font-body text-[10px] text-stone-400">Glowy & lumineuse</span>
-              </button>
-
-              <button
-                onClick={() => submitJournal(4)}
-                disabled={isSubmitting}
-                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-blue-400 shadow-xs"
-              >
-                <span className="text-[24px]">💧</span>
-                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
-                  {lang === 'fr' ? "Hydratée" : "Hydrated"}
-                </span>
-                <span className="font-body text-[10px] text-stone-400">Souple & rebondie</span>
-              </button>
-
-              <button
-                onClick={() => submitJournal(3)}
-                disabled={isSubmitting}
-                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-emerald-400 shadow-xs"
-              >
-                <span className="text-[24px]">🌿</span>
-                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
-                  {lang === 'fr' ? "Apaisée" : "Soothed"}
-                </span>
-                <span className="font-body text-[10px] text-stone-400">Calme & fraîche</span>
-              </button>
-
-              <button
-                onClick={() => submitJournal(1)}
-                disabled={isSubmitting}
-                className="p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 hover:border-rose-400 shadow-xs"
-              >
-                <span className="text-[24px]">😣</span>
-                <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
-                  {lang === 'fr' ? "Tiraillements" : "Tight"}
-                </span>
-                <span className="font-body text-[10px] text-stone-400">Inconfort / sèche</span>
-              </button>
+              {FEELINGS.map((f) => {
+                const selected = feeling === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => setFeeling(selected ? null : f.key)}
+                    disabled={isSubmitting}
+                    className={`p-3 rounded-[14px] flex flex-col items-center gap-1 transition-all active:scale-95 bg-white border border-stone-200 shadow-xs ${f.border}`}
+                    style={selected ? { borderColor: '#A37B68', boxShadow: '0 0 0 1.5px #A37B68' } : undefined}
+                  >
+                    <span className="text-[24px]">{f.emoji}</span>
+                    <span className="font-display text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>
+                      {lang === 'fr' ? f.fr : f.en}
+                    </span>
+                    <span className="font-body text-[10px] text-stone-400">{f.sub}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <button
-              onClick={() => submitJournal(null)}
+              onClick={() => submitJournal(stars > 0 ? stars : null, feeling)}
+              disabled={isSubmitting || (stars === 0 && !feeling)}
+              className="w-full rounded-[12px] py-3 font-body text-[11px] uppercase font-semibold text-white disabled:opacity-40"
+              style={{ background: '#A37B68', letterSpacing: '0.08em' }}
+            >
+              {lang === 'fr' ? 'Enregistrer' : 'Save'}
+            </button>
+
+            <button
+              onClick={() => submitJournal(null, null)}
               disabled={isSubmitting}
-              className="mt-2 text-stone-400 font-body text-[11px] underline uppercase tracking-caps"
+              className="text-stone-400 font-body text-[11px] underline uppercase"
+              style={{ letterSpacing: '0.08em' }}
             >
               {lang === 'fr' ? "Passer sans noter" : "Skip rating"}
             </button>
