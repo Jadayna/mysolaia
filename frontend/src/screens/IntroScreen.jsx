@@ -13,8 +13,8 @@ const CARDS = [
   },
   {
     icon: Camera,
-    fr: { title: 'Scanne tes produits', text: 'Photographie tes flacons : l\u2019IA identifie le produit, ses actifs et sa dur\u00e9e de conservation.' },
-    en: { title: 'Scan your products', text: 'Snap your bottles: AI identifies the product, its actives and shelf life.' },
+    fr: { title: 'Scanne tes produits', text: 'Photographie tes flacons : produit, actifs et dur\u00e9e de conservation identifi\u00e9s en quelques secondes.' },
+    en: { title: 'Scan your products', text: 'Snap your bottles: product, actives and shelf life identified in seconds.' },
   },
   {
     icon: ListChecks,
