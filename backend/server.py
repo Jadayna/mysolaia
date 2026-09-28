@@ -420,6 +420,10 @@ async def delete_account(body: DeleteAccountIn, user=Depends(current_user)):
     await db.user_products.delete_many({"user_id": uid})
     await db.journal_entries.delete_many({"user_id": uid})
     await db.payment_transactions.delete_many({"user_id": uid})
+    await db.friendships.delete_many({"$or": [{"user_a": uid}, {"user_b": uid}]})
+    await db.wizzes.delete_many({"$or": [{"from_id": uid}, {"to_id": uid}]})
+    await db.scan_usage.delete_many({"user_id": uid})
+    await db.password_resets.delete_many({"user_id": uid})
     await db.users.delete_one({"id": uid})
     return {"ok": True} 
 
