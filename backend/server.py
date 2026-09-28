@@ -692,14 +692,17 @@ async def get_journal(periode: str = "week", lang: str = "fr", tz: str = "UTC", 
     def fmt(e):
         dt = datetime.fromisoformat(e["horodatage"]).astimezone(user_tz)
         wd = weekdays[dt.weekday()][:3]
-        complete = e["etapes_completees"] >= e["nb_total_etapes"]
+        done_n = e.get("etapes_completees") or 0
+        total_n = e.get("nb_total_etapes") or 0
+        complete = done_n >= total_n
         if lang == "fr":
-            done = "complété" if complete else f"{e['etapes_completees']} étapes sur {e['nb_total_etapes']}"
+            done = "complété" if complete else f"{done_n} étapes sur {total_n}"
             time_str = dt.strftime("%H h %M")
         else:
-            done = "complete" if complete else f"{e['etapes_completees']} of {e['nb_total_etapes']} steps"
+            done = "complete" if complete else f"{done_n} of {total_n} steps"
             time_str = dt.strftime("%H:%M")
-        return {"title": e["routine_type"], "meta": f"{wd}. {dt.day} \u00b7 {done}", "time": time_str, "note_peau": e.get("note_peau")}
+        return {"title": e["routine_type"], "meta": f"{wd}. {dt.day} \u00b7 {done}", "time": time_str, "note_peau": e.get("note_peau"),
+                "ressenti": e.get("ressenti"), "etapes_completees": done_n, "nb_total_etapes": total_n}
 
     stats = [{"n": str(streak), "label": "streak"},
              {"n": str(len(last30)), "label": "care30"},
