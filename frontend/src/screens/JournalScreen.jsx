@@ -137,7 +137,13 @@ const AssiduiteSection = ({ pct, done, total, lang, onBack }) => {
           <div className="h-full rounded-full transition-all" style={{ width: `${pct || 0}%`, background: 'var(--gold)' }} />
         </div>
         <p className="font-body text-[12px]" style={{ color: 'var(--ink-faint)' }}>
-          {fr ? 'Des étapes de ta routine complétées sur la période affichée.' : 'Of your routine steps completed in the shown period.'}
+          {pct === null
+            ? (fr
+                ? "Tu n'as pas encore coché d'étapes sur cette période. Fais ta routine et coche les étapes au fur et à mesure — ton assiduité apparaîtra ici."
+                : "No steps checked off in this period yet. Do your routine and check steps as you go — your consistency will show up here.")
+            : (fr
+                ? "Part des étapes de tes routines que tu as cochées sur la période affichée."
+                : "Share of your routine steps checked off in the shown period.")}
         </p>
       </div>
     </div>
