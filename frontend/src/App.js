@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthScreen from './screens/AuthScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import IntroScreen from './screens/IntroScreen';
 import AppShell from './components/AppShell';
 import { initAnalytics } from './lib/analytics';
 
@@ -20,12 +21,21 @@ const Splash = () => (
 
 const Gate = () => {
   const { user, loading } = useAuth();
+  const [introSeen, setIntroSeen] = React.useState(() => {
+    try { return localStorage.getItem('mysolaia_intro_seen') === '1'; }
+    catch (e) { return true; }
+  });
   // Lien de réinitialisation du mot de passe (?reset_token=...) : prioritaire
   const [resetToken] = React.useState(() => new URLSearchParams(window.location.search).get('reset_token'));
   if (resetToken) return <ResetPasswordScreen token={resetToken} />;
   if (loading) return <Splash />;
   if (!user) return <AuthScreen />;
-  if (!user.onboarded) return <OnboardingScreen />;
+  if (!user.onboarded) {
+    // Cartes d'intro : première utilisation uniquement, avant le quiz.
+    // Le CTA final règle l'onglet scan pour l'arrivée dans l'app.
+    if (introSeen) return <OnboardingScreen />;
+    return <IntroScreen onDone={() => setIntroSeen(true)} />;
+  }
   return <AppShell />;
 };
 
