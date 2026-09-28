@@ -79,12 +79,19 @@ const AuthScreen = () => {
       }
     } catch (err) {
       const status = err?.response?.status;
+      // 400 à l'inscription = courriel déjà utilisé (le backend renvoie 400).
+      // Avant, ça affichait « Impossible de joindre le serveur » à tort.
+      const alreadyUsed = status === 400 && !isLogin;
       setAuthError(
         status === 401
           ? (lang === 'fr' ? 'Courriel ou mot de passe incorrect.' : 'Incorrect email or password.')
-          : (lang === 'fr'
-              ? 'Impossible de joindre le serveur. Vérifie ta connexion et réessaie.'
-              : "Couldn't reach the server. Check your connection and try again.")
+          : alreadyUsed
+            ? (lang === 'fr'
+                ? 'Ce courriel a déjà un compte. Connecte-toi plutôt via « Se connecter ».'
+                : 'This email already has an account. Try signing in instead.')
+            : (lang === 'fr'
+                ? 'Impossible de joindre le serveur. Vérifie ta connexion et réessaie.'
+                : "Couldn't reach the server. Check your connection and try again.")
       );
     } finally {
       setAuthBusy(false);
