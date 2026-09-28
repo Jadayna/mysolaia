@@ -72,7 +72,7 @@ const OnboardingScreen = () => {
           ))}
         </div>
 
-        <button onClick={finish} disabled={busy} className="gold-btn w-full rounded-[12px] py-3.5 mt-12 font-body tracking-caps text-[11px] uppercase font-semibold text-white" style={{ background: '#A37B68' }}>
+        <button onClick={finish} disabled={busy} className="w-full rounded-[12px] py-3.5 mt-12 font-body text-[11px] uppercase font-semibold text-white" style={{ background: '#A37B68' }}>
           {t('continue')}
         </button>
       </div>
