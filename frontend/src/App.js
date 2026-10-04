@@ -7,6 +7,7 @@ import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import IntroScreen from './screens/IntroScreen';
 import AppShell from './components/AppShell';
+import InstallBanner from './components/InstallBanner';
 import { initAnalytics } from './lib/analytics';
 
 const Splash = () => (
@@ -49,6 +50,7 @@ function App() {
     <div className="App">
       <LanguageProvider>
         <AuthProvider>
+          <InstallBanner />
           <Gate />
         </AuthProvider>
       </LanguageProvider>
