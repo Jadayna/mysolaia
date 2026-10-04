@@ -3,17 +3,23 @@
   "name": "MySolaia — la routine qui se construit toute seule",
   "description": "Calcule l'ordre d'application de tes produits skincare et prévient des combinaisons risquées.",
   "icons": [
-    { 
-      "src": "/mysolaia-symbole-2048.png",
+    {
+      "src": "/icon-192.png",
       "type": "image/png",
-      "sizes": "2048x2048",
-      "purpose": "any" 
+      "sizes": "192x192",
+      "purpose": "any"
     },
-    { 
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
       "src": "/icon-maskable-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "maskable" 
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",

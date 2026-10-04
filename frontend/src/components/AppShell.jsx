@@ -47,6 +47,7 @@ const AppShell = () => {
   // --- Gestion Installation PWA (iOS & Android) ---
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [wizzAlert, setWizzAlert] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
@@ -84,6 +85,26 @@ const AppShell = () => {
 
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
+
+  // Wizz reçus : bannière visible dans toute l'app (pas seulement dans Mon Cercle)
+  useEffect(() => {
+    let alive = true;
+    api.get('/circle').then((res) => {
+      if (!alive) return;
+      const rec = res.data?.wizz_received || [];
+      const pending = rec.find((w) => !w.responded && !w.expired);
+      if (pending) {
+        try { if (sessionStorage.getItem('mysolaia_wizz_seen_' + pending.id)) return; } catch (e) {}
+        setWizzAlert(pending);
+      }
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const dismissWizz = (id) => {
+    try { sessionStorage.setItem('mysolaia_wizz_seen_' + id, '1'); } catch (e) {}
+    setWizzAlert(null);
+  };
 
   // Interception universelle du retour Stripe
   useEffect(() => {
@@ -239,8 +260,8 @@ const go = (id, opts) => {
             </button>
           </div>
 
-          {/* Bouton d'action TOUJOURS visible sur Android / Web */}
-          {!isIOS && (
+          {/* Bouton d'action sur Android / Web — ou marche à suivre si Chrome ne propose pas l'installation */}
+          {!isIOS && ((typeof window !== 'undefined' && window.deferredPrompt) || deferredPrompt ? (
             <button
               onClick={handleInstallClick}
               className="mt-3 w-full py-2.5 px-3 rounded-[12px] text-white font-body text-[11px] font-semibold uppercase tracking-caps flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
@@ -249,7 +270,13 @@ const go = (id, opts) => {
               <Download size={14} />
               <span>{lang === 'fr' ? "Ajouter à l'écran d'accueil" : "Add to Home Screen"}</span>
             </button>
-          )}
+          ) : (
+            <p className="mt-3 font-body text-[11px] leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              {lang === 'fr'
+                ? "Astuce : menu ⋮ du navigateur → « Installer l'application » (ou « Ajouter à l'écran d'accueil »)."
+                : "Tip: browser menu ⋮ → “Install app” (or “Add to Home screen”)."}
+            </p>
+          ))}
 
           {/* Guide iPhone */}
           {isIOS && (
@@ -262,6 +289,45 @@ const go = (id, opts) => {
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Alerte Wizz : flotte au-dessus de la navigation, dans toute l'app */}
+      {wizzAlert && (
+        <div
+          className="fixed left-3.5 right-3.5 z-40 p-4 rounded-[20px] shadow-2xl animate-fade-up"
+          style={{
+            bottom: showInstallBanner ? '200px' : '96px',
+            background: '#FAF6F0',
+            border: '1.5px solid var(--gold)',
+            boxShadow: '0 12px 35px -10px rgba(163, 123, 104, 0.45)',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-[28px] shrink-0">💫</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-[14px] font-semibold leading-tight" style={{ color: 'var(--ink)' }}>
+                {lang === 'fr' ? `${wizzAlert.from_nom} t'a envoy\u00e9 un Wizz !` : `${wizzAlert.from_nom} sent you a Wizz!`}
+              </p>
+              <p className="font-body text-[11px] mt-0.5" style={{ color: 'var(--ink-soft)' }}>
+                {lang === 'fr' ? 'R\u00e9ponds avec une routine compl\u00e9t\u00e9e 💪' : 'Answer with a completed routine 💪'}
+              </p>
+            </div>
+            <button
+              onClick={() => { dismissWizz(wizzAlert.id); go('routine'); }}
+              className="shrink-0 px-3 py-2 rounded-[12px] text-white font-body text-[10px] font-semibold uppercase"
+              style={{ background: '#A37B68', letterSpacing: '0.06em' }}
+            >
+              {lang === 'fr' ? 'Go' : 'Go'}
+            </button>
+            <button
+              onClick={() => dismissWizz(wizzAlert.id)}
+              aria-label={lang === 'fr' ? 'Fermer' : 'Dismiss'}
+              className="p-1 rounded-full text-stone-400 shrink-0"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 

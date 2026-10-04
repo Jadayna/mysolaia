@@ -777,13 +777,13 @@ def _observation(entries, lang="fr"):
 # ---------------- Mon Cercle (Étape 6) ----------------
 def _invite_code():
     alphabet = string.ascii_uppercase + string.digits
-    return "SOLAIA-" + "".join(secrets.choice(alphabet) for _ in range(6))
+    return "".join(secrets.choice(alphabet) for _ in range(6))
 
 async def _ensure_circle_fields(uid: str):
     """Garantit le code de parrainage unique + le compteur d'invitations (3 gratuites)."""
     u = await db.users.find_one({"id": uid}, {"_id": 0})
     updates = {}
-    if not u.get("invite_code"):
+    if not u.get("invite_code") or u.get("invite_code", "").startswith("SOLAIA-"):
         for _ in range(5):
             code = _invite_code()
             if not await db.users.find_one({"invite_code": code}):

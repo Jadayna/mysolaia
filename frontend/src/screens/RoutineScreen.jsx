@@ -81,9 +81,9 @@ const Timer = ({ seconds, onDone, label }) => {
 // Ressentis peau (mots) - optionnels, en complement de la note en etoiles
 const FEELINGS = [
   { key: 'eclatante', emoji: '\u2728', fr: '\u00c9clatante', en: 'Glowing', sub: 'Glowy & lumineuse', border: 'hover:border-amber-400' },
-  { key: 'hydratee', emoji: '\U0001f4a7', fr: 'Hydrat\u00e9e', en: 'Hydrated', sub: 'Souple & rebondie', border: 'hover:border-blue-400' },
-  { key: 'apaisee', emoji: '\U0001f33f', fr: 'Apais\u00e9e', en: 'Soothed', sub: 'Calme & fra\u00eeche', border: 'hover:border-emerald-400' },
-  { key: 'tiraillements', emoji: '\U0001f623', fr: 'Tiraillements', en: 'Tight', sub: 'Inconfort / s\u00e8che', border: 'hover:border-rose-400' },
+  { key: 'hydratee', emoji: '💧', fr: 'Hydrat\u00e9e', en: 'Hydrated', sub: 'Souple & rebondie', border: 'hover:border-blue-400' },
+  { key: 'apaisee', emoji: '🌿', fr: 'Apais\u00e9e', en: 'Soothed', sub: 'Calme & fra\u00eeche', border: 'hover:border-emerald-400' },
+  { key: 'tiraillements', emoji: '😣', fr: 'Tiraillements', en: 'Tight', sub: 'Inconfort / s\u00e8che', border: 'hover:border-rose-400' },
 ];
 
 const RoutineScreen = ({ go, routinePhase }) => {

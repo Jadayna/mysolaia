@@ -163,7 +163,7 @@ const CircleScreen = ({ go }) => {
             <input
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="SOLAIA-XXXXXX"
+              placeholder="ABC123"
               className="flex-1 p-2.5 rounded-[10px] font-body text-[14px] outline-none uppercase text-center tracking-widest"
               style={{ background: '#fff', border: '1px solid var(--line)', color: 'var(--ink)' }}
             />
